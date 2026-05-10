@@ -1,5 +1,4 @@
 'use client'
-import Link from 'next/link'
 import SearchBar from '@/components/ui/SearchBar'
 import UserAvatar from '@/components/ui/UserAvatar'
 import { User } from '@/types'

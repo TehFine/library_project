@@ -1,5 +1,5 @@
 'use client'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { BookCard, BookListRow } from '@/components/books/BookCard'
 import { Pagination, EmptyState, Skeleton } from '@/components/ui'
@@ -11,6 +11,14 @@ import { cn } from '@/lib/utils'
 type ViewMode = 'grid' | 'list'
 
 export default function BooksPage() {
+  return (
+    <Suspense fallback={<Skeleton className="h-96 w-full rounded-3xl" />}>
+      <BooksContent />
+    </Suspense>
+  )
+}
+
+function BooksContent() {
   const searchParams = useSearchParams()
 
   const [books, setBooks]           = useState<Book[]>([])
@@ -24,7 +32,7 @@ export default function BooksPage() {
   const [onlyAvailable, setOnlyAvailable] = useState(false)
   const [viewMode, setViewMode]     = useState<ViewMode>('grid')
 
-  const searchTimer = useRef<ReturnType<typeof setTimeout>>()
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const LIMIT = 20
 
   const load = useCallback(async (p: number) => {
@@ -51,6 +59,7 @@ export default function BooksPage() {
     return () => clearTimeout(searchTimer.current)
   }, [search, catId, onlyAvailable, load])
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load(page) }, [page, load])
 
   const totalPages = Math.ceil(total / LIMIT)

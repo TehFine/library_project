@@ -37,6 +37,7 @@ export default function BorrowsPage() {
     }
   }
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load(page, tab) }, [page, tab])
 
   function handleTabChange(t: BorrowStatus | 'all') {

@@ -122,7 +122,7 @@ function StatCardSmall({ label, value }: { label: string; value: string }) {
 function AccordionPersonalInfo({ 
   user, editing, setEditing, onSave, loading, 
   fullName, setFullName, phone, setPhone, address, setAddress 
-}: any) {
+}: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
   const items = [
     { icon: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>, label: 'Email liên hệ', value: user.email },
     { icon: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>, label: 'Điện thoại', value: user.phone || '—' },
@@ -175,7 +175,7 @@ function SecurityCard({
   pwSection, setPwSection, currentPw, setCurrentPw, 
   newPw, setNewPw, confirmPw, setConfirmPw, 
   pwError, setPwError, handleChangePassword, pwLoading 
-}: any) {
+}: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
   return (
     <div className="rounded-[2rem] bg-[#fbf9f4] shadow-sm border border-amber-100/50 p-6 h-full flex flex-col relative overflow-hidden">
        {/* Fake Calendar Header */}

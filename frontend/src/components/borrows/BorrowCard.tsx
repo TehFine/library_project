@@ -50,7 +50,7 @@ export default function BorrowCard({ record, onRenew, isRenewing }: BorrowCardPr
               {formatDate(record.dueDate)}
             </p>
           </div>
-          {record.status === 'borrowing' && (
+          {(record.status === 'borrowing' || record.status === 'overdue') && (
             <div className="col-span-2">
               <span className={cn(
                 'text-xs font-medium',

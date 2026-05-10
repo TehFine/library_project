@@ -1,10 +1,10 @@
 'use client'
 import { useEffect, useState } from 'react'
 import PageHeader from '@/components/layout/PageHeader'
-import { Badge, Card, EmptyState, Pagination, Skeleton } from '@/components/ui'
+import { Badge, EmptyState, Pagination, Skeleton } from '@/components/ui'
 import { reservationsApi } from '@/lib/api'
 import { Reservation } from '@/types'
-import { formatDate, reservationStatusMap, cn } from '@/lib/utils'
+import { formatDate, reservationStatusMap } from '@/lib/utils'
 import Button from '@/components/ui/Button'
 
 export default function ReservationsPage() {
@@ -24,6 +24,7 @@ export default function ReservationsPage() {
     } finally { setLoading(false) }
   }
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load(page) }, [page])
 
   async function handleCancel(id: string) {

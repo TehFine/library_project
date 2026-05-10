@@ -6,7 +6,6 @@ import { booksApi, reservationsApi } from '@/lib/api'
 import { Book } from '@/types'
 import { Badge, Card, Skeleton } from '@/components/ui'
 import Button from '@/components/ui/Button'
-import { cn } from '@/lib/utils'
 
 export default function BookDetailPage() {
   const { id } = useParams<{ id: string }>()

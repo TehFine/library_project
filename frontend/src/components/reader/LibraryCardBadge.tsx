@@ -19,6 +19,7 @@ export default function LibraryCardBadge({ card, className }: LibraryCardBadgePr
 
   const si = cardStatusMap[card.status]
   const isExpiringSoon = (() => {
+    // eslint-disable-next-line react-hooks/purity
     const days = Math.ceil((new Date(card.expiryDate).getTime() - Date.now()) / 86400000)
     return days > 0 && days <= 30
   })()
