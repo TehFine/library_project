@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { authApi } from '@/lib/api'
 import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
+import { getDashboardPath } from '@/lib/auth-utils'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -21,7 +22,7 @@ export default function LoginPage() {
       const res = await authApi.login(email, password)
       localStorage.setItem('access_token', res.accessToken)
       document.cookie = `access_token=${res.accessToken}; path=/; max-age=86400; SameSite=Lax`
-      router.push('/reader/dashboard')
+      router.push(getDashboardPath(res.user.role))
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Sai email hoặc mật khẩu')
     } finally {

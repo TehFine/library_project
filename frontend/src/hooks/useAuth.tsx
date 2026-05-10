@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useState, useCallback } from 'rea
 import { useRouter } from 'next/navigation'
 import { authApi } from '@/lib/api'
 import { User } from '@/types'
+import { getDashboardPath } from '@/lib/auth-utils'
 
 interface AuthContextValue {
   user: User | null
@@ -39,7 +40,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('access_token', res.accessToken)
     document.cookie = `access_token=${res.accessToken}; path=/; max-age=${8 * 3600}; SameSite=Lax`
     setUser(res.user)
-    router.push('/dashboard')
+    router.push(getDashboardPath(res.user.role))
   }
 
   function logout() {

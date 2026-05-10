@@ -1,37 +1,59 @@
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import { NextResponse, NextRequest } from 'next/server'
 
-// Routes công khai — không cần đăng nhập
+// Decode JWT payload without a library (Safe for Middleware)
+function decodeJwt(token: string) {
+  try {
+    const base64Url = token.split('.')[1]
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
+    const jsonPayload = Buffer.from(base64, 'base64').toString()
+    return JSON.parse(jsonPayload)
+  } catch {
+    return null
+  }
+}
+
+function getDashboardPath(role: string): string {
+  switch (role) {
+    case 'librarian':
+    case 'library_admin':
+      return '/librarian/dashboard'
+    case 'reader':
+    default:
+      return '/reader/dashboard'
+  }
+}
+
 const PUBLIC_ROUTES = ['/auth/login', '/auth/register']
 
-// Routes yêu cầu đăng nhập
-const PROTECTED_PREFIX = ['/reader']
-
-export default function proxy(request: NextRequest) {
+export default function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
-
-  // Lấy token từ cookie (Next.js middleware không đọc được localStorage)
-  // Frontend sẽ lưu token vào cookie khi đăng nhập
   const token = request.cookies.get('access_token')?.value
+  const payload = token ? decodeJwt(token) : null
+  const role = payload?.role
 
-  const isPublic    = PUBLIC_ROUTES.some(r => pathname.startsWith(r))
-  const isProtected = PROTECTED_PREFIX.some(r => pathname.startsWith(r))
-
-  // Nếu truy cập root, redirect về reader dashboard
+  const isPublic = PUBLIC_ROUTES.some(r => pathname.startsWith(r))
+  
+  // 1. Root redirect
   if (pathname === '/') {
-    return NextResponse.redirect(new URL('/reader/dashboard', request.url))
+    if (token && role) {
+      return NextResponse.redirect(new URL(getDashboardPath(role), request.url))
+    }
+    return NextResponse.redirect(new URL('/auth/login', request.url))
   }
 
-  // Chưa đăng nhập mà vào route bảo vệ → chuyển về login
-  if (isProtected && !token) {
-    const loginUrl = new URL('/auth/login', request.url)
-    loginUrl.searchParams.set('from', pathname)
-    return NextResponse.redirect(loginUrl)
+  // 2. Protect Reader routes
+  if (pathname.startsWith('/reader') && (!token || role !== 'reader')) {
+    return NextResponse.redirect(new URL('/auth/login', request.url))
   }
 
-  // Đã đăng nhập mà vào login/register → chuyển về dashboard
-  if (isPublic && token) {
-    return NextResponse.redirect(new URL('/reader/dashboard', request.url))
+  // 3. Protect Librarian routes
+  if (pathname.startsWith('/librarian') && (!token || (role !== 'librarian' && role !== 'library_admin'))) {
+    return NextResponse.redirect(new URL('/auth/login', request.url))
+  }
+
+  // 4. Redirect logged in users away from public routes
+  if (isPublic && token && role) {
+    return NextResponse.redirect(new URL(getDashboardPath(role), request.url))
   }
 
   return NextResponse.next()
