@@ -14,8 +14,9 @@ function decodeJwt(token: string) {
 
 function getDashboardPath(role: string): string {
   switch (role) {
-    case 'librarian':
     case 'library_admin':
+      return '/admin/dashboard'
+    case 'librarian':
       return '/librarian/dashboard'
     case 'reader':
     default:
@@ -41,17 +42,22 @@ export default function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/auth/login', request.url))
   }
 
-  // 2. Protect Reader routes
-  if (pathname.startsWith('/reader') && (!token || role !== 'reader')) {
+  // 2. Protect Admin routes
+  if (pathname.startsWith('/admin') && (!token || role !== 'library_admin')) {
     return NextResponse.redirect(new URL('/auth/login', request.url))
   }
 
   // 3. Protect Librarian routes
-  if (pathname.startsWith('/librarian') && (!token || (role !== 'librarian' && role !== 'library_admin'))) {
+  if (pathname.startsWith('/librarian') && (!token || role !== 'librarian')) {
     return NextResponse.redirect(new URL('/auth/login', request.url))
   }
 
-  // 4. Redirect logged in users away from public routes
+  // 4. Protect Reader routes
+  if (pathname.startsWith('/reader') && (!token || role !== 'reader')) {
+    return NextResponse.redirect(new URL('/auth/login', request.url))
+  }
+
+  // 5. Redirect logged in users away from public routes
   if (isPublic && token && role) {
     return NextResponse.redirect(new URL(getDashboardPath(role), request.url))
   }

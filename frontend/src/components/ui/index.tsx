@@ -1,4 +1,7 @@
 import { cn } from '@/lib/utils'
+import Modal from './Modal'
+
+export { Modal }
 
 // ── Badge ─────────────────────────────────────────────────────────────────────
 interface BadgeProps {

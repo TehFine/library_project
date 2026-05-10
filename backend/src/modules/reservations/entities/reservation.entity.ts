@@ -1,0 +1,40 @@
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, ManyToOne } from 'typeorm'
+import { LibraryCard } from '../../library-cards/entities/library-card.entity'
+import { Book } from '../../books/entities/book.entity'
+
+@Entity('reservations')
+export class Reservation {
+    @PrimaryGeneratedColumn('uuid')
+    id: string
+
+    @ManyToOne(() => LibraryCard)
+    libraryCard: LibraryCard
+
+    @Column()
+    libraryCardId: string
+
+    @ManyToOne(() => Book)
+    book: Book
+
+    @Column()
+    bookId: string
+
+    @Column({ default: 1 })
+    queuePosition: number
+
+    @Column({
+        type: 'enum',
+        enum: ['waiting', 'notified', 'completed', 'cancelled', 'expired'],
+        default: 'waiting'
+    })
+    status: string
+
+    @CreateDateColumn()
+    reservedAt: Date
+
+    @Column({ type: 'timestamp', nullable: true })
+    notifiedAt: Date
+
+    @Column({ type: 'timestamp', nullable: true })
+    expiresAt: Date
+}

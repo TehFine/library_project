@@ -1,9 +1,13 @@
 import { Module } from '@nestjs/common'
-import { PassportModule } from '@nestjs/passport'
+import { TypeOrmModule } from '@nestjs/typeorm'
 import { FinesController } from './fines.controller'
+import { FinesService } from './fines.service'
+import { Fine } from './entities/fine.entity'
 
 @Module({
-    imports: [PassportModule],
+    imports: [TypeOrmModule.forFeature([Fine])],
     controllers: [FinesController],
+    providers: [FinesService],
+    exports: [FinesService]
 })
 export class FinesModule { }

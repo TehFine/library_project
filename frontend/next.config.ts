@@ -8,10 +8,7 @@ const nextConfig: NextConfig = {
       { protocol: 'http',  hostname: 'localhost' },
     ],
   },
-  devIndicators: {
-    appIsrStatus: false,
-    buildActivity: false,
-  },
+  devIndicators: false,
   turbopack: {
     root: path.resolve(__dirname),
   },

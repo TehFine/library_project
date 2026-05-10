@@ -2,8 +2,9 @@ import { Role } from '@/types'
 
 export function getDashboardPath(role: Role | string): string {
   switch (role) {
-    case 'librarian':
     case 'library_admin':
+      return '/admin/dashboard'
+    case 'librarian':
       return '/librarian/dashboard'
     case 'reader':
     default:
