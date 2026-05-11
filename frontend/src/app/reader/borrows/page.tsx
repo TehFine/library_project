@@ -30,8 +30,21 @@ export default function BorrowsPage() {
         page: p, limit: LIMIT,
         ...(t !== 'all' && { status: t }),
       })
-      setRecords(res.data)
-      setTotal(res.total)
+      
+      if (Array.isArray(res)) {
+        setRecords(res)
+        setTotal(res.length)
+      } else if (res && res.data) {
+        setRecords(res.data)
+        setTotal(res.total ?? res.data.length)
+      } else {
+        setRecords([])
+        setTotal(0)
+      }
+    } catch (err) {
+      console.error('Failed to load borrows:', err)
+      setRecords([])
+      setTotal(0)
     } finally {
       setLoading(false)
     }

@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Body, Param, UseGuards, Req } from '@nestjs/common'
 import { LibraryCardsService } from './library-cards.service'
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard'
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard'
 
 @Controller('library-cards')
 @UseGuards(JwtAuthGuard)
@@ -10,6 +10,11 @@ export class LibraryCardsController {
     @Get()
     findAll() {
         return this.service.findAll()
+    }
+
+    @Get('mine')
+    findMine(@Req() req: any) {
+        return this.service.findMine(req.user.userId)
     }
 
     @Get(':cardNumber')
@@ -22,3 +27,4 @@ export class LibraryCardsController {
         return this.service.create(body, req.user.userId)
     }
 }
+

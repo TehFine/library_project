@@ -28,7 +28,8 @@ import { DatabaseModule } from './common/database/database.module'
                 password: configService.get<string>('DB_PASSWORD'),
                 database: configService.get<string>('DB_DATABASE'),
                 autoLoadEntities: true,
-                synchronize: true, 
+                synchronize: true,
+                ssl: { rejectUnauthorized: false }, 
             }),
             inject: [ConfigService],
         }),
@@ -46,3 +47,4 @@ import { DatabaseModule } from './common/database/database.module'
     providers: [AppService],
 })
 export class AppModule { }
+

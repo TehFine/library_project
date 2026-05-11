@@ -17,8 +17,20 @@ export default function FinesPage() {
     setLoading(true)
     try {
       const res = await finesApi.mine({ page: p, limit: LIMIT })
-      setFines(res.data)
-      setTotal(res.total)
+      if (Array.isArray(res)) {
+        setFines(res)
+        setTotal(res.length)
+      } else if (res && res.data) {
+        setFines(res.data)
+        setTotal(res.total ?? res.data.length)
+      } else {
+        setFines([])
+        setTotal(0)
+      }
+    } catch (err) {
+      console.error('Failed to load fines:', err)
+      setFines([])
+      setTotal(0)
     } finally { setLoading(false) }
   }
 

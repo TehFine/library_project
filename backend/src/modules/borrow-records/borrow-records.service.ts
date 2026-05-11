@@ -115,4 +115,29 @@ export class BorrowRecordsService {
             order: { createdAt: 'DESC' }
         })
     }
+
+    async findMine(userId: string, query: any) {
+        const { status, page = 1, limit = 10 } = query
+        const skip = (page - 1) * limit
+
+        const [data, total] = await this.borrowRepo.findAndCount({
+            where: {
+                libraryCard: { userId },
+                ...(status && status !== 'all' && { status })
+            },
+            relations: ['bookCopy', 'bookCopy.book'],
+            order: { createdAt: 'DESC' },
+            take: limit,
+            skip: skip
+        })
+
+        return {
+            data,
+            total,
+            page: Number(page),
+            limit: Number(limit),
+            totalPages: Math.ceil(total / limit)
+        }
+    }
 }
+

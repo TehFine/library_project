@@ -1,6 +1,6 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Req, Delete } from '@nestjs/common'
+import { Controller, Get, Post, Body, Param, UseGuards, Req, Delete, Query } from '@nestjs/common'
 import { ReservationsService } from './reservations.service'
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard'
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard'
 
 @Controller('reservations')
 @UseGuards(JwtAuthGuard)
@@ -10,6 +10,11 @@ export class ReservationsController {
     @Get()
     findAll() {
         return this.service.findAll()
+    }
+
+    @Get('mine')
+    findMine(@Req() req: any, @Query() query: any) {
+        return this.service.findMine(req.user.userId, query)
     }
 
     @Post()
@@ -22,3 +27,4 @@ export class ReservationsController {
         return this.service.cancel(id)
     }
 }
+

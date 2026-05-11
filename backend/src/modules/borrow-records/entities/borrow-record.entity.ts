@@ -54,3 +54,4 @@ export class BorrowRecord {
     @CreateDateColumn()
     createdAt: Date
 }
+

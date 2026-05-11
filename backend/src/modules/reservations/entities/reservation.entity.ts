@@ -1,6 +1,6 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, ManyToOne } from 'typeorm'
-import { LibraryCard } from '../../library-cards/entities/library-card.entity'
-import { Book } from '../../books/entities/book.entity'
+import { LibraryCard } from '@/modules/library-cards/entities/library-card.entity'
+import { Book } from '@/modules/books/entities/book.entity'
 
 @Entity('reservations')
 export class Reservation {
@@ -38,3 +38,4 @@ export class Reservation {
     @Column({ type: 'timestamp', nullable: true })
     expiresAt: Date
 }
+

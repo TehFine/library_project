@@ -1,6 +1,6 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Req, Patch } from '@nestjs/common'
+import { Controller, Get, Post, Body, Param, UseGuards, Req, Patch, Query } from '@nestjs/common'
 import { BorrowRecordsService } from './borrow-records.service'
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard'
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard'
 
 @Controller('borrow-records')
 @UseGuards(JwtAuthGuard)
@@ -10,6 +10,11 @@ export class BorrowRecordsController {
     @Get()
     findAll() {
         return this.service.findAll()
+    }
+
+    @Get('mine')
+    findMine(@Req() req: any, @Query() query: any) {
+        return this.service.findMine(req.user.userId, query)
     }
 
     @Post()
@@ -22,3 +27,4 @@ export class BorrowRecordsController {
         return this.service.returnBook(id, body.condition)
     }
 }
+

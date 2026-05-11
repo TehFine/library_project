@@ -51,4 +51,28 @@ export class ReservationsService {
         res.status = 'cancelled'
         return this.resRepo.save(res)
     }
+
+    async findMine(userId: string, query: any) {
+        const { page = 1, limit = 10 } = query
+        const skip = (page - 1) * limit
+
+        const [data, total] = await this.resRepo.findAndCount({
+            where: {
+                libraryCard: { userId }
+            },
+            relations: ['book'],
+            order: { reservedAt: 'DESC' },
+            take: limit,
+            skip: skip
+        })
+
+        return {
+            data,
+            total,
+            page: Number(page),
+            limit: Number(limit),
+            totalPages: Math.ceil(total / limit)
+        }
+    }
 }
+

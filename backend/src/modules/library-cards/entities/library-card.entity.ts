@@ -1,5 +1,5 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, ManyToOne, OneToOne, JoinColumn } from 'typeorm'
-import { User } from '../../users/entities/user.entity'
+import { User } from '@/modules/users/entities/user.entity'
 
 @Entity('library_cards')
 export class LibraryCard {
@@ -35,3 +35,4 @@ export class LibraryCard {
     @CreateDateColumn()
     createdAt: Date
 }
+

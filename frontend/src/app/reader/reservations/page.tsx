@@ -19,8 +19,20 @@ export default function ReservationsPage() {
     setLoading(true)
     try {
       const res = await reservationsApi.mine({ page: p, limit: LIMIT })
-      setList(res.data)
-      setTotal(res.total)
+      if (Array.isArray(res)) {
+        setList(res)
+        setTotal(res.length)
+      } else if (res && res.data) {
+        setList(res.data)
+        setTotal(res.total ?? res.data.length)
+      } else {
+        setList([])
+        setTotal(0)
+      }
+    } catch (err) {
+      console.error('Failed to load reservations:', err)
+      setList([])
+      setTotal(0)
     } finally { setLoading(false) }
   }
 

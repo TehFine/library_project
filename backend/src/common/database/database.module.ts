@@ -21,3 +21,4 @@ import { Fine } from '@/modules/fines/entities/fine.entity'
     exports: [SeedService]
 })
 export class DatabaseModule { }
+

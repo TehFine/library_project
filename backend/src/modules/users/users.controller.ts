@@ -1,6 +1,6 @@
 import { Controller, Get, Patch, Req, Body, UseGuards, NotFoundException } from '@nestjs/common'
-import { db } from '../../common/database/seeds/mock-db'
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard'
+import { db } from '@/common/database/seeds/mock-db'
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard'
 
 @Controller('users')
 @UseGuards(JwtAuthGuard)
@@ -38,3 +38,4 @@ export class UsersController {
         return { message: 'Password updated' }
     }
 }
+

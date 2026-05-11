@@ -53,3 +53,4 @@ export class Book {
     @OneToMany(() => BookCopy, (copy) => copy.book)
     copies: BookCopy[]
 }
+

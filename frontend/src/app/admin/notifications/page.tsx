@@ -153,7 +153,7 @@ export default function BulkNotificationsPage() {
                </div>
                <p>Kính gửi <span className="font-bold">Trần Văn Minh</span>,</p>
                <br/>
-               <p>Hệ thống ghi nhận bạn đang có sách <span className="font-bold italic">"Nhà Giả Kim"</span> quá hạn <span className="text-red-600 font-bold">6 ngày</span>.</p>
+               <p>Hệ thống ghi nhận bạn đang có sách <span className="font-bold italic">&quot;Nhà Giả Kim&quot;</span> quá hạn <span className="text-red-600 font-bold">6 ngày</span>.</p>
                <p>Vui lòng sắp xếp thời gian đến thư viện hoàn trả sách sớm để tránh phát sinh thêm phí phạt theo quy định.</p>
                <br/>
                <div className="p-4 bg-amber-50 rounded-xl border border-amber-100 italic text-xs text-amber-900">

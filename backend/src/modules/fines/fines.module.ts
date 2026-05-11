@@ -11,3 +11,4 @@ import { Fine } from './entities/fine.entity'
     exports: [FinesService]
 })
 export class FinesModule { }
+

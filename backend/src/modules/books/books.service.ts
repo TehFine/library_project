@@ -31,7 +31,8 @@ export class BooksService {
             ...dto,
             createdBy: { id: userId }
         })
-        return this.booksRepository.save(book)
+        const saved = await this.booksRepository.save(book)
+        return saved as unknown as Book
     }
 
     async createCopy(bookId: string, dto: any): Promise<BookCopy> {
@@ -42,11 +43,8 @@ export class BooksService {
         })
         
         const savedCopy = await this.bookCopiesRepository.save(copy)
-        
-        // Cập nhật số lượng sách
         await this.updateCopyCounts(bookId)
-        
-        return savedCopy
+        return savedCopy as unknown as BookCopy
     }
 
     private async updateCopyCounts(bookId: string) {
@@ -60,3 +58,4 @@ export class BooksService {
         })
     }
 }
+

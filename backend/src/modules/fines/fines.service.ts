@@ -42,4 +42,28 @@ export class FinesService {
         if (days <= 5) return days * 1000
         return 5000 + (days - 5) * 3000
     }
+
+    async findMine(userId: string, query: any) {
+        const { page = 1, limit = 10 } = query
+        const skip = (page - 1) * limit
+
+        const [data, total] = await this.fineRepo.findAndCount({
+            where: {
+                borrowRecord: { libraryCard: { userId } }
+            },
+            relations: ['borrowRecord', 'borrowRecord.bookCopy', 'borrowRecord.bookCopy.book'],
+            order: { createdAt: 'DESC' },
+            take: limit,
+            skip: skip
+        })
+
+        return {
+            data,
+            total,
+            page: Number(page),
+            limit: Number(limit),
+            totalPages: Math.ceil(total / limit)
+        }
+    }
 }
+

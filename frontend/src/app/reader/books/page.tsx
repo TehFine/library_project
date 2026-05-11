@@ -44,8 +44,22 @@ function BooksContent() {
         ...(catId         && { categoryId: catId }),
         ...(onlyAvailable && { available: 1 }),
       })
-      setBooks(res.data)
-      setTotal(res.total)
+      
+      // Handle both { data: Book[], total: number } and Book[] formats
+      if (Array.isArray(res)) {
+        setBooks(res)
+        setTotal(res.length)
+      } else if (res && res.data) {
+        setBooks(res.data)
+        setTotal(res.total ?? res.data.length)
+      } else {
+        setBooks([])
+        setTotal(0)
+      }
+    } catch (err) {
+      console.error('Failed to load books:', err)
+      setBooks([])
+      setTotal(0)
     } finally {
       setLoading(false)
     }

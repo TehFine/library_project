@@ -28,6 +28,16 @@ async function request<T>(
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
+    
+    // Auto logout on 401
+    if (res.status === 401 && typeof window !== 'undefined') {
+      localStorage.removeItem('access_token')
+      localStorage.removeItem('user')
+      if (!window.location.pathname.startsWith('/auth')) {
+        window.location.href = '/auth/login'
+      }
+    }
+
     throw new ApiError(res.status, body.message ?? 'Đã có lỗi xảy ra')
   }
 

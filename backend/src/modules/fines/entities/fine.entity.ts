@@ -1,6 +1,6 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, ManyToOne } from 'typeorm'
-import { BorrowRecord } from '../../borrow-records/entities/borrow-record.entity'
-import { User } from '../../users/entities/user.entity'
+import { BorrowRecord } from '@/modules/borrow-records/entities/borrow-record.entity'
+import { User } from '@/modules/users/entities/user.entity'
 
 @Entity('fines')
 export class Fine {
@@ -48,3 +48,4 @@ export class Fine {
     @CreateDateColumn()
     createdAt: Date
 }
+

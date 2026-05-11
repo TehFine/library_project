@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Body, UseGuards } from '@nestjs/common'
 import { CategoriesService } from './categories.service'
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard'
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard'
 
 @Controller('categories')
 export class CategoriesController {
@@ -17,3 +17,4 @@ export class CategoriesController {
         return this.service.create(name)
     }
 }
+

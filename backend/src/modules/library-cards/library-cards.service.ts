@@ -23,6 +23,13 @@ export class LibraryCardsService {
         return card
     }
 
+    async findMine(userId: string) {
+        return this.cardRepo.find({
+            where: { userId },
+            order: { createdAt: 'DESC' }
+        })
+    }
+
     async create(dto: Partial<LibraryCard>, adminId: string) {
         const card = this.cardRepo.create({
             ...dto,
@@ -31,3 +38,4 @@ export class LibraryCardsService {
         return this.cardRepo.save(card)
     }
 }
+

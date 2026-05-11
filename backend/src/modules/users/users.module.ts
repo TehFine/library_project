@@ -11,3 +11,4 @@ import { User } from './entities/user.entity'
     exports: [UsersService, TypeOrmModule]
 })
 export class UsersModule { }
+

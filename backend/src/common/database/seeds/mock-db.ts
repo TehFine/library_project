@@ -1,16 +1,16 @@
 import { v4 as uuid } from 'uuid'
 import * as bcrypt from 'bcryptjs'
 
-// ── Seeded IDs ────────────────────────────────────────────────────────────────
+// ── Seeded IDs (proper UUIDs for PostgreSQL) ──────────────────────────────────
 export const SEED_IDS = {
     // Users
-    adminUser: 'user-admin-001',
-    librarianUser: 'user-librarian-001',
-    readerUser: 'user-reader-001',
-    readerUser2: 'user-reader-002',
+    adminUser: 'a0000000-0000-4000-8000-000000000001',
+    librarianUser: 'a0000000-0000-4000-8000-000000000002',
+    readerUser: 'a0000000-0000-4000-8000-000000000003',
+    readerUser2: 'a0000000-0000-4000-8000-000000000004',
 
     // Library cards
-    card1: 'card-001',
+    card1: 'b0000000-0000-4000-8000-000000000001',
 
     // Categories
     catNovel: 1,
@@ -20,12 +20,19 @@ export const SEED_IDS = {
     catPsych: 5,
 
     // Books
-    book1: 'book-001', book2: 'book-002', book3: 'book-003',
-    book4: 'book-004', book5: 'book-005', book6: 'book-006',
-    book7: 'book-007', book8: 'book-008',
+    book1: 'c0000000-0000-4000-8000-000000000001',
+    book2: 'c0000000-0000-4000-8000-000000000002',
+    book3: 'c0000000-0000-4000-8000-000000000003',
+    book4: 'c0000000-0000-4000-8000-000000000004',
+    book5: 'c0000000-0000-4000-8000-000000000005',
+    book6: 'c0000000-0000-4000-8000-000000000006',
+    book7: 'c0000000-0000-4000-8000-000000000007',
+    book8: 'c0000000-0000-4000-8000-000000000008',
 
     // Borrow records
-    borrow1: 'borrow-001', borrow2: 'borrow-002', borrow3: 'borrow-003',
+    borrow1: 'd0000000-0000-4000-8000-000000000001',
+    borrow2: 'd0000000-0000-4000-8000-000000000002',
+    borrow3: 'd0000000-0000-4000-8000-000000000003',
 }
 
 // ── In-memory store ───────────────────────────────────────────────────────────
@@ -136,7 +143,7 @@ export class MockDB {
                 categoryId: 2,
                 publishYear: 2016,
                 description: 'Cuốn sách kinh điển về nghệ thuật giao tiếp và ứng xử với mọi người. Hướng dẫn cách tạo ấn tượng tốt, thuyết phục người khác và xây dựng mối quan hệ bền vững.',
-                coverUrl: 'https://images-na.ssl-images-amazon.com/images/I/71WjMhbTLtL.jpg',
+                coverUrl: '/covers/dac-nhan-tam.png',
                 totalCopies: 5, availableCopies: 3,
                 createdBy: SEED_IDS.librarianUser,
                 createdAt: '2024-01-05T00:00:00Z',
@@ -150,7 +157,7 @@ export class MockDB {
                 categoryId: 1,
                 publishYear: 2020,
                 description: 'Hành trình của Santiago — một cậu bé chăn cừu Tây Ban Nha đến vùng đất Ai Cập để tìm kho báu. Một câu chuyện về ước mơ và số phận.',
-                coverUrl: 'https://images-na.ssl-images-amazon.com/images/I/71aFt4+OTOL.jpg',
+                coverUrl: '/covers/nha-gia-kim.png',
                 totalCopies: 4, availableCopies: 0,
                 createdBy: SEED_IDS.librarianUser,
                 createdAt: '2024-01-05T00:00:00Z',
@@ -178,7 +185,7 @@ export class MockDB {
                 categoryId: 3,
                 publishYear: 2018,
                 description: 'Hành trình tiến hóa của loài người từ thời tiền sử đến hiện đại, qua các cuộc cách mạng nhận thức, nông nghiệp và khoa học.',
-                coverUrl: null,
+                coverUrl: '/covers/sapiens.png',
                 totalCopies: 6, availableCopies: 4,
                 createdBy: SEED_IDS.librarianUser,
                 createdAt: '2024-01-07T00:00:00Z',
@@ -206,7 +213,7 @@ export class MockDB {
                 categoryId: 2,
                 publishYear: 2022,
                 description: 'Xây dựng thói quen tốt và loại bỏ thói quen xấu thông qua những thay đổi nhỏ nhưng đột phá. Phương pháp khoa học được chứng minh hiệu quả.',
-                coverUrl: null,
+                coverUrl: '/covers/atomic-habits.png',
                 totalCopies: 5, availableCopies: 2,
                 createdBy: SEED_IDS.librarianUser,
                 createdAt: '2024-01-09T00:00:00Z',

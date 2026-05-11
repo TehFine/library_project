@@ -35,3 +35,4 @@ export class BookCopy {
     @CreateDateColumn()
     createdAt: Date
 }
+

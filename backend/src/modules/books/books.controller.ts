@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Body, Param, UseGuards, Req } from '@nestjs/common'
 import { BooksService } from './books.service'
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard'
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard'
 
 @Controller('books')
 export class BooksController {
@@ -28,3 +28,4 @@ export class BooksController {
         return this.booksService.createCopy(id, dto)
     }
 }
+
