@@ -1,8 +1,93 @@
 'use client'
 import Link from 'next/link'
 import Image from 'next/image'
+import { useState } from 'react'
 import { Book } from '@/types'
 import { cn } from '@/lib/utils'
+
+// ── Gradient palette for books without covers ──────────────────────────────────
+const GRADIENTS = [
+  'from-amber-400 to-orange-600',
+  'from-blue-400 to-indigo-600',
+  'from-emerald-400 to-teal-600',
+  'from-rose-400 to-pink-600',
+  'from-violet-400 to-purple-600',
+  'from-cyan-400 to-blue-600',
+  'from-orange-400 to-red-600',
+  'from-lime-400 to-green-600',
+  'from-fuchsia-400 to-pink-700',
+  'from-sky-400 to-cyan-600',
+]
+
+function getGradient(title: string): string {
+  let hash = 0
+  for (let i = 0; i < title.length; i++) {
+    hash = (hash * 31 + title.charCodeAt(i)) & 0xffffffff
+  }
+  return GRADIENTS[Math.abs(hash) % GRADIENTS.length]
+}
+
+function getInitials(title: string): string {
+  return title
+    .split(/\s+/)
+    .slice(0, 3)
+    .map(w => w[0]?.toUpperCase() ?? '')
+    .join('')
+}
+
+// ── BookCoverFallback ─────────────────────────────────────────────────────────
+function BookCoverFallback({ title, author, className }: { title: string; author: string; className?: string }) {
+  const gradient = getGradient(title)
+  return (
+    <div className={cn(`absolute inset-0 bg-gradient-to-br ${gradient} flex flex-col items-center justify-center p-3 text-center`, className)}>
+      {/* Big initials */}
+      <span className="text-white/30 font-black text-5xl leading-none select-none mb-2">
+        {getInitials(title)}
+      </span>
+      {/* Title */}
+      <span className="text-white text-xs font-semibold line-clamp-3 leading-snug drop-shadow-sm">
+        {title}
+      </span>
+      <span className="text-white/70 text-[10px] mt-1 line-clamp-1">
+        {author}
+      </span>
+    </div>
+  )
+}
+
+// ── SmartImage — falls back to gradient on error ───────────────────────────────
+function SmartImage({ src, title, author, fill, width, height, className }: {
+  src: string; title: string; author: string
+  fill?: boolean; width?: number; height?: number; className?: string
+}) {
+  const [error, setError] = useState(false)
+
+  if (error) {
+    return <BookCoverFallback title={title} author={author} />
+  }
+
+  if (fill) {
+    return (
+      <Image
+        src={src}
+        alt={title}
+        fill
+        className={className}
+        onError={() => setError(true)}
+      />
+    )
+  }
+  return (
+    <Image
+      src={src}
+      alt={title}
+      width={width ?? 40}
+      height={height ?? 56}
+      className={className}
+      onError={() => setError(true)}
+    />
+  )
+}
 
 // ── BookCard (Grid) ───────────────────────────────────────────────────────────
 interface BookCardProps {
@@ -26,19 +111,15 @@ export function BookCard({ book, className }: BookCardProps) {
       {/* Cover */}
       <div className="aspect-[2/3] bg-amber-50 relative overflow-hidden">
         {book.coverUrl ? (
-          <Image
+          <SmartImage
             src={book.coverUrl}
-            alt={book.title}
+            title={book.title}
+            author={book.author}
             fill
             className="object-cover group-hover:scale-105 transition-transform duration-500"
           />
         ) : (
-          <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center bg-gradient-to-br from-amber-50 to-amber-100">
-            <svg className="w-10 h-10 text-amber-300 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0118 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
-            </svg>
-            <span className="text-xs text-amber-400 line-clamp-3 font-medium">{book.title}</span>
-          </div>
+          <BookCoverFallback title={book.title} author={book.author} />
         )}
 
         {/* Bookmark / availability chip */}
@@ -79,14 +160,19 @@ export function BookListRow({ book }: BookListRowProps) {
       className="flex items-center gap-4 px-5 py-4 hover:bg-amber-50/80 border-b border-amber-100/60 last:border-0 transition-colors"
     >
       {/* Mini cover */}
-      <div className="w-10 h-14 bg-amber-100 rounded-xl flex-shrink-0 overflow-hidden shadow-sm">
+      <div className="w-10 h-14 rounded-xl flex-shrink-0 overflow-hidden shadow-sm relative">
         {book.coverUrl ? (
-          <Image src={book.coverUrl} alt={book.title} width={40} height={56} className="object-cover w-full h-full" />
+          <SmartImage
+            src={book.coverUrl}
+            title={book.title}
+            author={book.author}
+            width={40}
+            height={56}
+            className="object-cover w-full h-full"
+          />
         ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <svg className="w-4 h-4 text-amber-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0118 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
-            </svg>
+          <div className="absolute inset-0">
+            <BookCoverFallback title={book.title} author={book.author} />
           </div>
         )}
       </div>

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Req } from '@nestjs/common'
+import { Controller, Get, Post, Body, Param, Query, UseGuards, Req } from '@nestjs/common'
 import { BooksService } from './books.service'
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard'
 
@@ -7,8 +7,21 @@ export class BooksController {
     constructor(private readonly booksService: BooksService) { }
 
     @Get()
-    findAll() {
-        return this.booksService.findAll()
+    findAll(
+        @Query('page')       page?: string,
+        @Query('limit')      limit?: string,
+        @Query('search')     search?: string,
+        @Query('categoryId') categoryId?: string,
+        @Query('available')  available?: string,
+    ) {
+        console.log('Books query:', { page, limit, search, categoryId, available })
+        return this.booksService.findAll({
+            page:       page       ? parseInt(page)       : undefined,
+            limit:      limit      ? parseInt(limit)      : undefined,
+            search:     search     || undefined,
+            categoryId: categoryId ? parseInt(categoryId) : undefined,
+            available:  available  === '1' || available === 'true',
+        })
     }
 
     @Get(':id')

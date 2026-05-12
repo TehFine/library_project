@@ -38,6 +38,12 @@ function BooksContent() {
   const load = useCallback(async (p: number) => {
     setLoading(true)
     try {
+      console.log('Fetching books with params:', {
+        page: p, limit: LIMIT,
+        ...(search        && { search }),
+        ...(catId         && { categoryId: catId }),
+        ...(onlyAvailable && { available: 1 }),
+      })
       const res = await booksApi.list({
         page: p, limit: LIMIT,
         ...(search        && { search }),

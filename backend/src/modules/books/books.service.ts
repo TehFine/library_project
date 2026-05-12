@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
+import { Repository, ILike } from 'typeorm'
 import { Book } from './entities/book.entity'
 import { BookCopy } from './entities/book-copy.entity'
 
@@ -13,8 +13,55 @@ export class BooksService {
         private bookCopiesRepository: Repository<BookCopy>,
     ) { }
 
-    async findAll(): Promise<Book[]> {
-        return this.booksRepository.find({ relations: ['category'] })
+    async findAll(params?: {
+        page?: number
+        limit?: number
+        search?: string
+        categoryId?: number
+        available?: boolean
+    }): Promise<{ data: Book[]; total: number; page: number; limit: number }> {
+        const page  = params?.page  ?? 1
+        const limit = params?.limit ?? 20
+        const skip  = (page - 1) * limit
+
+        const qb = this.booksRepository.createQueryBuilder('book')
+            .leftJoinAndSelect('book.category', 'category')
+
+        let hasWhere = false
+
+        if (params?.categoryId) {
+            qb.where('book.categoryId = :categoryId', { categoryId: params.categoryId })
+            hasWhere = true
+        }
+
+        if (params?.search) {
+            const searchCond = '(LOWER(book.title) LIKE LOWER(:search) OR LOWER(book.author) LIKE LOWER(:search))'
+            if (hasWhere) {
+                qb.andWhere(searchCond, { search: `%${params.search}%` })
+            } else {
+                qb.where(searchCond, { search: `%${params.search}%` })
+                hasWhere = true
+            }
+        }
+
+        if (params?.available) {
+            if (hasWhere) {
+                qb.andWhere('book.availableCopies > 0')
+            } else {
+                qb.where('book.availableCopies > 0')
+                hasWhere = true
+            }
+        }
+
+        const [data, total] = await qb
+            .orderBy('book.createdAt', 'ASC')
+            .skip(skip)
+            .take(limit)
+            .getManyAndCount()
+
+        const totalPages = Math.ceil(total / limit)
+
+        return { data, total, page, limit, totalPages } as any
     }
 
     async findOne(id: string): Promise<Book> {
