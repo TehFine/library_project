@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
 import ReaderSidebar from '@/components/layout/ReaderSidebar'
 import TopBar from '@/components/layout/TopBar'
 import { authApi } from '@/lib/api'
@@ -7,10 +8,46 @@ import { User } from '@/types'
 
 export default function ReaderLayout({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
+  const [loading, setLoading] = useState(true)
+  const pathname = usePathname()
+  const router = useRouter()
 
   useEffect(() => {
-    authApi.me().then(setUser).catch(() => setUser(null))
+    authApi.me()
+      .then(u => {
+        setUser(u)
+        setLoading(false)
+      })
+      .catch(() => {
+        setUser(null)
+        setLoading(false)
+      })
   }, [])
+
+  // Bảo vệ các route (ngoại trừ danh sách sách và chi tiết sách)
+  useEffect(() => {
+    if (loading) return
+    
+    // Kiểm tra xem đường dẫn hiện tại có thuộc diện công khai không
+    const isPublic = /\/reader\/books($|\/)/.test(pathname) || pathname.startsWith('/auth') || pathname === '/'
+    
+    console.log('[Auth Guard] Path:', pathname, 'isPublic:', isPublic, 'User:', !!user)
+
+    if (!user && !isPublic) {
+      console.log('[Auth Guard] Redirecting to login...')
+      router.push('/auth/login')
+    }
+  }, [user, loading, pathname, router])
+
+  if (loading) {
+    return (
+      <div className="h-screen w-screen flex items-center justify-center bg-amber-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    )
+  }
+
+  const isGuest = !user
 
   return (
     /*
@@ -21,13 +58,13 @@ export default function ReaderLayout({ children }: { children: React.ReactNode }
       style={{ background: '#F5E6CC' }}
     >
       {/* ── Sidebar — on amber background, full height ── */}
-      <ReaderSidebar />
+      <ReaderSidebar isGuest={isGuest} />
 
       {/* ── Right column — TopBar + white card ── */}
       <div className="flex-1 flex flex-col min-w-0 gap-3">
 
         {/* TopBar lives on the amber background */}
-        <TopBar user={user} />
+        <TopBar user={user} isGuest={isGuest} />
 
         {/*
          * Main content card — white, rounded, takes all remaining height.

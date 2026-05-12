@@ -60,14 +60,17 @@ const NAV = [
   },
 ]
 
-export default function ReaderSidebar() {
+export default function ReaderSidebar({ isGuest }: { isGuest?: boolean }) {
   const pathname = usePathname()
+
+  const publicHrefs = ['/reader/books']
+  const filteredNav = isGuest ? NAV.filter(i => publicHrefs.includes(i.href)) : NAV
 
   return (
     <aside className="w-52 shrink-0 flex flex-col" style={{ background: 'transparent' }}>
       {/* Logo */}
       <div className="h-16 flex items-center px-6">
-        <Link href="/reader/dashboard" className="flex items-center gap-2.5 group">
+        <Link href={isGuest ? "/reader/books" : "/reader/dashboard"} className="flex items-center gap-2.5 group">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary-dark flex items-center justify-center shadow-glow group-hover:scale-105 transition-transform">
             <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0118 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
@@ -79,7 +82,7 @@ export default function ReaderSidebar() {
 
       {/* Nav */}
       <nav className="flex-1 py-4 px-3 overflow-y-auto space-y-0.5">
-        {NAV.map(item => {
+        {filteredNav.map(item => {
           const active = pathname === item.href || pathname.startsWith(item.href + '/')
           return (
             <Link

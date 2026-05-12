@@ -12,8 +12,9 @@ class ApiError extends Error {
 
 async function request<T>(
   path: string,
-  options: RequestInit = {},
+  options: RequestInit & { skipAuthRedirect?: boolean } = {},
 ): Promise<T> {
+  const { skipAuthRedirect, ...fetchOptions } = options
   const token = typeof window !== 'undefined'
     ? localStorage.getItem('access_token')
     : null
@@ -24,13 +25,13 @@ async function request<T>(
   }
   if (token) headers['Authorization'] = `Bearer ${token}`
 
-  const res = await fetch(`${BASE_URL}${path}`, { ...options, headers })
+  const res = await fetch(`${BASE_URL}${path}`, { ...fetchOptions, headers })
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
     
     // Auto logout on 401
-    if (res.status === 401 && typeof window !== 'undefined') {
+    if (res.status === 401 && typeof window !== 'undefined' && !skipAuthRedirect) {
       localStorage.removeItem('access_token')
       localStorage.removeItem('user')
       if (!window.location.pathname.startsWith('/auth')) {
@@ -58,20 +59,20 @@ export const authApi = {
   }) => request<{ message: string }>('/auth/register', {
     method: 'POST', body: JSON.stringify(data),
   }),
-  me: () => request<AuthResponse['user']>('/auth/me'),
+  me: () => request<AuthResponse['user']>('/auth/me', { skipAuthRedirect: true }),
 }
 
 // ── Books ─────────────────────────────────────────────────────────────────────
 export const booksApi = {
   list: (params?: QueryParams) =>
-    request<PaginatedResponse<import('@/types').Book>>(`/books${buildQueryString(params ?? {})}`),
+    request<PaginatedResponse<import('@/types').Book>>(`/books${buildQueryString(params ?? {})}`, { skipAuthRedirect: true }),
   detail: (id: string) =>
-    request<import('@/types').Book>(`/books/${id}`),
+    request<import('@/types').Book>(`/books/${id}`, { skipAuthRedirect: true }),
 }
 
 // ── Categories ────────────────────────────────────────────────────────────────
 export const categoriesApi = {
-  list: () => request<import('@/types').Category[]>('/categories'),
+  list: () => request<import('@/types').Category[]>('/categories', { skipAuthRedirect: true }),
 }
 
 // ── Library Card ──────────────────────────────────────────────────────────────

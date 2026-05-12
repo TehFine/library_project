@@ -1,13 +1,15 @@
 'use client'
+import Link from 'next/link'
 import SearchBar from '@/components/ui/SearchBar'
 import UserAvatar from '@/components/ui/UserAvatar'
 import { User } from '@/types'
 
 interface TopBarProps {
   user: User | null
+  isGuest?: boolean
 }
 
-export default function TopBar({ user }: TopBarProps) {
+export default function TopBar({ user, isGuest }: TopBarProps) {
   return (
     /*
      * TopBar sits on the amber background — no white, no blur.
@@ -19,9 +21,18 @@ export default function TopBar({ user }: TopBarProps) {
         <SearchBar />
       </div>
 
-      {/* User avatar — right side */}
+      {/* User info — right side */}
       <div className="shrink-0">
-        <UserAvatar user={user} />
+        {isGuest ? (
+          <Link 
+            href="/auth/login"
+            className="px-5 py-2 rounded-full bg-primary text-white text-sm font-semibold shadow-glow hover:scale-105 transition-transform"
+          >
+            Đăng nhập
+          </Link>
+        ) : (
+          <UserAvatar user={user} />
+        )}
       </div>
     </header>
   )

@@ -2,25 +2,37 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { booksApi, reservationsApi } from '@/lib/api'
-import { Book } from '@/types'
+import { authApi, booksApi, reservationsApi } from '@/lib/api'
+import { Book, User } from '@/types'
 import { Badge, Card, Skeleton } from '@/components/ui'
 import Button from '@/components/ui/Button'
+import Link from 'next/link'
 
 export default function BookDetailPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
   const [book, setBook]           = useState<Book | null>(null)
+  const [user, setUser]           = useState<User | null>(null)
   const [loading, setLoading]     = useState(true)
   const [reserving, setReserving] = useState(false)
   const [reserved, setReserved]   = useState(false)
   const [error, setError]         = useState('')
 
   useEffect(() => {
-    booksApi.detail(id).then(setBook).finally(() => setLoading(false))
+    Promise.all([
+      booksApi.detail(id),
+      authApi.me().catch(() => null)
+    ]).then(([b, u]) => {
+      setBook(b)
+      setUser(u)
+    }).finally(() => setLoading(false))
   }, [id])
 
   async function handleReserve() {
+    if (!user) {
+      router.push('/auth/login')
+      return
+    }
     setReserving(true)
     setError('')
     try {
@@ -126,6 +138,17 @@ export default function BookDetailPage() {
               <Card className="bg-green-50 border-green-200">
                 <p className="text-sm text-green-700 font-medium">Đặt trước thành công!</p>
                 <p className="text-xs text-green-600 mt-1">Chúng tôi sẽ thông báo khi sách có sẵn.</p>
+              </Card>
+            ) : !user ? (
+              <Card className="bg-amber-50 border-amber-200">
+                <p className="text-sm text-amber-700 font-medium">Bạn cần đăng nhập</p>
+                <p className="text-xs text-amber-600 mt-1 mb-3">Đăng nhập để có thể đặt trước cuốn sách này.</p>
+                <Link 
+                  href="/auth/login"
+                  className="inline-block w-full text-center py-2 rounded-xl bg-primary text-white text-sm font-semibold shadow-glow"
+                >
+                  Đăng nhập ngay
+                </Link>
               </Card>
             ) : (
               <>

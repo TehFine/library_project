@@ -26,6 +26,9 @@ function getDashboardPath(role: string): string {
 
 const PUBLIC_ROUTES = ['/auth/login', '/auth/register']
 
+// Các route trong /reader dành cho khách (không cần đăng nhập)
+const READER_PUBLIC_ROUTES = ['/reader/books']
+
 export default function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const token = request.cookies.get('access_token')?.value
@@ -33,13 +36,17 @@ export default function middleware(request: NextRequest) {
   const role = payload?.role
 
   const isPublic = PUBLIC_ROUTES.some(r => pathname.startsWith(r))
-  
+
+  // Kiểm tra xem đây có phải route Reader công khai không
+  const isReaderPublic = READER_PUBLIC_ROUTES.some(r => pathname.startsWith(r))
+
   // 1. Root redirect
   if (pathname === '/') {
     if (token && role) {
       return NextResponse.redirect(new URL(getDashboardPath(role), request.url))
     }
-    return NextResponse.redirect(new URL('/auth/login', request.url))
+    // Khách vào trang gốc => chuyển đến danh sách sách
+    return NextResponse.redirect(new URL('/reader/books', request.url))
   }
 
   // 2. Protect Admin routes
@@ -52,9 +59,11 @@ export default function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/auth/login', request.url))
   }
 
-  // 4. Protect Reader routes
-  if (pathname.startsWith('/reader') && (!token || role !== 'reader')) {
-    return NextResponse.redirect(new URL('/auth/login', request.url))
+  // 4. Protect Reader routes — nhưng cho phép các route công khai (sách)
+  if (pathname.startsWith('/reader') && !isReaderPublic) {
+    if (!token || role !== 'reader') {
+      return NextResponse.redirect(new URL('/auth/login', request.url))
+    }
   }
 
   // 5. Redirect logged in users away from public routes
