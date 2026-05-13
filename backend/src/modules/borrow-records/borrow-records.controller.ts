@@ -22,6 +22,11 @@ export class BorrowRecordsController {
         return this.service.borrow(dto, req.user.userId)
     }
 
+    @Post('book')
+    borrowByBookId(@Body() body: { bookId: string }, @Req() req: any) {
+        return this.service.borrowByBookId(req.user.userId, body.bookId)
+    }
+
     @Patch(':id/return')
     returnBook(@Param('id') id: string, @Body() body: { condition: string }) {
         return this.service.returnBook(id, body.condition)

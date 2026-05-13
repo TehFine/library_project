@@ -70,6 +70,35 @@ export class BorrowRecordsService {
         }
     }
 
+    async borrowByBookId(userId: string, bookId: string) {
+        // Tìm thẻ
+        const card = await this.cardRepo.findOne({
+            where: { userId, status: 'active' }
+        })
+        if (!card) throw new BadRequestException('Bạn cần có thẻ thư viện đang hoạt động để mượn sách')
+
+        // KIỂM TRA: User có đang mượn cuốn này không?
+        const existingBorrow = await this.borrowRepo.findOne({
+            where: {
+                libraryCard: { userId },
+                bookCopy: { bookId },
+                status: 'borrowing'
+            }
+        })
+        if (existingBorrow) {
+            throw new BadRequestException('Bạn đang mượn một bản sao của cuốn sách này rồi')
+        }
+
+        // Tìm bản sao có sẵn
+        const copy = await this.copyRepo.findOne({
+            where: { bookId, status: 'available' }
+        })
+        if (!copy) throw new BadRequestException('Không còn bản sao nào có sẵn')
+
+        // Sử dụng logic borrow có sẵn (librarianId có thể là chính user trong demo hoặc 1 ID mặc định)
+        return this.borrow({ cardId: card.id, copyId: copy.id }, userId)
+    }
+
     async returnBook(recordId: string, condition: string) {
         const queryRunner = this.dataSource.createQueryRunner()
         await queryRunner.connect()

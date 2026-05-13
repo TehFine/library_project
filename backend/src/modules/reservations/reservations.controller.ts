@@ -18,12 +18,17 @@ export class ReservationsController {
     }
 
     @Post()
-    create(@Body() body: { cardId: string; bookId: string }) {
-        return this.service.create(body.cardId, body.bookId)
+    create(@Req() req: any, @Body() body: { bookId: string }) {
+        return this.service.create(req.user.userId, body.bookId)
+    }
+
+    @Post(':id/cancel')
+    cancel(@Param('id') id: string) {
+        return this.service.cancel(id)
     }
 
     @Delete(':id')
-    cancel(@Param('id') id: string) {
+    delete(@Param('id') id: string) {
         return this.service.cancel(id)
     }
 }

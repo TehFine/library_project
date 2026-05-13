@@ -30,10 +30,18 @@ export class LibraryCardsService {
         })
     }
 
-    async create(dto: Partial<LibraryCard>, adminId: string) {
+    async create(dto: Partial<LibraryCard>, creatorId: string) {
+        const issuedDate = dto.issuedDate || new Date().toISOString().split('T')[0]
+        const expiryDate = dto.expiryDate || new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0]
+        const cardNumber = dto.cardNumber || `TV-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`
+        
         const card = this.cardRepo.create({
+            userId: creatorId,
             ...dto,
-            issuedBy: { id: adminId } as any
+            cardNumber,
+            issuedDate,
+            expiryDate,
+            issuedBy: { id: creatorId } as any // Trong demo coi như tự cấp hoặc admin cấp
         })
         return this.cardRepo.save(card)
     }

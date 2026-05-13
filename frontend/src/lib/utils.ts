@@ -67,10 +67,11 @@ export const fineTypeMap: Record<FineType, string> = {
   lost:    'Mất sách',
 }
 
-export const cardStatusMap: Record<CardStatus, { label: string; color: string }> = {
+export const cardStatusMap: Record<string, { label: string; color: string }> = {
   active:    { label: 'Còn hiệu lực', color: 'bg-green-50 text-green-700' },
   expired:   { label: 'Hết hạn',      color: 'bg-yellow-50 text-yellow-700' },
   suspended: { label: 'Bị khóa',      color: 'bg-red-50 text-red-700'   },
+  locked:    { label: 'Bị khóa',      color: 'bg-red-50 text-red-700'   },
   cancelled: { label: 'Đã hủy',       color: 'bg-gray-100 text-gray-500' },
 }
 

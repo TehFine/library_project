@@ -19,7 +19,7 @@ export class BooksService {
         search?: string
         categoryId?: number
         available?: boolean
-    }): Promise<{ data: Book[]; total: number; page: number; limit: number }> {
+    }): Promise<{ data: Book[]; total: number; page: number; limit: number; totalPages: number }> {
         const page  = params?.page  ?? 1
         const limit = params?.limit ?? 20
         const skip  = (page - 1) * limit
@@ -60,8 +60,7 @@ export class BooksService {
             .getManyAndCount()
 
         const totalPages = Math.ceil(total / limit)
-
-        return { data, total, page, limit, totalPages } as any
+        return { data, total, page, limit, totalPages }
     }
 
     async findOne(id: string): Promise<Book> {

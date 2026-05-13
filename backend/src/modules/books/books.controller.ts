@@ -14,7 +14,6 @@ export class BooksController {
         @Query('categoryId') categoryId?: string,
         @Query('available')  available?: string,
     ) {
-        console.log('Books query:', { page, limit, search, categoryId, available })
         return this.booksService.findAll({
             page:       page       ? parseInt(page)       : undefined,
             limit:      limit      ? parseInt(limit)      : undefined,

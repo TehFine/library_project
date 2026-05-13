@@ -4,9 +4,13 @@ import { ReservationsController } from './reservations.controller'
 import { ReservationsService } from './reservations.service'
 import { Reservation } from './entities/reservation.entity'
 import { Book } from '@/modules/books/entities/book.entity'
+import { LibraryCardsModule } from '@/modules/library-cards/library-cards.module'
 
 @Module({
-    imports: [TypeOrmModule.forFeature([Reservation, Book])],
+    imports: [
+        TypeOrmModule.forFeature([Reservation, Book]),
+        LibraryCardsModule
+    ],
     controllers: [ReservationsController],
     providers: [ReservationsService],
     exports: [ReservationsService]

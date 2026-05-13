@@ -99,20 +99,15 @@ function StatCardWithCircle({ label, value, sub }: { label: string; value: strin
 // ── StatCardSmall ─────────────────────────────────────────────────────────────
 function StatCardSmall({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[2rem] bg-[#fbf9f4] border border-amber-100/80 p-5 flex flex-col h-full">
+    <div className="rounded-[2rem] bg-[#fbf9f4] border border-amber-100/80 p-5 flex flex-col shadow-sm">
       <div className="flex justify-between items-baseline mb-4">
         <p className="text-sm font-semibold text-gray-800">{label}</p>
         <p className="text-xl font-light text-gray-700">{value}</p>
       </div>
-      <div className="flex gap-1.5 mt-auto text-[9px] font-bold text-gray-500 mb-1">
-         <span className="flex-1">Hoạt động</span>
-         <span className="w-12 text-center">Nghỉ</span>
-         <span className="w-8 text-right">Khác</span>
-      </div>
-      <div className="flex gap-1.5">
-         <div className="flex-1 h-8 rounded-xl bg-amber-400" />
-         <div className="w-12 h-8 rounded-xl bg-gray-800" />
-         <div className="w-8 h-8 rounded-xl bg-gray-400" />
+      <div className="flex gap-1 mt-auto">
+         <div className="flex-1 h-2 rounded-full bg-amber-400" />
+         <div className="w-6 h-2 rounded-full bg-gray-800" />
+         <div className="w-4 h-2 rounded-full bg-gray-300" />
       </div>
     </div>
   )
@@ -224,69 +219,62 @@ function SecurityCard({
 function TallLibraryCard({ card }: { card: LibraryCard | null }) {
   if (!card) {
     return (
-      <div className="rounded-[2rem] bg-[#2d2d2d] text-white p-6 h-full flex flex-col items-center justify-center text-center shadow-lg">
-        <p className="text-sm text-gray-400">Chưa có thẻ thư viện</p>
+      <div className="rounded-[2.5rem] bg-gradient-to-br from-gray-800 to-black text-white p-8 h-full flex flex-col items-center justify-center text-center shadow-xl border border-white/10">
+        <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4 text-gray-500">
+           <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5zm6-10.125a1.875 1.875 0 11-3.75 0 1.875 1.875 0 013.75 0zm1.294 6.336a6.721 6.721 0 01-3.17.789 6.721 6.721 0 01-3.168-.789 3.376 3.376 0 016.338 0z" /></svg>
+        </div>
+        <p className="text-base font-bold text-gray-300">Chưa có thẻ thư viện</p>
+        <p className="text-xs text-gray-500 mt-2">Đăng ký thẻ ngay tại trang chi tiết sách để bắt đầu mượn.</p>
       </div>
     )
   }
 
-  const si = cardStatusMap[card.status]
+  const si = cardStatusMap[card.status] || { label: card.status, color: 'bg-gray-100 text-gray-600' }
 
   return (
-    <div className="rounded-[2rem] bg-[#2d2d2d] text-white p-7 h-full flex flex-col relative overflow-hidden shadow-lg border border-white/5">
-       <div className="flex justify-between items-center mb-8 mt-1">
-          <h3 className="text-xl font-bold text-white tracking-tight">Thẻ Thư Viện</h3>
-          <span className="text-xs font-bold px-4 py-2 bg-white/5 rounded-full text-amber-400 border border-white/10 shadow-sm">
+    <div className="rounded-[2.5rem] bg-[#1a1a1a] text-white p-8 h-full flex flex-col relative overflow-hidden shadow-2xl border border-white/5">
+       {/* Background decorative elements */}
+       <div className="absolute top-[-10%] right-[-10%] w-40 h-40 bg-amber-400/10 rounded-full blur-3xl" />
+       <div className="absolute bottom-[-5%] left-[-5%] w-32 h-32 bg-blue-400/5 rounded-full blur-3xl" />
+
+       <div className="flex justify-between items-start mb-10 relative z-10">
+          <div>
+            <h3 className="text-2xl font-black text-white tracking-tight uppercase italic">Thẻ Thư Viện</h3>
+            <p className="text-[10px] text-amber-400 font-bold tracking-[0.2em] uppercase mt-1">Hệ thống thư viện thông minh</p>
+          </div>
+          <span className={cn("text-[10px] font-black px-3 py-1 rounded-md shadow-sm uppercase tracking-wider", si.color)}>
              {si.label}
           </span>
        </div>
 
-       <div className="space-y-3 flex-1">
-          {/* Card Number Task */}
-          <div className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.03] border border-white/5 hover:bg-white/5 transition-all duration-300 group">
-             <div className="flex items-center gap-4">
-               <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center text-gray-400 shadow-inner group-hover:bg-white/10 transition-colors">
-                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5zm6-10.125a1.875 1.875 0 11-3.75 0 1.875 1.875 0 013.75 0zm1.294 6.336a6.721 6.721 0 01-3.17.789 6.721 6.721 0 01-3.168-.789 3.376 3.376 0 016.338 0z" /></svg>
-               </div>
-               <div>
-                 <p className="text-sm font-bold text-gray-100">Mã Số Thẻ</p>
-                 <p className="text-xs text-gray-500 mt-1 tracking-widest font-mono">{card.cardNumber}</p>
-               </div>
-             </div>
-             <div className="w-6 h-6 rounded-full bg-amber-400 flex items-center justify-center text-gray-900 shadow-lg shrink-0 ml-3">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
-             </div>
+       <div className="space-y-6 flex-1 relative z-10">
+          <div>
+            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-2">Mã số thành viên</p>
+            <div className="flex items-center gap-3">
+              <span className="text-xl tracking-[0.2em] text-white font-black">{card.cardNumber}</span>
+              <div className="h-[1px] flex-1 bg-white/10" />
+            </div>
           </div>
 
-          {/* Issued Task */}
-          <div className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.03] border border-white/5 hover:bg-white/5 transition-all duration-300 group">
-             <div className="flex items-center gap-4">
-               <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center text-gray-400 shadow-inner group-hover:bg-white/10 transition-colors">
-                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" /></svg>
-               </div>
-               <div>
-                 <p className="text-sm font-bold text-gray-100">Ngày Cấp</p>
-                 <p className="text-xs text-gray-500 mt-1">{formatDate(card.issuedDate)}</p>
-               </div>
-             </div>
-             <div className="w-6 h-6 rounded-full bg-amber-400 flex items-center justify-center text-gray-900 shadow-lg shrink-0 ml-3">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
-             </div>
+          <div className="grid grid-cols-2 gap-8">
+            <div>
+              <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1.5">Ngày cấp</p>
+              <p className="text-sm font-bold text-gray-100">{formatDate(card.issuedDate)}</p>
+            </div>
+            <div>
+              <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1.5">Hết hạn</p>
+              <p className="text-sm font-bold text-gray-100">{formatDate(card.expiryDate)}</p>
+            </div>
           </div>
+       </div>
 
-          {/* Expiry Task */}
-          <div className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.03] border border-white/5 hover:bg-white/5 transition-all duration-300 group opacity-80">
-             <div className="flex items-center gap-4">
-               <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center text-gray-400 shadow-inner group-hover:bg-white/10 transition-colors">
-                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-               </div>
-               <div>
-                 <p className="text-sm font-bold text-gray-100">Hết Hạn</p>
-                 <p className="text-xs text-gray-500 mt-1">{formatDate(card.expiryDate)}</p>
-               </div>
-             </div>
-             <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center shrink-0 ml-3" />
+       <div className="mt-auto pt-6 flex justify-between items-end relative z-10 border-t border-white/5">
+          <div className="flex gap-1.5">
+            {[1,2,3].map(i => <div key={i} className="w-8 h-1 rounded-full bg-white/20" />)}
           </div>
+          <svg className="w-12 h-12 text-white/10" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm4.59-12.42L10 14.17l-2.59-2.58L6 13l4 4 8-8z"/>
+          </svg>
        </div>
     </div>
   )
@@ -438,10 +426,10 @@ export default function ProfilePage() {
         />
       </div>
 
-      {/* ── Right Column (Date + Tall Library Card) ── */}
+      {/* ── Right Column (Activity + Tall Library Card) ── */}
       <div className="flex flex-col gap-6">
         <StatCardSmall label="Hoạt động" value={user.lastLogin ? "Online" : "Offline"} />
-        <div className="flex-1 min-h-[300px]">
+        <div className="flex-1 min-h-[360px]">
           <TallLibraryCard card={card} />
         </div>
       </div>

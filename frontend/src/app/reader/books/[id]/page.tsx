@@ -2,8 +2,8 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { authApi, booksApi, reservationsApi } from '@/lib/api'
-import { Book, User } from '@/types'
+import { authApi, booksApi, reservationsApi, cardsApi, borrowsApi } from '@/lib/api'
+import { Book, User, LibraryCard } from '@/types'
 import { Badge, Card, Skeleton } from '@/components/ui'
 import Button from '@/components/ui/Button'
 import Link from 'next/link'
@@ -13,20 +13,70 @@ export default function BookDetailPage() {
   const router = useRouter()
   const [book, setBook]           = useState<Book | null>(null)
   const [user, setUser]           = useState<User | null>(null)
+  const [cards, setCards]         = useState<LibraryCard[]>([])
   const [loading, setLoading]     = useState(true)
   const [reserving, setReserving] = useState(false)
+  const [borrowing, setBorrowing] = useState(false)
+  const [registering, setRegistering] = useState(false)
   const [reserved, setReserved]   = useState(false)
+  const [borrowed, setBorrowed]   = useState(false)
   const [error, setError]         = useState('')
 
   useEffect(() => {
-    Promise.all([
-      booksApi.detail(id),
-      authApi.me().catch(() => null)
-    ]).then(([b, u]) => {
+    fetchData()
+  }, [id])
+
+  async function fetchData() {
+    setLoading(true)
+    try {
+      const [b, u] = await Promise.all([
+        booksApi.detail(id),
+        authApi.me().catch(() => null)
+      ])
       setBook(b)
       setUser(u)
-    }).finally(() => setLoading(false))
-  }, [id])
+      if (u) {
+        const userCards = await cardsApi.mine()
+        setCards(userCards)
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleRegisterCard() {
+    setRegistering(true)
+    setError('')
+    try {
+      await cardsApi.create()
+      const userCards = await cardsApi.mine()
+      setCards(userCards)
+    } catch (e: any) {
+      setError(e.message || 'Đăng ký thẻ thất bại')
+    } finally {
+      setRegistering(false)
+    }
+  }
+
+  async function handleBorrow() {
+    if (!user) {
+      router.push('/auth/login')
+      return
+    }
+    setBorrowing(true)
+    setError('')
+    try {
+      await borrowsApi.borrow(id)
+      setBorrowed(true)
+      // Refresh book info to update copies count
+      const b = await booksApi.detail(id)
+      setBook(b)
+    } catch (e: any) {
+      setError(e.message || 'Mượn sách thất bại')
+    } finally {
+      setBorrowing(false)
+    }
+  }
 
   async function handleReserve() {
     if (!user) {
@@ -66,6 +116,7 @@ export default function BookDetailPage() {
   }
 
   const available = book.availableCopies > 0
+  const activeCard = cards.find(c => c.status === 'active')
 
   return (
     <div>
@@ -129,10 +180,10 @@ export default function BookDetailPage() {
 
           {/* CTA */}
           <div className="mt-6 flex flex-col gap-3 max-w-xs">
-            {available ? (
-              <Card className="bg-gray-50 border-gray-200">
-                <p className="text-sm text-gray-700 font-medium">Sách đang có sẵn</p>
-                <p className="text-xs text-gray-400 mt-1">Đến thư viện với thẻ độc giả để mượn sách.</p>
+            {borrowed ? (
+              <Card className="bg-green-50 border-green-200">
+                <p className="text-sm text-green-700 font-medium">Mượn sách thành công!</p>
+                <p className="text-xs text-green-600 mt-1">Vui lòng kiểm tra trong mục hồ sơ cá nhân.</p>
               </Card>
             ) : reserved ? (
               <Card className="bg-green-50 border-green-200">
@@ -142,7 +193,7 @@ export default function BookDetailPage() {
             ) : !user ? (
               <Card className="bg-amber-50 border-amber-200">
                 <p className="text-sm text-amber-700 font-medium">Bạn cần đăng nhập</p>
-                <p className="text-xs text-amber-600 mt-1 mb-3">Đăng nhập để có thể đặt trước cuốn sách này.</p>
+                <p className="text-xs text-amber-600 mt-1 mb-3">Đăng nhập để có thể mượn hoặc đặt trước cuốn sách này.</p>
                 <Link 
                   href="/auth/login"
                   className="inline-block w-full text-center py-2 rounded-xl bg-primary text-white text-sm font-semibold shadow-glow"
@@ -150,6 +201,22 @@ export default function BookDetailPage() {
                   Đăng nhập ngay
                 </Link>
               </Card>
+            ) : !activeCard ? (
+              <Card className="bg-blue-50 border-blue-200">
+                <p className="text-sm text-blue-700 font-medium">Chưa có thẻ thư viện</p>
+                <p className="text-xs text-blue-600 mt-1 mb-3">Bạn cần có thẻ thư viện để mượn hoặc đặt trước sách.</p>
+                <Button onClick={handleRegisterCard} loading={registering} size="sm">
+                  Đăng ký thẻ ngay
+                </Button>
+                {error && <p className="text-xs text-red-500 mt-2">{error}</p>}
+              </Card>
+            ) : available ? (
+              <>
+                <Button onClick={handleBorrow} loading={borrowing} variant="primary">
+                  Mượn sách ngay
+                </Button>
+                {error && <p className="text-xs text-red-500">{error}</p>}
+              </>
             ) : (
               <>
                 <Button onClick={handleReserve} loading={reserving} variant="secondary">

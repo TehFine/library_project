@@ -78,6 +78,7 @@ export const categoriesApi = {
 // ── Library Card ──────────────────────────────────────────────────────────────
 export const cardsApi = {
   mine: () => request<import('@/types').LibraryCard[]>('/library-cards/mine'),
+  create: () => request<import('@/types').LibraryCard>('/library-cards', { method: 'POST', body: JSON.stringify({}) }),
 }
 
 // ── Borrow Records ────────────────────────────────────────────────────────────
@@ -86,6 +87,10 @@ export const borrowsApi = {
     request<PaginatedResponse<import('@/types').BorrowRecord>>(
       `/borrow-records/mine${buildQueryString(params ?? {})}`
     ),
+  borrow: (bookId: string) =>
+    request<import('@/types').BorrowRecord>('/borrow-records/book', {
+      method: 'POST', body: JSON.stringify({ bookId }),
+    }),
   renew: (id: string) =>
     request<import('@/types').BorrowRecord>(`/borrow-records/${id}/renew`, { method: 'POST' }),
 }

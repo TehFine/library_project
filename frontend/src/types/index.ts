@@ -69,6 +69,8 @@ export interface BookCopy {
   status: CopyStatus
   notes: string | null
   createdAt: string
+  // Joined
+  book?: Book
 }
 
 // ── Borrow ────────────────────────────────────────────────────────────────────
