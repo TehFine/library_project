@@ -129,6 +129,7 @@ export interface Fine {
   createdAt: string
   // Joined
   borrowRecord?: BorrowRecord
+  isVirtual?: boolean
 }
 
 // ── Pagination ────────────────────────────────────────────────────────────────
@@ -138,6 +139,7 @@ export interface PaginatedResponse<T> {
   page: number
   limit: number
   totalPages: number
+  totalAmount?: number
 }
 
 export interface QueryParams {

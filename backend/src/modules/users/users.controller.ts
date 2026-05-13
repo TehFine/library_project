@@ -1,41 +1,41 @@
-import { Controller, Get, Patch, Req, Body, UseGuards, NotFoundException } from '@nestjs/common'
-import { db } from '@/common/database/seeds/mock-db'
+import { Controller, Get, Patch, Req, Body, UseGuards, BadRequestException } from '@nestjs/common'
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard'
+import { UsersService } from './users.service'
+import * as bcrypt from 'bcryptjs'
 
 @Controller('users')
 @UseGuards(JwtAuthGuard)
 export class UsersController {
+    constructor(private readonly usersService: UsersService) { }
+
     @Get('me')
-    me(@Req() req: any) {
-        const user = db.users.find(u => u.id === req.user.userId)
-        if (!user) throw new NotFoundException()
+    async me(@Req() req: any) {
+        const user = await this.usersService.findOne(req.user.userId)
         const { passwordHash: _, ...safe } = user
         return safe
     }
 
     @Patch('me')
-    update(@Req() req: any, @Body() body: any) {
-        const user = db.users.find(u => u.id === req.user.userId)
-        if (!user) throw new NotFoundException()
-        if (body.fullName !== undefined) user.fullName = body.fullName
-        if (body.phone !== undefined) user.phone = body.phone
-        if (body.address !== undefined) user.address = body.address
+    async update(@Req() req: any, @Body() body: any) {
+        const user = await this.usersService.update(req.user.userId, body)
         const { passwordHash: _, ...safe } = user
         return safe
     }
 
     @Patch('me/password')
-    changePassword(@Req() req: any, @Body() body: any) {
-        const user = db.users.find(u => u.id === req.user.userId)
-        if (!user) throw new NotFoundException()
+    async changePassword(@Req() req: any, @Body() body: any) {
+        const user = await this.usersService.findOne(req.user.userId)
         
-        // Trong thực tế cần so sánh bcrypt. Với mock-db này passwordHash đang là plain text
-        if (user.passwordHash !== body.currentPassword) {
-            throw new Error('Mật khẩu hiện tại không đúng')
+        const isMatch = await bcrypt.compare(body.currentPassword, user.passwordHash)
+        if (!isMatch) {
+            throw new BadRequestException('Mật khẩu hiện tại không đúng')
         }
         
-        user.passwordHash = body.newPassword
-        return { message: 'Password updated' }
+        const salt = await bcrypt.genSalt(10)
+        const newPasswordHash = await bcrypt.hash(body.newPassword, salt)
+        
+        await this.usersService.update(user.id, { passwordHash: newPasswordHash })
+        return { message: 'Password updated successfully' }
     }
 }
 

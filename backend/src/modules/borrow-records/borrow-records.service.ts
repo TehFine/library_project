@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository, DataSource } from 'typeorm'
+import { Repository, DataSource, LessThan, MoreThanOrEqual } from 'typeorm'
 import { BorrowRecord } from './entities/borrow-record.entity'
 import { BookCopy } from '@/modules/books/entities/book-copy.entity'
 import { LibraryCard } from '@/modules/library-cards/entities/library-card.entity'
@@ -149,11 +149,26 @@ export class BorrowRecordsService {
         const { status, page = 1, limit = 10 } = query
         const skip = (page - 1) * limit
 
+        const today = new Date().toISOString().split('T')[0]
+        let where: any = { libraryCard: { userId } }
+
+        if (status === 'overdue') {
+            where = [
+                { libraryCard: { userId }, status: 'overdue' },
+                { libraryCard: { userId }, status: 'borrowing', dueDate: LessThan(today) }
+            ]
+        } else if (status === 'borrowing') {
+            where = { 
+                libraryCard: { userId }, 
+                status: 'borrowing', 
+                dueDate: MoreThanOrEqual(today) 
+            }
+        } else if (status && status !== 'all') {
+            where = { libraryCard: { userId }, status }
+        }
+
         const [data, total] = await this.borrowRepo.findAndCount({
-            where: {
-                libraryCard: { userId },
-                ...(status && status !== 'all' && { status })
-            },
+            where,
             relations: ['bookCopy', 'bookCopy.book'],
             order: { createdAt: 'DESC' },
             take: limit,

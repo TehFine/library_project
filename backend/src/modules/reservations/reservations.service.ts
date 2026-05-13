@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
+import { Repository, In } from 'typeorm'
 import { Reservation } from './entities/reservation.entity'
 import { Book } from '@/modules/books/entities/book.entity'
 import { LibraryCardsService } from '@/modules/library-cards/library-cards.service'
@@ -72,12 +72,18 @@ export class ReservationsService {
     }
 
     async findMine(userId: string, query: any) {
-        const { page = 1, limit = 10 } = query
+        const { status, page = 1, limit = 10 } = query
         const skip = (page - 1) * limit
+
+        let statusFilter = undefined
+        if (status) {
+            statusFilter = status.includes(',') ? In(status.split(',')) : status
+        }
 
         const [data, total] = await this.resRepo.findAndCount({
             where: {
-                libraryCard: { userId }
+                libraryCard: { userId },
+                ...(statusFilter ? { status: statusFilter } : {})
             },
             relations: ['book'],
             order: { reservedAt: 'DESC' },

@@ -60,6 +60,16 @@ export const authApi = {
     method: 'POST', body: JSON.stringify(data),
   }),
   me: () => request<AuthResponse['user']>('/auth/me', { skipAuthRedirect: true }),
+  updateProfile: (data: { fullName?: string; phone?: string; address?: string }) =>
+    request<User>('/users/me', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+  changePassword: (data: { currentPassword: string; newPassword: string }) =>
+    request<{ message: string }>('/users/me/password', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
 }
 
 // ── Books ─────────────────────────────────────────────────────────────────────

@@ -88,6 +88,9 @@ export default function FinesPage() {
                   <p className="text-sm text-gray-600 truncate">{f.borrowRecord?.book?.title ?? '—'}</p>
                   <div className="flex items-center gap-2 mt-1.5">
                     <Badge className={si.color}>{si.label}</Badge>
+                    {f.isVirtual && (
+                      <Badge className="bg-amber-50 text-amber-600 border border-amber-100">Phí tạm tính</Badge>
+                    )}
                     <span className="text-xs text-gray-400">{fineTypeMap[f.fineType]}</span>
                     {f.fineType === 'overdue' && (
                       <span className="text-xs text-gray-400">{f.overdueDays} ngày</span>

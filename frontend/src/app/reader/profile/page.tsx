@@ -292,7 +292,7 @@ export default function ProfilePage() {
 
   // Stats
   const [borrowCount, setBorrowCount] = useState(0)
-  const [fineCount, setFineCount]     = useState(0)
+  const [fineAmount, setFineAmount]   = useState(0)
 
   // Form
   const [fullName, setFullName] = useState('')
@@ -320,7 +320,7 @@ export default function ProfilePage() {
       setAddress(me.address ?? '')
       setCard(cards.find(c => c.status === 'active') ?? cards[0] ?? null)
       setBorrowCount(borrows.total)
-      setFineCount(fines.total)
+      setFineAmount(fines.totalAmount ?? 0)
     }).finally(() => setLoading(false))
   }, [])
 
@@ -328,14 +328,7 @@ export default function ProfilePage() {
     e.preventDefault()
     setSaving(true)
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('access_token')}`,
-        },
-        body: JSON.stringify({ fullName, phone, address }),
-      })
+      await authApi.updateProfile({ fullName, phone, address })
       setUser(prev => prev ? { ...prev, fullName, phone, address } : prev)
       setEditing(false)
       toast('Cập nhật thông tin thành công', 'success')
@@ -353,14 +346,7 @@ export default function ProfilePage() {
     if (newPw !== confirmPw) { setPwError('Mật khẩu xác nhận không khớp'); return }
     setPwLoading(true)
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me/password`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('access_token')}`,
-        },
-        body: JSON.stringify({ currentPassword: currentPw, newPassword: newPw }),
-      })
+      await authApi.changePassword({ currentPassword: currentPw, newPassword: newPw })
       setCurrentPw(''); setNewPw(''); setConfirmPw('')
       setPwSection(false)
       toast('Đổi mật khẩu thành công', 'success')
@@ -414,7 +400,11 @@ export default function ProfilePage() {
       <div className="flex flex-col gap-6">
         <div className="grid grid-cols-2 gap-6">
           <StatCardWithGraph label="Đang mượn" value={borrowCount} sub="Sách hiện tại" />
-          <StatCardWithCircle label="Phí phạt" value={fineCount > 0 ? `${fineCount}k` : '0'} sub="VNĐ cần đóng" />
+          <StatCardWithCircle 
+            label="Phí phạt" 
+            value={fineAmount >= 1000 ? `${(fineAmount / 1000).toFixed(0)}k` : fineAmount} 
+            sub="VNĐ cần đóng" 
+          />
         </div>
         <SecurityCard 
           pwSection={pwSection} setPwSection={setPwSection}

@@ -4,21 +4,25 @@ import PageHeader from '@/components/layout/PageHeader'
 import { Badge, EmptyState, Pagination, Skeleton } from '@/components/ui'
 import { reservationsApi } from '@/lib/api'
 import { Reservation } from '@/types'
-import { formatDate, reservationStatusMap } from '@/lib/utils'
+import { formatDate, reservationStatusMap, cn } from '@/lib/utils'
 import Button from '@/components/ui/Button'
+
+import ReservationCard from '@/components/borrows/ReservationCard'
 
 export default function ReservationsPage() {
   const [list, setList]       = useState<Reservation[]>([])
   const [total, setTotal]     = useState(0)
   const [page, setPage]       = useState(1)
+  const [statusTab, setStatusTab] = useState<'active' | 'all'>('active')
   const [loading, setLoading] = useState(true)
   const [cancellingId, setCancellingId] = useState<string | null>(null)
-  const LIMIT = 10
+  const LIMIT = 12
 
-  async function load(p: number) {
+  async function load(p: number, tab: 'active' | 'all') {
     setLoading(true)
     try {
-      const res = await reservationsApi.mine({ page: p, limit: LIMIT })
+      const statusParam = tab === 'active' ? 'waiting,notified' : undefined
+      const res = await reservationsApi.mine({ page: p, limit: LIMIT, status: statusParam })
       if (Array.isArray(res)) {
         setList(res)
         setTotal(res.length)
@@ -37,14 +41,17 @@ export default function ReservationsPage() {
   }
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { load(page) }, [page])
+  useEffect(() => { 
+    load(page, statusTab) 
+  }, [page, statusTab])
 
   async function handleCancel(id: string) {
     if (!confirm('Bạn có chắc muốn hủy đặt trước này?')) return
     setCancellingId(id)
     try {
       await reservationsApi.cancel(id)
-      setList(prev => prev.map(r => r.id === id ? { ...r, status: 'cancelled' } : r))
+      setList(prev => prev.filter(r => r.id !== id))
+      setTotal(prev => prev - 1)
     } catch (e) {
       console.error(e)
     } finally {
@@ -56,9 +63,34 @@ export default function ReservationsPage() {
     <div>
       <PageHeader title="Sách đặt trước" description="Danh sách sách bạn đang chờ mượn" />
 
+      <div className="flex gap-2 mb-6">
+        <button
+          onClick={() => { setStatusTab('active'); setPage(1); }}
+          className={cn(
+            "px-5 py-2.5 text-sm font-semibold transition-all duration-200 rounded-xl",
+            statusTab === 'active'
+              ? "bg-amber-50 text-amber-600 shadow-sm ring-1 ring-amber-100"
+              : "bg-white text-gray-500 hover:bg-gray-50 hover:text-gray-700 border border-transparent hover:border-gray-200"
+          )}
+        >
+          Đang chờ
+        </button>
+        <button
+          onClick={() => { setStatusTab('all'); setPage(1); }}
+          className={cn(
+            "px-5 py-2.5 text-sm font-semibold transition-all duration-200 rounded-xl",
+            statusTab === 'all'
+              ? "bg-amber-50 text-amber-600 shadow-sm ring-1 ring-amber-100"
+              : "bg-white text-gray-500 hover:bg-gray-50 hover:text-gray-700 border border-transparent hover:border-gray-200"
+          )}
+        >
+          Tất cả lịch sử
+        </button>
+      </div>
+
       {loading ? (
-        <div className="space-y-3">
-          {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-44 rounded-xl" />)}
         </div>
       ) : list.length === 0 ? (
         <EmptyState
@@ -71,45 +103,19 @@ export default function ReservationsPage() {
           }
         />
       ) : (
-        <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
-          {list.map(r => {
-            const si = reservationStatusMap[r.status]
-            const canCancel = ['waiting', 'notified'].includes(r.status)
-            return (
-              <div key={r.id} className="flex items-center gap-4 px-4 py-4 border-b border-gray-100 last:border-0">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">{r.book?.title ?? '—'}</p>
-                  <div className="flex items-center gap-2 mt-1.5">
-                    <Badge className={si.color}>{si.label}</Badge>
-                    <span className="text-xs text-gray-400">Đặt ngày {formatDate(r.reservedAt)}</span>
-                    {r.status === 'waiting' && (
-                      <span className="text-xs text-amber-600 font-medium">Vị trí hàng đợi: #{r.queuePosition}</span>
-                    )}
-                  </div>
-                  {r.status === 'notified' && (
-                    <p className="text-xs text-green-600 mt-1 font-medium">
-                      Sách đã có sẵn! Vui lòng đến nhận trước {formatDate(r.expiresAt)}
-                    </p>
-                  )}
-                </div>
-                
-                {canCancel && (
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => handleCancel(r.id)}
-                    loading={cancellingId === r.id}
-                  >
-                    Hủy
-                  </Button>
-                )}
-              </div>
-            )
-          })}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {list.map(r => (
+            <ReservationCard
+              key={r.id}
+              reservation={r}
+              onCancel={handleCancel}
+              isCancelling={cancellingId === r.id}
+            />
+          ))}
         </div>
       )}
 
       <Pagination page={page} totalPages={Math.ceil(total / LIMIT)} onPageChange={p => setPage(p)} />
     </div>
   )
-}
+}

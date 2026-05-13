@@ -11,14 +11,16 @@ interface BorrowCardProps {
 }
 
 export default function BorrowCard({ record, onRenew, isRenewing }: BorrowCardProps) {
-  const statusInfo = borrowStatusMap[record.status]
   const daysLeft = daysFromNow(record.dueDate)
+  const isActuallyOverdue = record.status === 'overdue' || (record.status === 'borrowing' && daysLeft <= 0)
+  
+  const statusInfo = borrowStatusMap[isActuallyOverdue ? 'overdue' : record.status]
   const canRenew = record.status === 'borrowing' && record.renewalCount === 0 && daysLeft > 0
   
   const book = record.book || record.bookCopy?.book
 
   const urgency =
-    record.status === 'overdue' ? 'border-red-200 bg-red-50/30' :
+    isActuallyOverdue ? 'border-red-200 bg-red-50/30' :
     daysLeft <= 2 && record.status === 'borrowing' ? 'border-orange-200 bg-orange-50/30' :
     'border-gray-200 hover:border-amber-200 transition-colors'
 
@@ -57,7 +59,7 @@ export default function BorrowCard({ record, onRenew, isRenewing }: BorrowCardPr
               <span className="text-gray-400 block mb-0.5 uppercase tracking-tighter">Hạn trả</span>
               <p className={cn(
                 'font-bold',
-                record.status === 'overdue' ? 'text-red-600' :
+                isActuallyOverdue ? 'text-red-600' :
                 daysLeft <= 2 ? 'text-orange-600' : 'text-gray-800'
               )}>
                 {formatDate(record.dueDate)}
@@ -70,10 +72,10 @@ export default function BorrowCard({ record, onRenew, isRenewing }: BorrowCardPr
       <div className="px-4 pb-4 flex items-center justify-between mt-1">
         <div className="flex flex-col">
           <span className="text-[10px] text-gray-400 font-medium italic">Mã bản sao: {record.bookCopy?.copyCode || '—'}</span>
-          {(record.status === 'borrowing' || record.status === 'overdue') && (
+          {(record.status === 'borrowing' || isActuallyOverdue) && (
             <span className={cn(
               'text-[10px] font-bold mt-0.5',
-              record.status === 'overdue' ? 'text-red-500' :
+              isActuallyOverdue ? 'text-red-500' :
               daysLeft <= 2 ? 'text-orange-500' : 'text-amber-600'
             )}>
               {daysLeft > 0 ? `Còn ${daysLeft} ngày` : `Quá hạn ${Math.abs(daysLeft)} ngày`}

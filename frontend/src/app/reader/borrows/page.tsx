@@ -76,17 +76,16 @@ export default function BorrowsPage() {
     <div>
       <PageHeader title="Sách đang mượn" description="Theo dõi tình trạng mượn sách của bạn" />
 
-      {/* Tabs */}
-      <div className="flex gap-1 border-b border-gray-200 mb-6">
+      <div className="flex gap-2 mb-6 flex-wrap">
         {TABS.map(t => (
           <button
             key={t.value}
             onClick={() => handleTabChange(t.value)}
             className={cn(
-              'px-4 py-2 text-sm transition-colors border-b-2 -mb-px',
+              'px-5 py-2.5 text-sm font-semibold transition-all duration-200 rounded-xl',
               tab === t.value
-                ? 'border-gray-900 text-gray-900 font-medium'
-                : 'border-transparent text-gray-400 hover:text-gray-600',
+                ? 'bg-gray-900 text-white shadow-md'
+                : 'bg-white text-gray-500 hover:bg-gray-50 hover:text-gray-700 border border-transparent hover:border-gray-200',
             )}
           >
             {t.label}
