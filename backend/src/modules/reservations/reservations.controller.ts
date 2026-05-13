@@ -27,6 +27,11 @@ export class ReservationsController {
         return this.service.cancel(id)
     }
 
+    @Post(':id/notify')
+    notify(@Param('id') id: string) {
+        return this.service.notify(id)
+    }
+
     @Delete(':id')
     delete(@Param('id') id: string) {
         return this.service.cancel(id)

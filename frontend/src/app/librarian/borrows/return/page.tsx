@@ -5,19 +5,17 @@ import PageHeader from '@/components/layout/PageHeader'
 import { Card } from '@/components/ui'
 import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
-
-// Mock Data
-const MOCK_RECORDS = [
-  { id: 'PM-2026-0501-003', book: 'Đắc Nhân Tâm', copyCode: '3901-001', reader: 'Trần Văn Minh', borrowDate: '01/05/2026', dueDate: '15/05/2026', daysLeft: 4, fine: 0 },
-  { id: 'PM-2026-0420-015', book: 'Nhà Giả Kim', copyCode: '4502-005', reader: 'Lê Thị Hoa', borrowDate: '20/04/2026', dueDate: '04/05/2026', daysLeft: -6, fine: 6000 },
-]
+import { librarianApi } from '@/lib/api'
+import { toast } from 'react-hot-toast'
+import { cn, formatCurrency } from '@/lib/utils'
 
 export default function ReturnBorrowPage() {
   const [step, setStep] = useState(1)
   
   // Step 1 State
   const [searchRecord, setSearchRecord] = useState('')
-  const [selectedRecord, setSelectedRecord] = useState<typeof MOCK_RECORDS[0] | null>(null)
+  const [selectedRecord, setSelectedRecord] = useState<any | null>(null)
+  const [isSearching, setIsSearching] = useState(false)
   
   // Step 2 State
   const [condition, setCondition] = useState('good')
@@ -26,17 +24,59 @@ export default function ReturnBorrowPage() {
   // Step 3 State
   const [paymentMethod, setPaymentMethod] = useState('cash')
   const [isSuccess, setIsSuccess] = useState(false)
+  const [returnResult, setReturnResult] = useState<any>(null)
 
-  const handleSearchRecord = () => {
-    const record = MOCK_RECORDS.find(r => r.id === searchRecord || r.copyCode === searchRecord)
-    setSelectedRecord(record || null)
+  const handleSearchRecord = async () => {
+    if (!searchRecord) return
+    setIsSearching(true)
+    try {
+      const record = await librarianApi.findBorrowByCopyCode(searchRecord)
+      if (!record) {
+        toast.error('Không tìm thấy phiếu mượn đang hoạt động cho mã sách này')
+        return
+      }
+      
+      // Tính phí phạt trễ hạn sơ bộ
+      const today = new Date()
+      const dueDate = new Date(record.dueDate)
+      let fine = 0
+      let daysOverdue = 0
+      
+      if (today > dueDate) {
+        const diffTime = today.getTime() - dueDate.getTime()
+        daysOverdue = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+        // Quy định tạm thời: 1000đ/ngày
+        fine = daysOverdue * 1000 
+      }
+      
+      setSelectedRecord({
+        ...record,
+        fine,
+        daysOverdue
+      })
+    } catch (err) {
+      toast.error('Lỗi khi tìm kiếm phiếu mượn')
+    } finally {
+      setIsSearching(false)
+    }
   }
 
   const damageFine = condition === 'damaged' ? 50000 : 0
   const totalFine = (selectedRecord?.fine || 0) + damageFine
 
-  const handleSubmit = () => {
-    setIsSuccess(true)
+  const handleSubmit = async () => {
+    try {
+      const res = await librarianApi.returnBook(selectedRecord.id, condition)
+      setReturnResult(res)
+      
+      // Nếu có phí phạt, có thể gọi API tạo record phạt ở đây nếu backend chưa tự tạo
+      // ...
+      
+      setIsSuccess(true)
+      toast.success('Nhận trả sách thành công')
+    } catch (err: any) {
+      toast.error(err.message || 'Lỗi khi nhận trả sách')
+    }
   }
 
   if (isSuccess) {
@@ -50,14 +90,16 @@ export default function ReturnBorrowPage() {
             </div>
             <div>
               <h3 className="text-2xl font-bold text-gray-900">Nhận trả sách thành công!</h3>
-              <p className="text-gray-500 mt-2">Phiếu mượn <span className="font-bold text-gray-900">{selectedRecord?.id}</span> đã được hoàn tất.</p>
+              <p className="text-gray-500 mt-2">Sách <span className="font-bold text-gray-900">{selectedRecord?.bookCopy?.book?.title}</span> đã được nhập kho.</p>
               {totalFine > 0 && (
-                <p className="text-gray-500">Đã thu phí phạt: <span className="font-medium text-amber-600">{totalFine}đ</span></p>
+                <div className="mt-4 p-4 bg-amber-50 rounded-2xl border border-amber-100 inline-block">
+                   <p className="text-amber-800 font-medium">Đã thu phí phạt: <span className="font-bold text-lg">{formatCurrency(totalFine)}</span></p>
+                </div>
               )}
             </div>
             
             <div className="flex justify-center gap-4 pt-6">
-              {totalFine > 0 && <Button variant="ghost" onClick={() => window.print()}>🖨️ In biên lai thu tiền</Button>}
+              {totalFine > 0 && <Button variant="ghost" onClick={() => window.print()}>🖨️ In biên lai</Button>}
               <Button variant="secondary" onClick={() => { setStep(1); setIsSuccess(false); setSelectedRecord(null); setSearchRecord(''); setCondition('good'); setConditionNote('') }}>Nhận trả tiếp</Button>
               <Link href="/librarian/dashboard">
                 <Button variant="primary">Về tổng quan</Button>
@@ -105,28 +147,29 @@ export default function ReturnBorrowPage() {
                   <Input 
                     value={searchRecord}
                     onChange={e => setSearchRecord(e.target.value)}
-                    placeholder="Quét mã vạch sách (VD: 3901-001) hoặc nhập mã phiếu (VD: PM-2026-0501)..." 
+                    placeholder="Quét mã vạch sách (VD: 3901-001)..." 
                     className="flex-1"
                     onKeyDown={e => e.key === 'Enter' && handleSearchRecord()}
+                    autoFocus
                   />
-                  <Button onClick={handleSearchRecord}>Tìm kiếm</Button>
+                  <Button onClick={handleSearchRecord} loading={isSearching}>Tìm kiếm</Button>
                 </div>
               </div>
             ) : (
-              <div className={`p-5 rounded-2xl border ${selectedRecord.daysLeft >= 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}`}>
+              <div className={`p-5 rounded-2xl border ${selectedRecord.daysOverdue <= 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}`}>
                 <div className="flex items-start gap-4">
-                  <div className={`w-12 h-16 rounded flex items-center justify-center text-2xl ${selectedRecord.daysLeft >= 0 ? 'bg-emerald-100' : 'bg-red-100'}`}>
-                    {selectedRecord.daysLeft >= 0 ? '📗' : '📕'}
+                  <div className={`w-12 h-16 rounded flex items-center justify-center text-2xl ${selectedRecord.daysOverdue <= 0 ? 'bg-emerald-100' : 'bg-red-100'}`}>
+                    {selectedRecord.daysOverdue <= 0 ? '📗' : '📕'}
                   </div>
                   <div>
                     <h4 className="text-lg font-bold text-gray-900">
-                      {selectedRecord.book} — Bản sao: {selectedRecord.copyCode}
+                      {selectedRecord.bookCopy?.book?.title} — Mã BC: {selectedRecord.bookCopy?.copyCode}
                     </h4>
                     <p className="mt-1 text-sm text-gray-600">
-                      Mượn bởi: <span className="font-medium text-gray-900">{selectedRecord.reader}</span> • Ngày mượn: {selectedRecord.borrowDate}
+                      Mượn bởi: <span className="font-medium text-gray-900">{selectedRecord.libraryCard?.user?.fullName || selectedRecord.libraryCard?.user?.username}</span> • Ngày mượn: {selectedRecord.borrowDate}
                     </p>
-                    <p className={`mt-2 text-sm font-medium ${selectedRecord.daysLeft >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
-                      Hạn trả: {selectedRecord.dueDate} → {selectedRecord.daysLeft >= 0 ? `Còn ${selectedRecord.daysLeft} ngày ✅` : `Quá hạn ${Math.abs(selectedRecord.daysLeft)} ngày ❌ (Phí: ${selectedRecord.fine}đ)`}
+                    <p className={`mt-2 text-sm font-bold ${selectedRecord.daysOverdue <= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
+                      Hạn trả: {selectedRecord.dueDate} → {selectedRecord.daysOverdue <= 0 ? `Còn hạn ✅` : `Quá hạn ${selectedRecord.daysOverdue} ngày ❌ (Phí dự kiến: ${formatCurrency(selectedRecord.fine)})`}
                     </p>
                   </div>
                 </div>
@@ -144,19 +187,19 @@ export default function ReturnBorrowPage() {
             <h3 className="text-lg font-bold">Kiểm tra tình trạng sách</h3>
             
             <div className="space-y-3">
-              <label className="flex items-start gap-3 p-4 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors">
+              <label className="flex items-start gap-3 p-4 border border-gray-100 rounded-2xl cursor-pointer hover:bg-gray-50 transition-colors">
                 <input type="radio" checked={condition === 'good'} onChange={() => setCondition('good')} className="mt-1 text-emerald-500 focus:ring-emerald-500" />
                 <div>
-                  <p className="font-medium text-gray-900">Tốt (như lúc mượn)</p>
-                  <p className="text-sm text-gray-500">Sách nguyên vẹn, không rách, không bẩn.</p>
+                  <p className="font-bold text-gray-900 text-sm">Tốt (như lúc mượn)</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Sách nguyên vẹn, không rách, không bẩn.</p>
                 </div>
               </label>
 
-              <label className="flex items-start gap-3 p-4 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors">
+              <label className="flex items-start gap-3 p-4 border border-gray-100 rounded-2xl cursor-pointer hover:bg-gray-50 transition-colors">
                 <input type="radio" checked={condition === 'fair'} onChange={() => setCondition('fair')} className="mt-1 text-emerald-500 focus:ring-emerald-500" />
                 <div className="flex-1">
-                  <p className="font-medium text-gray-900">Cũ hơn / Hư nhẹ</p>
-                  <p className="text-sm text-gray-500">Bị nhăn mép, bẩn nhẹ nhưng vẫn đọc tốt.</p>
+                  <p className="font-bold text-gray-900 text-sm">Cũ hơn / Hư nhẹ</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Bị nhăn mép, bẩn nhẹ nhưng vẫn đọc tốt.</p>
                   {condition === 'fair' && (
                     <Input 
                       className="mt-3" 
@@ -168,11 +211,11 @@ export default function ReturnBorrowPage() {
                 </div>
               </label>
 
-              <label className="flex items-start gap-3 p-4 border border-amber-200 bg-amber-50 rounded-xl cursor-pointer">
+              <label className="flex items-start gap-3 p-4 border border-amber-100 bg-amber-50 rounded-2xl cursor-pointer">
                 <input type="radio" checked={condition === 'damaged'} onChange={() => setCondition('damaged')} className="mt-1 text-amber-500 focus:ring-amber-500" />
                 <div className="flex-1">
-                  <p className="font-medium text-amber-900">Hư nặng</p>
-                  <p className="text-sm text-amber-700">Rách nhiều trang, dính nước nặng → Phát sinh phí phạt hư hỏng (Mặc định: 50.000đ)</p>
+                  <p className="font-bold text-amber-900 text-sm">Hư nặng / Mất sách</p>
+                  <p className="text-xs text-amber-700 mt-0.5">Rách nhiều trang, dính nước nặng → Phí phạt hư hỏng (Mặc định: 50.000đ)</p>
                 </div>
               </label>
             </div>
@@ -188,56 +231,50 @@ export default function ReturnBorrowPage() {
           <div className="space-y-6">
             <h3 className="text-lg font-bold">Tổng kết & Thu phí</h3>
             
-            <div className="bg-gray-50 p-6 rounded-2xl border border-gray-200 space-y-4">
-              <div className="flex justify-between items-center pb-4 border-b border-gray-200">
+            <div className="bg-white p-6 rounded-3xl border border-gray-100 space-y-4 shadow-sm">
+              <div className="flex justify-between items-center pb-4 border-b border-gray-50">
                 <div>
-                  <p className="font-medium text-gray-900">{selectedRecord?.book}</p>
-                  <p className="text-sm text-gray-500">Trạng thái khi trả: <span className="font-medium">{condition === 'good' ? 'Tốt' : condition === 'fair' ? 'Hư nhẹ' : 'Hư nặng'}</span></p>
+                  <p className="font-bold text-gray-900">{selectedRecord?.bookCopy?.book?.title}</p>
+                  <p className="text-xs text-gray-500 mt-0.5 uppercase tracking-wider">Tình trạng: <span className="font-bold text-primary">{condition === 'good' ? 'Tốt' : condition === 'fair' ? 'Hư nhẹ' : 'Hư nặng'}</span></p>
                 </div>
-                {condition === 'damaged' && <span className="text-sm font-medium text-amber-600">Phạt hư hỏng: {damageFine}đ</span>}
+                {condition === 'damaged' && <span className="text-sm font-bold text-amber-600">Phạt hư hỏng: {formatCurrency(damageFine)}</span>}
               </div>
 
               {selectedRecord!.fine > 0 && (
                 <div className="flex justify-between items-center text-red-600">
-                  <span className="text-sm font-medium">Phí phạt trễ hạn ({Math.abs(selectedRecord!.daysLeft)} ngày):</span>
-                  <span className="font-bold">{selectedRecord!.fine}đ</span>
+                  <span className="text-sm font-bold italic">Phí phạt trễ hạn ({selectedRecord!.daysOverdue} ngày):</span>
+                  <span className="font-black">{formatCurrency(selectedRecord!.fine)}</span>
                 </div>
               )}
 
               {totalFine > 0 ? (
-                <div className="pt-4 border-t border-gray-200 space-y-4">
-                  <div className="flex justify-between items-center text-lg">
-                    <span className="font-medium text-gray-900">Tổng phí phải thu:</span>
-                    <span className="font-bold text-amber-600">{totalFine}đ</span>
+                <div className="pt-4 border-t border-gray-100 space-y-4">
+                  <div className="flex justify-between items-center text-xl">
+                    <span className="font-black text-gray-900">TỔNG PHÍ PHẢI THU:</span>
+                    <span className="font-black text-primary">{formatCurrency(totalFine)}</span>
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700">Hình thức thu</label>
-                    <div className="flex gap-4">
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input type="radio" checked={paymentMethod === 'cash'} onChange={() => setPaymentMethod('cash')} className="text-primary focus:ring-primary" />
-                        <span>Tiền mặt</span>
-                      </label>
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input type="radio" checked={paymentMethod === 'transfer'} onChange={() => setPaymentMethod('transfer')} className="text-primary focus:ring-primary" />
-                        <span>Chuyển khoản</span>
-                      </label>
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input type="radio" checked={paymentMethod === 'qr'} onChange={() => setPaymentMethod('qr')} className="text-primary focus:ring-primary" />
-                        <span>QR Code</span>
-                      </label>
+                  <div className="space-y-3">
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Hình thức thanh toán</label>
+                    <div className="flex gap-3">
+                      {['cash', 'transfer', 'qr'].map(m => (
+                        <label key={m} className={`flex-1 flex items-center justify-center p-3 rounded-xl border cursor-pointer transition-all ${paymentMethod === m ? 'bg-primary/5 border-primary text-primary font-bold' : 'border-gray-100 hover:bg-gray-50'}`}>
+                          <input type="radio" checked={paymentMethod === m} onChange={() => setPaymentMethod(m)} className="hidden" />
+                          <span className="capitalize">{m === 'cash' ? 'Tiền mặt' : m === 'transfer' ? 'Chuyển khoản' : 'QR Code'}</span>
+                        </label>
+                      ))}
                     </div>
                   </div>
                 </div>
               ) : (
-                <div className="pt-2 text-center text-emerald-600 font-medium">
-                  Không phát sinh phí phạt.
+                <div className="pt-2 text-center text-emerald-600 font-bold italic">
+                  ✓ Không phát sinh phí phạt.
                 </div>
               )}
             </div>
 
             <div className="flex justify-between pt-6 border-t border-gray-100">
               <Button variant="ghost" onClick={() => setStep(2)}>← Quay lại</Button>
-              <Button variant="primary" onClick={handleSubmit}>✅ Xác nhận trả {totalFine > 0 && '& Thu phí'}</Button>
+              <Button variant="primary" onClick={handleSubmit}>✅ Xác nhận {totalFine > 0 ? 'Thu phí & Nhập kho' : 'Nhập kho'}</Button>
             </div>
           </div>
         )}

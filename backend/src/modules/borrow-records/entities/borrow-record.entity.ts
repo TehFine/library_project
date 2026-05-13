@@ -8,7 +8,7 @@ export class BorrowRecord {
     @PrimaryGeneratedColumn('uuid')
     id: string
 
-    @ManyToOne(() => LibraryCard)
+    @ManyToOne(() => LibraryCard, (card) => card.borrowRecords)
     libraryCard: LibraryCard
 
     @Column()

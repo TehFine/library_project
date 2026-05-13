@@ -1,124 +1,177 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import PageHeader from '@/components/layout/PageHeader'
-import { Card } from '@/components/ui'
+import { Card, Badge } from '@/components/ui'
 import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
+import Select from '@/components/ui/Select'
 import Modal from '@/components/ui/Modal'
-
-// Mock Data
-const MOCK_FINES = [
-  { id: 'F-001', reader: 'Trần Văn Minh', cardId: 'TV-2024-001', book: 'Nhà Giả Kim', reason: 'Trễ 6 ngày', amount: 8000, date: '09/05/2026', status: 'pending', recordId: 'PM-001' },
-  { id: 'F-002', reader: 'Lê Thị Hoa', cardId: 'TV-2024-002', book: 'Atomic Habits', reason: 'Sách hư hỏng', amount: 50000, date: '07/05/2026', status: 'pending', recordId: 'PM-002' },
-  { id: 'F-003', reader: 'Nguyễn Văn C', cardId: 'TV-2024-005', book: 'Đắc Nhân Tâm', reason: 'Trễ 2 ngày', amount: 2000, date: '01/05/2026', status: 'paid', recordId: 'PM-003' },
-]
+import { librarianApi } from '@/lib/api'
+import { formatCurrency, cn } from '@/lib/utils'
+import { toast } from 'react-hot-toast'
 
 export default function LibrarianFinesPage() {
-  const [tab, setTab] = useState<'pending' | 'paid' | 'all'>('pending')
+  const [fines, setFines] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [selectedFine, setSelectedFine] = useState<typeof MOCK_FINES[0] | null>(null)
+  const [status, setStatus] = useState('all')
+  
+  const [selectedFine, setSelectedFine] = useState<any | null>(null)
   const [paymentMethod, setPaymentMethod] = useState('cash')
 
-  const filteredFines = MOCK_FINES.filter(f => {
-    if (tab !== 'all' && f.status !== tab) return false
-    if (search && !f.reader.toLowerCase().includes(search.toLowerCase()) && !f.cardId.toLowerCase().includes(search.toLowerCase())) return false
-    return true
-  })
+  const loadData = useCallback(async () => {
+    setLoading(true)
+    try {
+      const res = await librarianApi.getAllFines()
+      let filtered = res
+      if (status !== 'all') {
+        filtered = filtered.filter((f: any) => f.status === status)
+      }
+      if (search) {
+        filtered = filtered.filter((f: any) => 
+          (f.borrowRecord?.libraryCard?.user?.fullName || f.borrowRecord?.libraryCard?.user?.username).toLowerCase().includes(search.toLowerCase()) ||
+          f.borrowRecord?.bookCopy?.book?.title.toLowerCase().includes(search.toLowerCase())
+        )
+      }
+      setFines(filtered)
+    } catch (err) {
+      toast.error('Lỗi khi tải danh sách phí phạt')
+    } finally {
+      setLoading(false)
+    }
+  }, [search, status])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
+
+  const handlePayFine = async () => {
+    if (!selectedFine) return
+    try {
+      await librarianApi.payFine(selectedFine.id, paymentMethod)
+      toast.success('Đã thanh toán phí phạt thành công')
+      setSelectedFine(null)
+      loadData()
+    } catch (err) {
+      toast.error('Lỗi khi thanh toán')
+    }
+  }
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Quản lý Phí Phạt" description="Theo dõi và thu phí trễ hạn, hư hỏng sách" />
+      <PageHeader title="Quản lý phí phạt" description="Thu phí trễ hạn, làm mất hoặc hư hỏng sách" />
 
-      {/* Toolbar & Tabs */}
-      <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-        <div className="flex gap-1 border-b border-gray-200">
-          <button onClick={() => setTab('pending')} className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${tab === 'pending' ? 'border-primary text-gray-900' : 'border-transparent text-gray-500'}`}>Chưa thanh toán (2)</button>
-          <button onClick={() => setTab('paid')} className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${tab === 'paid' ? 'border-primary text-gray-900' : 'border-transparent text-gray-500'}`}>Đã thanh toán (1)</button>
-          <button onClick={() => setTab('all')} className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${tab === 'all' ? 'border-primary text-gray-900' : 'border-transparent text-gray-500'}`}>Tất cả</button>
-        </div>
-        <div className="w-full sm:w-64">
+      {/* Toolbar */}
+      <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-white p-5 rounded-3xl shadow-sm border border-gray-50">
+        <div className="flex gap-3 flex-1 w-full sm:w-auto">
           <Input 
-            placeholder="🔍 Tìm theo tên độc giả, mã thẻ..." 
+            placeholder="🔍 Tìm theo tên độc giả, tên sách..." 
             value={search}
             onChange={e => setSearch(e.target.value)}
+            className="max-w-xs rounded-2xl"
           />
+          <Select 
+            value={status}
+            onChange={e => setStatus(e.target.value)}
+            className="rounded-2xl"
+          >
+            <option value="all">Tất cả trạng thái</option>
+            <option value="pending">Chưa thanh toán</option>
+            <option value="paid">Đã thanh toán</option>
+          </Select>
         </div>
       </div>
 
-      {/* Main List */}
-      <div className="space-y-4">
-        {filteredFines.map(fine => (
-          <Card key={fine.id} padding="none">
-            <div className="p-5 flex flex-col md:flex-row justify-between items-center gap-4">
-              <div>
-                <p className="font-bold text-gray-900">{fine.reader.toUpperCase()} <span className="text-gray-400 font-normal">• {fine.cardId} • {fine.book}</span></p>
-                <div className="flex items-center gap-4 mt-2">
-                  <span className={`text-sm font-medium ${fine.reason.includes('hư hỏng') ? 'text-amber-600' : 'text-red-600'}`}>{fine.reason}</span>
-                  <span className="text-gray-300">•</span>
-                  <span className="text-sm font-bold text-gray-900">Phí: {fine.amount.toLocaleString()}đ</span>
-                  <span className="text-gray-300">•</span>
-                  <span className="text-sm text-gray-500">⏰ Tạo: {fine.date}</span>
+      {/* Main Table */}
+      <Card padding="none" className="rounded-3xl overflow-hidden border-none shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-gray-50/50 border-b border-gray-100 text-[11px] font-bold text-gray-400 uppercase tracking-widest">
+                <th className="py-5 px-6">Độc giả</th>
+                <th className="py-5 px-6">Sách</th>
+                <th className="py-5 px-6">Lý do</th>
+                <th className="py-5 px-6">Số tiền</th>
+                <th className="py-5 px-6">Trạng thái</th>
+                <th className="py-5 px-6 text-right">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50 bg-white">
+              {loading ? (
+                <tr><td colSpan={6} className="py-12 text-center text-gray-400 italic">Đang tải...</td></tr>
+              ) : fines.length === 0 ? (
+                <tr><td colSpan={6} className="py-12 text-center text-gray-400 italic">Không có dữ liệu phí phạt</td></tr>
+              ) : fines.map(fine => (
+                <tr key={fine.id} className="hover:bg-gray-50/30 transition-colors group">
+                  <td className="py-4 px-6">
+                    <div className="flex flex-col">
+                      <span className="text-sm font-bold text-gray-800">{fine.borrowRecord?.libraryCard?.user?.fullName || fine.borrowRecord?.libraryCard?.user?.username}</span>
+                      <span className="text-[10px] text-gray-400 tracking-tighter">Thẻ: {fine.borrowRecord?.libraryCard?.cardNumber}</span>
+                    </div>
+                  </td>
+                  <td className="py-4 px-6 text-sm text-gray-600 font-medium">{fine.borrowRecord?.bookCopy?.book?.title}</td>
+                  <td className="py-4 px-6 text-xs text-gray-500 capitalize">{fine.fineType === 'overdue' ? 'Trễ hạn' : fine.fineType}</td>
+                  <td className="py-4 px-6 font-black text-sm text-gray-900">{formatCurrency(fine.amount)}</td>
+                  <td className="py-4 px-6">
+                    <Badge className={fine.status === 'paid' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}>
+                        {fine.status === 'paid' ? '● Đã thu' : '● Chờ thu'}
+                    </Badge>
+                  </td>
+                  <td className="py-4 px-6 text-right">
+                    {fine.status === 'pending' ? (
+                      <Button variant="primary" size="sm" className="rounded-full px-6" onClick={() => setSelectedFine(fine)}>Thu phí</Button>
+                    ) : (
+                      <Button variant="ghost" size="sm" className="rounded-full">Biên lai</Button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      {/* Modal Thu Phí */}
+      <Modal open={!!selectedFine} onClose={() => setSelectedFine(null)} title="Xác nhận thu phí phạt" size="md">
+        <div className="space-y-6">
+           <div className="bg-amber-50 p-6 rounded-3xl border border-amber-100 text-center space-y-2">
+              <p className="text-xs font-bold text-amber-600 uppercase tracking-widest">Tổng tiền cần thu</p>
+              <p className="text-4xl font-black text-amber-900">{formatCurrency(selectedFine?.amount || 0)}</p>
+           </div>
+           
+           <div className="space-y-3">
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Thông tin chi tiết</p>
+              <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100 text-sm space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Độc giả:</span>
+                  <span className="font-bold text-gray-900">{selectedFine?.borrowRecord?.libraryCard?.user?.fullName || selectedFine?.borrowRecord?.libraryCard?.user?.username}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Lý do:</span>
+                  <span className="font-bold text-gray-900">{selectedFine?.fineType === 'overdue' ? 'Trễ hạn sách' : 'Khác'}</span>
                 </div>
               </div>
-              <div className="flex gap-2">
-                <Button variant="ghost" size="sm">Xem phiếu mượn</Button>
-                {fine.status === 'pending' && (
-                  <Button variant="primary" size="sm" onClick={() => setSelectedFine(fine)}>Thu tiền</Button>
-                )}
+           </div>
+
+           <div className="space-y-3">
+              <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Phương thức thanh toán</label>
+              <div className="grid grid-cols-3 gap-2">
+                {['cash', 'transfer', 'qr'].map(m => (
+                  <label key={m} className={cn(
+                    "p-3 rounded-2xl border text-center cursor-pointer transition-all text-xs font-bold capitalize",
+                    paymentMethod === m ? "bg-primary border-primary text-white shadow-md shadow-primary/20" : "bg-white border-gray-100 text-gray-400 hover:bg-gray-50"
+                  )}>
+                    <input type="radio" checked={paymentMethod === m} onChange={() => setPaymentMethod(m)} className="hidden" />
+                    {m === 'cash' ? 'Tiền mặt' : m === 'transfer' ? 'Chuyển khoản' : 'QR Code'}
+                  </label>
+                ))}
               </div>
-            </div>
-          </Card>
-        ))}
-        {filteredFines.length === 0 && (
-          <div className="text-center py-12 text-gray-500 bg-white rounded-2xl border border-dashed border-gray-200">
-            Không có dữ liệu phiếu phạt nào.
-          </div>
-        )}
-      </div>
+           </div>
 
-      {/* Modal Thu Tiền */}
-      <Modal open={!!selectedFine} onClose={() => setSelectedFine(null)} title="Thu Phí Phạt">
-        <div className="space-y-6">
-          <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 space-y-2">
-            <div className="flex justify-between border-b border-gray-200 pb-2">
-              <span className="text-gray-600">Độc giả:</span>
-              <span className="font-medium">{selectedFine?.reader}</span>
-            </div>
-            <div className="flex justify-between border-b border-gray-200 py-2">
-              <span className="text-gray-600">Lý do phạt:</span>
-              <span className="font-medium">{selectedFine?.reason} ({selectedFine?.book})</span>
-            </div>
-            <div className="flex justify-between pt-2">
-              <span className="text-gray-600 font-medium">Số tiền cần thu:</span>
-              <span className="font-bold text-amber-600 text-lg">{selectedFine?.amount.toLocaleString()}đ</span>
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <label className="text-sm font-medium text-gray-700">Hình thức thanh toán</label>
-            <div className="grid grid-cols-3 gap-3">
-              <label className={`border rounded-xl p-3 flex flex-col items-center gap-2 cursor-pointer transition-colors ${paymentMethod === 'cash' ? 'border-primary bg-primary-50 text-primary-700' : 'border-gray-200 hover:bg-gray-50'}`}>
-                <input type="radio" checked={paymentMethod === 'cash'} onChange={() => setPaymentMethod('cash')} className="sr-only" />
-                <span className="text-2xl">💵</span>
-                <span className="text-sm font-medium">Tiền mặt</span>
-              </label>
-              <label className={`border rounded-xl p-3 flex flex-col items-center gap-2 cursor-pointer transition-colors ${paymentMethod === 'transfer' ? 'border-primary bg-primary-50 text-primary-700' : 'border-gray-200 hover:bg-gray-50'}`}>
-                <input type="radio" checked={paymentMethod === 'transfer'} onChange={() => setPaymentMethod('transfer')} className="sr-only" />
-                <span className="text-2xl">🏦</span>
-                <span className="text-sm font-medium">Chuyển khoản</span>
-              </label>
-              <label className={`border rounded-xl p-3 flex flex-col items-center gap-2 cursor-pointer transition-colors ${paymentMethod === 'qr' ? 'border-primary bg-primary-50 text-primary-700' : 'border-gray-200 hover:bg-gray-50'}`}>
-                <input type="radio" checked={paymentMethod === 'qr'} onChange={() => setPaymentMethod('qr')} className="sr-only" />
-                <span className="text-2xl">📱</span>
-                <span className="text-sm font-medium">QR Code</span>
-              </label>
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
-            <Button variant="ghost" onClick={() => setSelectedFine(null)}>Hủy</Button>
-            <Button variant="primary" onClick={() => setSelectedFine(null)}>Xác nhận & In biên lai</Button>
-          </div>
+           <div className="flex flex-col gap-2 pt-4 border-t border-gray-50">
+              <Button variant="primary" className="rounded-2xl py-3 font-black uppercase tracking-widest" onClick={handlePayFine}>Xác nhận thanh toán</Button>
+              <Button variant="ghost" className="rounded-2xl" onClick={() => setSelectedFine(null)}>Hủy bỏ</Button>
+           </div>
         </div>
       </Modal>
     </div>

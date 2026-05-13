@@ -138,6 +138,17 @@ export class BorrowRecordsService {
         }
     }
 
+    async findByCopyCode(copyCode: string) {
+        return this.borrowRepo.findOne({
+            where: [
+                { bookCopy: { copyCode }, status: 'borrowing' },
+                { bookCopy: { copyCode }, status: 'overdue' }
+            ],
+            relations: ['bookCopy', 'bookCopy.book', 'libraryCard', 'libraryCard.user'],
+            order: { createdAt: 'DESC' }
+        })
+    }
+
     async findAll() {
         return this.borrowRepo.find({
             relations: ['libraryCard', 'libraryCard.user', 'bookCopy', 'bookCopy.book'],

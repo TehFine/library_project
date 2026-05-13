@@ -71,6 +71,15 @@ export class ReservationsService {
         return this.resRepo.save(res)
     }
 
+    async notify(id: string) {
+        const res = await this.resRepo.findOneBy({ id })
+        if (!res) throw new BadRequestException('Không tìm thấy yêu cầu đặt trước')
+        
+        res.status = 'notified'
+        res.notifiedAt = new Date()
+        return this.resRepo.save(res)
+    }
+
     async findMine(userId: string, query: any) {
         const { status, page = 1, limit = 10 } = query
         const skip = (page - 1) * limit

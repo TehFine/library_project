@@ -86,7 +86,7 @@ export default function BorrowCard({ record, onRenew, isRenewing }: BorrowCardPr
         {canRenew && onRenew && (
           <Button
             variant="ghost"
-            size="xs"
+            size="sm"
             className="text-amber-600 hover:bg-amber-50 h-8 px-3 rounded-lg border border-amber-200"
             loading={isRenewing}
             onClick={() => onRenew(record.id)}

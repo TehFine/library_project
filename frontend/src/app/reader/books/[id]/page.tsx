@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { authApi, booksApi, reservationsApi, cardsApi, borrowsApi } from '@/lib/api'
+import { authApi, booksApi, reservationsApi, cardsApi, borrowRequestsApi } from '@/lib/api'
 import { Book, User, LibraryCard } from '@/types'
 import { Badge, Card, Skeleton } from '@/components/ui'
 import Button from '@/components/ui/Button'
@@ -66,13 +66,10 @@ export default function BookDetailPage() {
     setBorrowing(true)
     setError('')
     try {
-      await borrowsApi.borrow(id)
+      await borrowRequestsApi.create(id)
       setBorrowed(true)
-      // Refresh book info to update copies count
-      const b = await booksApi.detail(id)
-      setBook(b)
     } catch (e: any) {
-      setError(e.message || 'Mượn sách thất bại')
+      setError(e.message || 'Gửi yêu cầu mượn thất bại')
     } finally {
       setBorrowing(false)
     }
@@ -181,9 +178,9 @@ export default function BookDetailPage() {
           {/* CTA */}
           <div className="mt-6 flex flex-col gap-3 max-w-xs">
             {borrowed ? (
-              <Card className="bg-green-50 border-green-200">
-                <p className="text-sm text-green-700 font-medium">Mượn sách thành công!</p>
-                <p className="text-xs text-green-600 mt-1">Vui lòng kiểm tra trong mục hồ sơ cá nhân.</p>
+              <Card className="bg-emerald-50 border-emerald-200">
+                <p className="text-sm text-emerald-700 font-medium">Đã gửi yêu cầu mượn!</p>
+                <p className="text-xs text-emerald-600 mt-1">Vui lòng chờ thủ thư duyệt yêu cầu của bạn.</p>
               </Card>
             ) : reserved ? (
               <Card className="bg-green-50 border-green-200">
@@ -213,7 +210,7 @@ export default function BookDetailPage() {
             ) : available ? (
               <>
                 <Button onClick={handleBorrow} loading={borrowing} variant="primary">
-                  Mượn sách ngay
+                  Gửi yêu cầu mượn
                 </Button>
                 {error && <p className="text-xs text-red-500">{error}</p>}
               </>

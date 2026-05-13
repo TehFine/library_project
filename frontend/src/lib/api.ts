@@ -1,4 +1,4 @@
-import { AuthResponse, PaginatedResponse, QueryParams } from '@/types'
+import { AuthResponse, PaginatedResponse, QueryParams, User } from '@/types'
 import { buildQueryString } from './utils'
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api'
@@ -78,11 +78,17 @@ export const booksApi = {
     request<PaginatedResponse<import('@/types').Book>>(`/books${buildQueryString(params ?? {})}`, { skipAuthRedirect: true }),
   detail: (id: string) =>
     request<import('@/types').Book>(`/books/${id}`, { skipAuthRedirect: true }),
+  create: (data: any) =>
+    request<import('@/types').Book>('/books', { method: 'POST', body: JSON.stringify(data) }),
+  // Aliases for consistency
+  getAll: (params?: QueryParams) => booksApi.list(params),
+  getOne: (id: string) => booksApi.detail(id),
 }
 
 // ── Categories ────────────────────────────────────────────────────────────────
 export const categoriesApi = {
   list: () => request<import('@/types').Category[]>('/categories', { skipAuthRedirect: true }),
+  getAll: () => categoriesApi.list(),
 }
 
 // ── Library Card ──────────────────────────────────────────────────────────────
@@ -127,4 +133,50 @@ export const finesApi = {
     ),
 }
 
+// ── Borrow Requests ───────────────────────────────────────────────────────────
+export const borrowRequestsApi = {
+  create: (bookId: string) => request<any>('/borrow-requests', { method: 'POST', body: JSON.stringify({ bookId }) }),
+  mine: () => request<any[]>('/borrow-requests/mine'),
+}
+
 export { ApiError }
+
+// ── Librarian ──────────────────────────────────────────────────────────────────
+export interface LibrarianStats {
+  borrowsToday: number
+  returnsToday: number
+  overdueCount: number
+  finesCollectedToday: number
+  pendingRequestsCount: number
+  overdueBooks: { id: string; title: string; user: string; days: number }[]
+  readyReservations: { id: string; title: string; user: string; queue: number }[]
+  pendingRequests: { id: string; title: string; user: string; date: string }[]
+}
+
+export const librarianApi = {
+  getStats: () => request<LibrarianStats>('/librarian/dashboard/stats'),
+  
+  // Search
+  searchCards: (q: string) => request<any[]>(`/library-cards/search?q=${encodeURIComponent(q)}`),
+  getCardDetails: (id: string) => request<any>(`/library-cards/${id}`),
+  searchCopies: (q: string) => request<any[]>(`/books/copies/search?q=${encodeURIComponent(q)}`),
+  findCopyByCode: (code: string) => request<any>(`/books/copies/${encodeURIComponent(code)}`),
+  findBorrowByCopyCode: (code: string) => request<any>(`/borrow-records/copy/${encodeURIComponent(code)}`),
+  
+  // Borrows
+  createBorrow: (dto: { cardId: string; copyId: string }) => request<any>('/borrow-records', { method: 'POST', body: JSON.stringify(dto) }),
+  returnBook: (id: string, condition: string) => request<any>(`/borrow-records/${id}/return`, { method: 'PATCH', body: JSON.stringify({ condition }) }),
+  
+  // Borrow Requests
+  getAllRequests: () => request<any[]>('/borrow-requests'),
+  approveRequest: (id: string, copyId: string) => request<any>(`/borrow-requests/${id}/approve`, { method: 'POST', body: JSON.stringify({ copyId }) }),
+  rejectRequest: (id: string, reason: string) => request<any>(`/borrow-requests/${id}/reject`, { method: 'POST', body: JSON.stringify({ reason }) }),
+
+  // Fines
+  getAllFines: () => request<any[]>('/fines'),
+  payFine: (id: string, method: string) => request<any>(`/fines/${id}/pay`, { method: 'POST', body: JSON.stringify({ method }) }),
+
+  // Reservations
+  getReservations: () => request<any[]>('/reservations'),
+  notifyReservation: (id: string) => request<any>(`/reservations/${id}/notify`, { method: 'POST' }),
+}

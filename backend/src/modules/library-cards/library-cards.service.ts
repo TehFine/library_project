@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
+import { Repository, Like, ILike } from 'typeorm'
 import { LibraryCard } from './entities/library-card.entity'
 
 @Injectable()
@@ -12,6 +12,18 @@ export class LibraryCardsService {
 
     async findAll() {
         return this.cardRepo.find({ relations: ['user'] })
+    }
+
+    async search(q: string) {
+        return this.cardRepo.find({
+            where: [
+                { cardNumber: ILike(`%${q}%`) },
+                { user: { fullName: ILike(`%${q}%`) } },
+                { user: { username: ILike(`%${q}%`) } }
+            ],
+            relations: ['user'],
+            take: 20
+        })
     }
 
     async findByCardNumber(cardNumber: string) {
@@ -28,6 +40,15 @@ export class LibraryCardsService {
             where: { userId },
             order: { createdAt: 'DESC' }
         })
+    }
+
+    async findByIdWithDetails(id: string) {
+        const card = await this.cardRepo.findOne({
+            where: { id },
+            relations: ['user', 'borrowRecords', 'borrowRecords.bookCopy', 'borrowRecords.bookCopy.book']
+        })
+        if (!card) throw new NotFoundException('Card not found')
+        return card
     }
 
     async create(dto: Partial<LibraryCard>, creatorId: string) {

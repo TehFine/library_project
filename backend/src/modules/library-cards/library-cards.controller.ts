@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Req } from '@nestjs/common'
+import { Controller, Get, Post, Body, Param, UseGuards, Req, Query } from '@nestjs/common'
 import { LibraryCardsService } from './library-cards.service'
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard'
 
@@ -12,9 +12,19 @@ export class LibraryCardsController {
         return this.service.findAll()
     }
 
+    @Get('search')
+    search(@Query('q') q: string) {
+        return this.service.search(q)
+    }
+
     @Get('mine')
     findMine(@Req() req: any) {
         return this.service.findMine(req.user.userId)
+    }
+
+    @Get(':id')
+    findById(@Param('id') id: string) {
+        return this.service.findByIdWithDetails(id)
     }
 
     @Get(':cardNumber')

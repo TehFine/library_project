@@ -55,6 +55,8 @@ export interface Book {
   totalCopies: number
   availableCopies: number
   createdAt: string
+  // Joined
+  copies?: BookCopy[]
 }
 
 // ── Book Copy ─────────────────────────────────────────────────────────────────

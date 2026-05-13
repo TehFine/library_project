@@ -12,6 +12,11 @@ export class BorrowRecordsController {
         return this.service.findAll()
     }
 
+    @Get('copy/:code')
+    findByCopyCode(@Param('code') code: string) {
+        return this.service.findByCopyCode(code)
+    }
+
     @Get('mine')
     findMine(@Req() req: any, @Query() query: any) {
         return this.service.findMine(req.user.userId, query)
@@ -20,11 +25,6 @@ export class BorrowRecordsController {
     @Post()
     borrow(@Body() dto: { cardId: string; copyId: string }, @Req() req: any) {
         return this.service.borrow(dto, req.user.userId)
-    }
-
-    @Post('book')
-    borrowByBookId(@Body() body: { bookId: string }, @Req() req: any) {
-        return this.service.borrowByBookId(req.user.userId, body.bookId)
     }
 
     @Patch(':id/return')

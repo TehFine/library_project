@@ -78,7 +78,7 @@ export default function ReservationCard({ reservation, onCancel, isCancelling }:
         {canCancel && onCancel && (
           <Button
             variant="ghost"
-            size="xs"
+            size="sm"
             className="text-gray-500 hover:bg-gray-50 h-8 px-3 rounded-lg border border-gray-200"
             loading={isCancelling}
             onClick={() => onCancel(reservation.id)}

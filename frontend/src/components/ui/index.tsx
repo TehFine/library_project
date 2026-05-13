@@ -7,8 +7,9 @@ export { Modal }
 interface BadgeProps {
   children: React.ReactNode
   className?: string
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost'
 }
-export function Badge({ children, className }: BadgeProps) {
+export function Badge({ children, className, variant }: BadgeProps) {
   return (
     <span className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-amber-100 text-amber-700', className)}>
       {children}

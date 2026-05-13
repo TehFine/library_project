@@ -2,48 +2,59 @@
 import { useEffect, useState } from 'react'
 import PageHeader from '@/components/layout/PageHeader'
 import BorrowCard from '@/components/borrows/BorrowCard'
+import BorrowRequestCard from '@/components/borrows/BorrowRequestCard'
 import { Pagination, EmptyState, Skeleton } from '@/components/ui'
-import { borrowsApi } from '@/lib/api'
+import { borrowsApi, borrowRequestsApi } from '@/lib/api'
 import { BorrowRecord, BorrowStatus } from '@/types'
 import { cn } from '@/lib/utils'
 
-const TABS: { label: string; value: BorrowStatus | 'all' }[] = [
+const TABS: { label: string; value: any }[] = [
   { label: 'Đang mượn',  value: 'borrowing' },
+  { label: 'Yêu cầu',    value: 'requests'  },
   { label: 'Quá hạn',   value: 'overdue'   },
   { label: 'Lịch sử',   value: 'returned'  },
   { label: 'Tất cả',    value: 'all'       },
 ]
 
 export default function BorrowsPage() {
-  const [records, setRecords]   = useState<BorrowRecord[]>([])
+  const [records, setRecords]   = useState<any[]>([])
+  const [requests, setRequests] = useState<any[]>([])
   const [total, setTotal]       = useState(0)
   const [page, setPage]         = useState(1)
   const [loading, setLoading]   = useState(true)
-  const [tab, setTab]           = useState<BorrowStatus | 'all'>('borrowing')
+  const [tab, setTab]           = useState<any>('borrowing')
   const [renewingId, setRenewingId] = useState<string | null>(null)
   const LIMIT = 12
 
-  async function load(p: number, t: BorrowStatus | 'all') {
+  async function load(p: number, t: any) {
     setLoading(true)
     try {
-      const res = await borrowsApi.mine({
-        page: p, limit: LIMIT,
-        ...(t !== 'all' && { status: t }),
-      })
-      
-      if (Array.isArray(res)) {
-        setRecords(res)
-        setTotal(res.length)
-      } else if (res && res.data) {
-        setRecords(res.data)
-        setTotal(res.total ?? res.data.length)
-      } else {
+      if (t === 'requests') {
+        const res = await borrowRequestsApi.mine()
+        setRequests(res)
         setRecords([])
-        setTotal(0)
+        setTotal(res.length)
+      } else {
+        const res = await borrowsApi.mine({
+          page: p, limit: LIMIT,
+          ...(t !== 'all' && { status: t }),
+        })
+        setRequests([])
+        if (Array.isArray(res)) {
+          setRecords(res)
+          setTotal(res.length)
+        } else if (res && res.data) {
+          setRecords(res.data)
+          setTotal(res.total ?? res.data.length)
+        } else {
+          setRecords([])
+          setTotal(0)
+        }
       }
     } catch (err) {
       console.error('Failed to load borrows:', err)
       setRecords([])
+      setRequests([])
       setTotal(0)
     } finally {
       setLoading(false)
@@ -53,7 +64,7 @@ export default function BorrowsPage() {
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load(page, tab) }, [page, tab])
 
-  function handleTabChange(t: BorrowStatus | 'all') {
+  function handleTabChange(t: any) {
     setTab(t)
     setPage(1)
   }
@@ -97,7 +108,7 @@ export default function BorrowsPage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-44 rounded-xl" />)}
         </div>
-      ) : records.length === 0 ? (
+      ) : (tab === 'requests' ? requests.length === 0 : records.length === 0) ? (
         <EmptyState
           title="Không có phiếu mượn nào"
           description={tab === 'borrowing' ? 'Đến thư viện để mượn sách đầu tiên của bạn' : 'Không có dữ liệu'}
@@ -109,14 +120,17 @@ export default function BorrowsPage() {
         />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {records.map(r => (
-            <BorrowCard
-              key={r.id}
-              record={r}
-              onRenew={handleRenew}
-              isRenewing={renewingId === r.id}
-            />
-          ))}
+          {tab === 'requests' 
+            ? requests.map(r => <BorrowRequestCard key={r.id} request={r} />)
+            : records.map(r => (
+                <BorrowCard
+                  key={r.id}
+                  record={r}
+                  onRenew={handleRenew}
+                  isRenewing={renewingId === r.id}
+                />
+              ))
+          }
         </div>
       )}
 

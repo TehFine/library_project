@@ -1,5 +1,6 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, ManyToOne, OneToOne, JoinColumn } from 'typeorm'
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, ManyToOne, OneToOne, JoinColumn, OneToMany } from 'typeorm'
 import { User } from '@/modules/users/entities/user.entity'
+import { BorrowRecord } from '@/modules/borrow-records/entities/borrow-record.entity'
 
 @Entity('library_cards')
 export class LibraryCard {
@@ -15,6 +16,9 @@ export class LibraryCard {
 
     @ManyToOne(() => User)
     issuedBy: User
+
+    @OneToMany(() => BorrowRecord, (record) => record.libraryCard)
+    borrowRecords: BorrowRecord[]
 
     @Column({ unique: true })
     cardNumber: string

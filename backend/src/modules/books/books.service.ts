@@ -103,5 +103,25 @@ export class BooksService {
             availableCopies: available
         })
     }
+
+    async findCopyByCode(copyCode: string) {
+        const copy = await this.bookCopiesRepository.findOne({
+            where: { copyCode },
+            relations: ['book']
+        })
+        if (!copy) throw new NotFoundException('Không tìm thấy bản sao sách')
+        return copy
+    }
+
+    async searchCopies(q: string) {
+        return this.bookCopiesRepository.find({
+            where: [
+                { copyCode: ILike(`%${q}%`) },
+                { book: { title: ILike(`%${q}%`) } }
+            ],
+            relations: ['book'],
+            take: 20
+        })
+    }
 }
 

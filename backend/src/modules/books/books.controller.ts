@@ -39,5 +39,17 @@ export class BooksController {
     createCopy(@Param('id') id: string, @Body() dto: any) {
         return this.booksService.createCopy(id, dto)
     }
+
+    @Get('copies/search')
+    @UseGuards(JwtAuthGuard)
+    searchCopies(@Query('q') q: string) {
+        return this.booksService.searchCopies(q)
+    }
+
+    @Get('copies/:code')
+    @UseGuards(JwtAuthGuard)
+    findCopyByCode(@Param('code') code: string) {
+        return this.booksService.findCopyByCode(code)
+    }
 }
 

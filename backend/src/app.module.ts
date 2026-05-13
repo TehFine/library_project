@@ -11,6 +11,8 @@ import { BorrowRecordsModule } from './modules/borrow-records/borrow-records.mod
 import { ReservationsModule } from './modules/reservations/reservations.module'
 import { FinesModule } from './modules/fines/fines.module'
 import { UsersModule } from './modules/users/users.module'
+import { LibrarianModule } from './modules/librarian/librarian.module'
+import { BorrowRequestsModule } from './modules/borrow-requests/borrow-requests.module'
 import { DatabaseModule } from './common/database/database.module'
 
 @Module({
@@ -42,6 +44,8 @@ import { DatabaseModule } from './common/database/database.module'
         ReservationsModule,
         FinesModule,
         UsersModule,
+        LibrarianModule,
+        BorrowRequestsModule,
     ],
     controllers: [AppController],
     providers: [AppService],
