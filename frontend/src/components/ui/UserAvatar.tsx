@@ -88,7 +88,12 @@ export default function UserAvatar({ user, className }: UserAvatarProps) {
           {/* Menu items */}
           <div className="py-1">
             <button
-              onClick={() => { router.push('/reader/profile'); setOpen(false) }}
+              onClick={() => { 
+                const path = user.role === 'reader' ? '/reader/profile' : 
+                             user.role === 'librarian' ? '/librarian/profile' : '/admin/profile';
+                router.push(path); 
+                setOpen(false);
+              }}
               className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-amber-50 transition-colors"
             >
               <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>

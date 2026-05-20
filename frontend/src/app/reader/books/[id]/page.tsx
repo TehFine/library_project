@@ -17,7 +17,6 @@ export default function BookDetailPage() {
   const [loading, setLoading]     = useState(true)
   const [reserving, setReserving] = useState(false)
   const [borrowing, setBorrowing] = useState(false)
-  const [registering, setRegistering] = useState(false)
   const [reserved, setReserved]   = useState(false)
   const [borrowed, setBorrowed]   = useState(false)
   const [error, setError]         = useState('')
@@ -44,19 +43,6 @@ export default function BookDetailPage() {
     }
   }
 
-  async function handleRegisterCard() {
-    setRegistering(true)
-    setError('')
-    try {
-      await cardsApi.create()
-      const userCards = await cardsApi.mine()
-      setCards(userCards)
-    } catch (e: any) {
-      setError(e.message || 'Đăng ký thẻ thất bại')
-    } finally {
-      setRegistering(false)
-    }
-  }
 
   async function handleBorrow() {
     if (!user) {
@@ -114,6 +100,7 @@ export default function BookDetailPage() {
 
   const available = book.availableCopies > 0
   const activeCard = cards.find(c => c.status === 'active')
+  const expiredCard = cards.find(c => c.status === 'expired')
 
   return (
     <div>
@@ -198,14 +185,15 @@ export default function BookDetailPage() {
                   Đăng nhập ngay
                 </Link>
               </Card>
+            ) : expiredCard ? (
+              <Card className="bg-red-50 border-red-200">
+                <p className="text-sm text-red-700 font-medium">Thẻ đã hết hạn</p>
+                <p className="text-xs text-red-600 mt-1 mb-3">Thẻ đã hết hạn, cần gia hạn để tiếp tục mượn sách.</p>
+              </Card>
             ) : !activeCard ? (
               <Card className="bg-blue-50 border-blue-200">
                 <p className="text-sm text-blue-700 font-medium">Chưa có thẻ thư viện</p>
-                <p className="text-xs text-blue-600 mt-1 mb-3">Bạn cần có thẻ thư viện để mượn hoặc đặt trước sách.</p>
-                <Button onClick={handleRegisterCard} loading={registering} size="sm">
-                  Đăng ký thẻ ngay
-                </Button>
-                {error && <p className="text-xs text-red-500 mt-2">{error}</p>}
+                <p className="text-xs text-blue-600 mt-1 mb-3">Bạn chưa có thẻ thư viện. Vui lòng liên hệ thủ thư để được cấp thẻ.</p>
               </Card>
             ) : available ? (
               <>

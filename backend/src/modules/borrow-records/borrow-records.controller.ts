@@ -31,5 +31,10 @@ export class BorrowRecordsController {
     returnBook(@Param('id') id: string, @Body() body: { condition: string }) {
         return this.service.returnBook(id, body.condition)
     }
+
+    @Post(':id/renew')
+    renew(@Param('id') id: string, @Req() req: any) {
+        return this.service.renew(id, req.user.userId)
+    }
 }
 

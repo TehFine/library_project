@@ -31,7 +31,7 @@ import { DatabaseModule } from './common/database/database.module'
                 database: configService.get<string>('DB_DATABASE'),
                 autoLoadEntities: true,
                 synchronize: true,
-                ssl: { rejectUnauthorized: false }, 
+                ...(configService.get<string>('DB_SSL') === 'true' && { ssl: { rejectUnauthorized: false } }),
             }),
             inject: [ConfigService],
         }),

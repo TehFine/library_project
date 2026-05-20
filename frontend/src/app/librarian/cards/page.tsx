@@ -19,6 +19,8 @@ export default function LibrarianCardsPage() {
   const [searchUser, setSearchUser] = useState('')
   const [foundUser, setFoundUser] = useState<User | null>(null)
   const [isSearchingUser, setIsSearchingUser] = useState(false)
+  const [duration, setDuration] = useState('1y')
+  const [renewing, setRenewing] = useState<string | null>(null)
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -40,16 +42,16 @@ export default function LibrarianCardsPage() {
   const handleSearchUser = async () => {
     if (!searchUser) return
     setIsSearchingUser(true)
+    setFoundUser(null)
     try {
-      // Tìm user theo username hoặc CCCD
-      // Backend chưa có endpoint search user riêng biệt cho librarian, ta có thể dùng searchCards để check xem user có thẻ chưa
-      // Hoặc tạm thời mock logic tìm user
-      toast('Tính năng đang tìm kiếm user...')
-      // Giả lập tìm thấy
-      const me = await authApi.me()
-      setFoundUser(me)
+      const users = await librarianApi.searchUsers(searchUser)
+      if (users && users.length > 0) {
+        setFoundUser(users[0])
+      } else {
+        toast.error('Không tìm thấy tài khoản người dùng')
+      }
     } catch (err) {
-      toast.error('Không tìm thấy tài khoản người dùng')
+      toast.error('Lỗi khi tra cứu người dùng')
     } finally {
       setIsSearchingUser(false)
     }
@@ -58,12 +60,25 @@ export default function LibrarianCardsPage() {
   const handleCreateCard = async () => {
     if (!foundUser) return
     try {
-      // Gọi API create card
+      await librarianApi.createCard(foundUser.id, duration)
       toast.success('Đã cấp thẻ mới cho ' + foundUser.fullName)
       setShowAddCardModal(false)
       loadData()
-    } catch (err) {
-      toast.error('Lỗi khi tạo thẻ')
+    } catch (err: any) {
+      toast.error(err.message || 'Lỗi khi tạo thẻ')
+    }
+  }
+
+  const handleRenewCard = async (cardId: string) => {
+    setRenewing(cardId)
+    try {
+      await librarianApi.renewCard(cardId, '1y')
+      toast.success('Gia hạn thẻ thành công')
+      loadData()
+    } catch (err: any) {
+      toast.error(err.message || 'Lỗi khi gia hạn thẻ')
+    } finally {
+      setRenewing(null)
     }
   }
 
@@ -139,7 +154,7 @@ export default function LibrarianCardsPage() {
                   </td>
                   <td className="py-4 px-6 text-right space-x-2">
                     <Button variant="ghost" size="sm" className="rounded-full opacity-0 group-hover:opacity-100 transition-opacity">Chi tiết</Button>
-                    <Button variant="secondary" size="sm" className="rounded-full">Gia hạn</Button>
+                    <Button variant="secondary" size="sm" className="rounded-full" loading={renewing === card.id} onClick={() => handleRenewCard(card.id)}>Gia hạn</Button>
                   </td>
                 </tr>
               ))}
@@ -183,7 +198,7 @@ export default function LibrarianCardsPage() {
           <div className="space-y-4 pt-4 border-t border-gray-50">
             <div>
               <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Thời hạn thẻ</label>
-              <Select className="mt-1 rounded-2xl" value="1y" onChange={() => {}}>
+              <Select className="mt-1 rounded-2xl" value={duration} onChange={(e) => setDuration(e.target.value)}>
                 <option value="6m">6 tháng (Phí 10.000đ)</option>
                 <option value="1y">1 năm (Phí 20.000đ)</option>
                 <option value="2y">2 năm (Phí 40.000đ)</option>

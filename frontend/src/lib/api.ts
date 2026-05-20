@@ -60,7 +60,7 @@ export const authApi = {
     method: 'POST', body: JSON.stringify(data),
   }),
   me: () => request<AuthResponse['user']>('/auth/me', { skipAuthRedirect: true }),
-  updateProfile: (data: { fullName?: string; phone?: string; address?: string }) =>
+  updateProfile: (data: { fullName?: string; phone?: string; address?: string; dateOfBirth?: string }) =>
     request<User>('/users/me', {
       method: 'PATCH',
       body: JSON.stringify(data),
@@ -163,6 +163,20 @@ export const librarianApi = {
   findCopyByCode: (code: string) => request<any>(`/books/copies/${encodeURIComponent(code)}`),
   findBorrowByCopyCode: (code: string) => request<any>(`/borrow-records/copy/${encodeURIComponent(code)}`),
   
+  // Cards & Users
+  searchUsers: (q: string) => request<User[]>(`/users/search?q=${encodeURIComponent(q)}`),
+  createCard: (userId: string, duration: string) => {
+    const today = new Date()
+    let addYears = 1
+    let addMonths = 0
+    if (duration === '6m') addMonths = 6
+    else if (duration === '2y') addYears = 2
+    today.setFullYear(today.getFullYear() + addYears)
+    today.setMonth(today.getMonth() + addMonths)
+    return request<any>('/library-cards', { method: 'POST', body: JSON.stringify({ userId, expiryDate: today.toISOString().split('T')[0] }) })
+  },
+  renewCard: (id: string, duration: string) => request<any>(`/library-cards/${id}/renew`, { method: 'PATCH', body: JSON.stringify({ duration }) }),
+  
   // Borrows
   createBorrow: (dto: { cardId: string; copyId: string }) => request<any>('/borrow-records', { method: 'POST', body: JSON.stringify(dto) }),
   returnBook: (id: string, condition: string) => request<any>(`/borrow-records/${id}/return`, { method: 'PATCH', body: JSON.stringify({ condition }) }),
@@ -174,7 +188,7 @@ export const librarianApi = {
 
   // Fines
   getAllFines: () => request<any[]>('/fines'),
-  payFine: (id: string, method: string) => request<any>(`/fines/${id}/pay`, { method: 'POST', body: JSON.stringify({ method }) }),
+  payFine: (id: string, method: string) => request<any>(`/fines/${id}/pay`, { method: 'PATCH', body: JSON.stringify({ method }) }),
 
   // Reservations
   getReservations: () => request<any[]>('/reservations'),

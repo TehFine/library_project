@@ -17,6 +17,7 @@ export default function LibrarianFinesPage() {
   const [status, setStatus] = useState('all')
   
   const [selectedFine, setSelectedFine] = useState<any | null>(null)
+  const [receiptFine, setReceiptFine] = useState<any | null>(null)
   const [paymentMethod, setPaymentMethod] = useState('cash')
 
   const loadData = useCallback(async () => {
@@ -121,7 +122,7 @@ export default function LibrarianFinesPage() {
                     {fine.status === 'pending' ? (
                       <Button variant="primary" size="sm" className="rounded-full px-6" onClick={() => setSelectedFine(fine)}>Thu phí</Button>
                     ) : (
-                      <Button variant="ghost" size="sm" className="rounded-full">Biên lai</Button>
+                      <Button variant="ghost" size="sm" className="rounded-full" onClick={() => setReceiptFine(fine)}>Biên lai</Button>
                     )}
                   </td>
                 </tr>
@@ -171,6 +172,40 @@ export default function LibrarianFinesPage() {
            <div className="flex flex-col gap-2 pt-4 border-t border-gray-50">
               <Button variant="primary" className="rounded-2xl py-3 font-black uppercase tracking-widest" onClick={handlePayFine}>Xác nhận thanh toán</Button>
               <Button variant="ghost" className="rounded-2xl" onClick={() => setSelectedFine(null)}>Hủy bỏ</Button>
+           </div>
+        </div>
+      </Modal>
+
+      {/* Modal Biên Lai */}
+      <Modal open={!!receiptFine} onClose={() => setReceiptFine(null)} title="Biên lai điện tử" size="sm">
+        <div className="space-y-6">
+           <div className="bg-emerald-50 p-6 rounded-3xl border border-emerald-100 text-center space-y-2">
+              <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full mx-auto flex items-center justify-center text-xl font-bold mb-4">✓</div>
+              <p className="text-xs font-bold text-emerald-600 uppercase tracking-widest">Đã thanh toán</p>
+              <p className="text-4xl font-black text-emerald-900">{formatCurrency(receiptFine?.amount || 0)}</p>
+           </div>
+           
+           <div className="space-y-4 text-sm px-2">
+              <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+                <span className="text-gray-400">Mã biên lai</span>
+                <span className="font-bold text-gray-900 font-mono text-xs">{receiptFine?.receiptNumber || '---'}</span>
+              </div>
+              <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+                <span className="text-gray-400">Ngày thanh toán</span>
+                <span className="font-bold text-gray-900">{receiptFine?.paidAt ? new Date(receiptFine.paidAt).toLocaleString('vi-VN') : '---'}</span>
+              </div>
+              <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+                <span className="text-gray-400">Hình thức</span>
+                <span className="font-bold text-gray-900 capitalize">{receiptFine?.paymentMethod === 'cash' ? 'Tiền mặt' : receiptFine?.paymentMethod === 'transfer' ? 'Chuyển khoản' : receiptFine?.paymentMethod === 'qr' ? 'QR Code' : receiptFine?.paymentMethod || '---'}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">Người thu</span>
+                <span className="font-bold text-gray-900">{receiptFine?.collectedBy?.fullName || receiptFine?.collectedBy?.username || 'Thủ thư'}</span>
+              </div>
+           </div>
+
+           <div className="pt-4 border-t border-gray-50 text-center">
+              <Button variant="ghost" className="rounded-2xl px-8" onClick={() => setReceiptFine(null)}>Đóng</Button>
            </div>
         </div>
       </Modal>

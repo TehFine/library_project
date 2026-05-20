@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Req, Body, UseGuards, BadRequestException } from '@nestjs/common'
+import { Controller, Get, Patch, Req, Body, UseGuards, BadRequestException, Query } from '@nestjs/common'
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard'
 import { UsersService } from './users.service'
 import * as bcrypt from 'bcryptjs'
@@ -7,6 +7,12 @@ import * as bcrypt from 'bcryptjs'
 @UseGuards(JwtAuthGuard)
 export class UsersController {
     constructor(private readonly usersService: UsersService) { }
+
+    @Get('search')
+    async search(@Query('q') q: string) {
+        if (!q) return [];
+        return this.usersService.searchUsers(q);
+    }
 
     @Get('me')
     async me(@Req() req: any) {
@@ -24,7 +30,7 @@ export class UsersController {
 
     @Patch('me/password')
     async changePassword(@Req() req: any, @Body() body: any) {
-        const user = await this.usersService.findOne(req.user.userId)
+        const user = await this.usersService.findByIdWithPassword(req.user.userId)
         
         const isMatch = await bcrypt.compare(body.currentPassword, user.passwordHash)
         if (!isMatch) {

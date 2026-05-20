@@ -15,7 +15,13 @@ export class FinesService {
 
     async findAll() {
         return this.fineRepo.find({
-            relations: ['borrowRecord', 'borrowRecord.libraryCard', 'borrowRecord.libraryCard.user'],
+            relations: [
+                'borrowRecord', 
+                'borrowRecord.libraryCard', 
+                'borrowRecord.libraryCard.user',
+                'borrowRecord.bookCopy',
+                'borrowRecord.bookCopy.book'
+            ],
             order: { createdAt: 'DESC' }
         })
     }

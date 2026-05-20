@@ -27,7 +27,11 @@ export class BorrowRecordsService {
 
         try {
             const card = await this.cardRepo.findOneBy({ id: dto.cardId })
-            if (!card || card.status !== 'active') throw new BadRequestException('Thẻ không hợp lệ hoặc đã bị khóa')
+            if (card && card.status === 'active' && card.expiryDate < new Date().toISOString().split('T')[0]) {
+                card.status = 'expired'
+                await this.cardRepo.save(card)
+            }
+            if (!card || card.status !== 'active') throw new BadRequestException('Thẻ không hợp lệ, đã bị khóa hoặc hết hạn')
 
             const copy = await this.copyRepo.findOne({
                 where: { id: dto.copyId },
@@ -193,6 +197,43 @@ export class BorrowRecordsService {
             limit: Number(limit),
             totalPages: Math.ceil(total / limit)
         }
+    }
+
+    async renew(id: string, userId: string) {
+        const record = await this.borrowRepo.findOne({
+            where: { id },
+            relations: ['libraryCard']
+        })
+        if (!record) throw new NotFoundException('Không tìm thấy phiếu mượn')
+        
+        if (record.libraryCard.userId !== userId) {
+            throw new BadRequestException('Bạn không có quyền gia hạn phiếu mượn này')
+        }
+        
+        if (record.status !== 'borrowing' && record.status !== 'overdue') {
+            throw new BadRequestException('Chỉ có thể gia hạn sách đang mượn')
+        }
+        
+        if (record.renewalCount >= 2) {
+            throw new BadRequestException('Đã quá số lần gia hạn tối đa (2 lần)')
+        }
+        
+        if (!record.originalDueDate) {
+            record.originalDueDate = record.dueDate
+        }
+        
+        const dueDate = new Date(record.dueDate)
+        dueDate.setDate(dueDate.getDate() + 14) // gia hạn 14 ngày
+        record.dueDate = dueDate.toISOString().split('T')[0]
+        
+        record.renewalCount += 1
+        record.renewedAt = new Date()
+        
+        if (record.status === 'overdue' && dueDate > new Date()) {
+            record.status = 'borrowing'
+        }
+        
+        return this.borrowRepo.save(record)
     }
 }
 
