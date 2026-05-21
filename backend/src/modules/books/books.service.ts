@@ -81,6 +81,25 @@ export class BooksService {
         return saved as unknown as Book
     }
 
+    async update(id: string, dto: any): Promise<Book> {
+        const book = await this.findOne(id)
+        
+        // Remove nested fields if they exist in dto but shouldn't be updated directly via this method
+        const updateData = { ...dto }
+        delete updateData.copies
+        delete updateData.createdBy
+        
+        // If categoryId is provided, we can either set the relation or the ID
+        if (updateData.categoryId) {
+            updateData.category = { id: updateData.categoryId }
+            delete updateData.categoryId
+        }
+
+        Object.assign(book, updateData)
+        const saved = await this.booksRepository.save(book)
+        return saved as unknown as Book
+    }
+
     async createCopy(bookId: string, dto: any): Promise<BookCopy> {
         const book = await this.findOne(bookId)
         const copy = this.bookCopiesRepository.create({
@@ -91,6 +110,48 @@ export class BooksService {
         const savedCopy = await this.bookCopiesRepository.save(copy)
         await this.updateCopyCounts(bookId)
         return savedCopy as unknown as BookCopy
+    }
+
+    async updateCopy(copyId: string, dto: any): Promise<BookCopy> {
+        const copy = await this.bookCopiesRepository.findOne({ 
+            where: { id: copyId }, 
+            relations: ['book'] 
+        })
+        if (!copy) throw new NotFoundException('Không tìm thấy bản sao sách')
+        
+        if (copy.status === 'borrowed' && dto.status && dto.status !== 'borrowed') {
+            throw new Error('Không thể thay đổi trạng thái của sách đang được mượn')
+        }
+
+        Object.assign(copy, dto)
+        const savedCopy = await this.bookCopiesRepository.save(copy)
+        
+        if (copy.book) {
+            await this.updateCopyCounts(copy.book.id)
+        }
+        
+        return savedCopy as unknown as BookCopy
+    }
+
+    async removeCopy(copyId: string): Promise<{ success: boolean }> {
+        const copy = await this.bookCopiesRepository.findOne({ 
+            where: { id: copyId }, 
+            relations: ['book'] 
+        })
+        if (!copy) throw new NotFoundException('Không tìm thấy bản sao sách')
+        
+        if (copy.status === 'borrowed') {
+            throw new Error('Không thể xóa bản sao đang được mượn')
+        }
+
+        const bookId = copy.book?.id
+        await this.bookCopiesRepository.remove(copy)
+        
+        if (bookId) {
+            await this.updateCopyCounts(bookId)
+        }
+        
+        return { success: true }
     }
 
     private async updateCopyCounts(bookId: string) {

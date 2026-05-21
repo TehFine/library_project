@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Query, UseGuards, Req } from '@nestjs/common'
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, Req } from '@nestjs/common'
 import { BooksService } from './books.service'
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard'
 
@@ -34,10 +34,28 @@ export class BooksController {
         return this.booksService.create(dto, req.user.userId)
     }
 
+    @Patch(':id')
+    @UseGuards(JwtAuthGuard)
+    update(@Param('id') id: string, @Body() dto: any) {
+        return this.booksService.update(id, dto)
+    }
+
     @Post(':id/copies')
     @UseGuards(JwtAuthGuard)
     createCopy(@Param('id') id: string, @Body() dto: any) {
         return this.booksService.createCopy(id, dto)
+    }
+
+    @Patch('copies/:id')
+    @UseGuards(JwtAuthGuard)
+    updateCopy(@Param('id') id: string, @Body() dto: any) {
+        return this.booksService.updateCopy(id, dto)
+    }
+
+    @Delete('copies/:id')
+    @UseGuards(JwtAuthGuard)
+    removeCopy(@Param('id') id: string) {
+        return this.booksService.removeCopy(id)
     }
 
     @Get('copies/search')

@@ -23,6 +23,7 @@ const TRANSACTIONS = [
 
 export default function FinancialReportsPage() {
   const [showWaiveModal, setShowWaiveModal] = useState<any>(null)
+  const [selectedFine, setSelectedFine] = useState<any>(null)
 
   return (
     <div className="space-y-6">
@@ -157,7 +158,7 @@ export default function FinancialReportsPage() {
                      ) : (
                        <button className="text-xs font-bold text-slate-400 hover:underline px-3 py-1.5">Xem lý do</button>
                      )}
-                     <button className="text-xs font-bold text-slate-500 hover:bg-slate-100 px-3 py-1.5 rounded-lg">Chi tiết</button>
+                     <button className="text-xs font-bold text-slate-500 hover:bg-slate-100 px-3 py-1.5 rounded-lg" onClick={() => setSelectedFine(tx)}>Chi tiết</button>
                   </div>
                 </td>
               </tr>
@@ -188,6 +189,44 @@ export default function FinancialReportsPage() {
             <div className="flex flex-col gap-2 pt-2">
                <Button variant="primary" fullWidth>Xác nhận miễn giảm</Button>
                <Button variant="ghost" fullWidth onClick={() => setShowWaiveModal(null)}>Hủy</Button>
+            </div>
+         </div>
+      </Modal>
+
+      {/* Fine Detail Modal */}
+      <Modal open={!!selectedFine} onClose={() => setSelectedFine(null)} title="Chi tiết báo cáo phí phạt" size="sm">
+         <div className="space-y-6">
+            <div className="p-6 rounded-3xl bg-slate-50 border border-slate-100 text-center space-y-2">
+               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Loại phạt</p>
+               <p className="text-xl font-black text-slate-800">{selectedFine?.type}</p>
+            </div>
+
+            <div className="space-y-4 text-sm px-2">
+               <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+                 <span className="text-slate-500">Độc giả</span>
+                 <span className="font-bold text-slate-800">{selectedFine?.reader}</span>
+               </div>
+               <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+                 <span className="text-slate-500">Số tiền</span>
+                 <span className="font-black text-slate-900">{selectedFine?.amount}</span>
+               </div>
+               <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+                 <span className="text-slate-500">Trạng thái</span>
+                 <Badge className={cn(
+                    selectedFine?.status === 'paid' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
+                    selectedFine?.status === 'pending' ? 'bg-red-50 text-red-700 border-red-100' : 'bg-slate-100 text-slate-600 border-slate-200'
+                  )}>
+                    {selectedFine?.label}
+                  </Badge>
+               </div>
+               <div className="flex justify-between items-center">
+                 <span className="text-slate-500">Ngày ghi nhận</span>
+                 <span className="font-bold text-slate-800">{selectedFine?.date}</span>
+               </div>
+            </div>
+
+            <div className="flex justify-end pt-2">
+               <Button variant="primary" fullWidth onClick={() => setSelectedFine(null)}>Đóng</Button>
             </div>
          </div>
       </Modal>

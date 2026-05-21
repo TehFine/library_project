@@ -54,9 +54,14 @@ export default function LibrarianBorrowRequestsPage() {
     setIsProcessing(true)
     try {
         // Tìm bản sao theo code để lấy ID
-        const copy = await librarianApi.findCopyByCode(copyCode)
-        if (!copy) throw new Error('Không tìm thấy bản sao này')
+        const trimmedCode = copyCode.trim()
+        const copy = await librarianApi.findCopyByCode(trimmedCode)
+        if (!copy || !copy.id) throw new Error('Không tìm thấy bản sao này')
         if (copy.status !== 'available') throw new Error('Bản sao này không có sẵn')
+
+        if (copy.book?.id !== selectedRequest.book?.id && copy.bookId !== selectedRequest.book?.id) {
+            throw new Error('Mã bản sao không thuộc cuốn sách mà độc giả yêu cầu!')
+        }
 
         await librarianApi.approveRequest(selectedRequest.id, copy.id)
         toast.success('Đã duyệt yêu cầu mượn thành công')

@@ -168,9 +168,9 @@ export default function AdminDashboard() {
               ))}
             </tbody>
           </table>
-          <button className="w-full mt-4 text-xs font-bold text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 py-2 rounded-lg transition-all">
+          <Link href="/admin/reports/books" className="block w-full text-center mt-4 text-xs font-bold text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 py-2 rounded-lg transition-all">
             Xem báo cáo đầy đủ →
-          </button>
+          </Link>
         </Card>
 
         {/* Recent Activities */}
@@ -189,9 +189,9 @@ export default function AdminDashboard() {
               </div>
             ))}
           </div>
-          <button className="w-full mt-6 text-xs font-bold text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 py-2 rounded-lg transition-all">
+          <Link href="/admin/audit-logs" className="block w-full text-center mt-6 text-xs font-bold text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 py-2 rounded-lg transition-all">
             Xem nhật ký đầy đủ
-          </button>
+          </Link>
         </Card>
 
         {/* System Alerts */}
@@ -209,11 +209,11 @@ export default function AdminDashboard() {
                   }`} />
                   <span className="text-xs font-medium text-slate-300">{alert.label}</span>
                 </div>
-                <button className={`text-[10px] font-bold px-2 py-1 rounded-md ${
+                <Link href="/admin/audit-logs" className={`text-[10px] font-bold px-2 py-1 rounded-md ${
                   alert.action === 'Backup' || alert.action === 'Chi tiết' ? 'bg-indigo-500 text-white' : 'text-indigo-400 hover:bg-indigo-500/20'
                 }`}>
                   [{alert.action}]
-                </button>
+                </Link>
               </div>
             ))}
           </div>

@@ -80,6 +80,14 @@ export const booksApi = {
     request<import('@/types').Book>(`/books/${id}`, { skipAuthRedirect: true }),
   create: (data: any) =>
     request<import('@/types').Book>('/books', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id: string, data: any) =>
+    request<import('@/types').Book>(`/books/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  createCopy: (bookId: string, data: any) =>
+    request<any>(`/books/${bookId}/copies`, { method: 'POST', body: JSON.stringify(data) }),
+  updateCopy: (copyId: string, data: any) =>
+    request<any>(`/books/copies/${copyId}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteCopy: (copyId: string) =>
+    request<any>(`/books/copies/${copyId}`, { method: 'DELETE' }),
   // Aliases for consistency
   getAll: (params?: QueryParams) => booksApi.list(params),
   getOne: (id: string) => booksApi.detail(id),

@@ -21,6 +21,7 @@ export default function LibrarianCardsPage() {
   const [isSearchingUser, setIsSearchingUser] = useState(false)
   const [duration, setDuration] = useState('1y')
   const [renewing, setRenewing] = useState<string | null>(null)
+  const [selectedCard, setSelectedCard] = useState<any | null>(null)
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -153,7 +154,7 @@ export default function LibrarianCardsPage() {
                      </Badge>
                   </td>
                   <td className="py-4 px-6 text-right space-x-2">
-                    <Button variant="ghost" size="sm" className="rounded-full opacity-0 group-hover:opacity-100 transition-opacity">Chi tiết</Button>
+                    <Button variant="ghost" size="sm" className="rounded-full opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => setSelectedCard(card)}>Chi tiết</Button>
                     <Button variant="secondary" size="sm" className="rounded-full" loading={renewing === card.id} onClick={() => handleRenewCard(card.id)}>Gia hạn</Button>
                   </td>
                 </tr>
@@ -210,6 +211,46 @@ export default function LibrarianCardsPage() {
             <Button variant="ghost" onClick={() => setShowAddCardModal(false)}>Hủy bỏ</Button>
             <Button variant="primary" className="rounded-2xl px-8" onClick={handleCreateCard} disabled={!foundUser}>✅ Cấp & In thẻ</Button>
           </div>
+        </div>
+      </Modal>
+
+      {/* Modal Chi Tiết Thẻ */}
+      <Modal open={!!selectedCard} onClose={() => setSelectedCard(null)} title="Chi tiết thẻ thư viện" size="md">
+        <div className="space-y-6">
+           <div className="bg-gray-50 p-6 rounded-3xl border border-gray-100 text-center space-y-2">
+              <div className="w-16 h-16 bg-white border border-gray-200 text-indigo-600 rounded-2xl mx-auto flex items-center justify-center text-2xl shadow-sm mb-4">🪪</div>
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Mã thẻ</p>
+              <p className="text-2xl font-black text-gray-900 font-mono tracking-tighter">{selectedCard?.cardNumber}</p>
+           </div>
+           
+           <div className="space-y-4 text-sm px-2">
+              <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+                <span className="text-gray-400">Trạng thái</span>
+                <Badge className={selectedCard?.status === 'active' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}>
+                   {selectedCard?.status === 'active' ? '● Hoạt động' : '● Đã khóa'}
+                </Badge>
+              </div>
+              <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+                <span className="text-gray-400">Chủ thẻ</span>
+                <span className="font-bold text-gray-900">{selectedCard?.user?.fullName || selectedCard?.user?.username}</span>
+              </div>
+              <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+                <span className="text-gray-400">CCCD</span>
+                <span className="font-bold text-gray-900">{selectedCard?.user?.idCardNumber || '---'}</span>
+              </div>
+              <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+                <span className="text-gray-400">Ngày cấp</span>
+                <span className="font-bold text-gray-900">{selectedCard?.issuedDate ? new Date(selectedCard.issuedDate).toLocaleDateString('vi-VN') : '---'}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">Ngày hết hạn</span>
+                <span className="font-bold text-gray-900">{selectedCard?.expiryDate ? new Date(selectedCard.expiryDate).toLocaleDateString('vi-VN') : '---'}</span>
+              </div>
+           </div>
+
+           <div className="pt-4 border-t border-gray-50 text-center">
+              <Button variant="primary" className="rounded-2xl px-8" onClick={() => setSelectedCard(null)}>Đóng</Button>
+           </div>
         </div>
       </Modal>
     </div>

@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import PageHeader from '@/components/layout/PageHeader'
-import { Card, Badge } from '@/components/ui'
+import { Card, Badge, Modal } from '@/components/ui'
 import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
 import Select from '@/components/ui/Select'
@@ -14,6 +14,7 @@ export default function LibrarianReservationsPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('all')
+  const [selectedReservation, setSelectedReservation] = useState<any | null>(null)
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -134,7 +135,7 @@ export default function LibrarianReservationsPage() {
                     {res.status === 'waiting' ? (
                       <Button variant="primary" size="sm" className="rounded-full px-4" onClick={() => handleNotify(res.id)}>Thông báo</Button>
                     ) : (
-                      <Button variant="ghost" size="sm" className="rounded-full">Chi tiết</Button>
+                      <Button variant="ghost" size="sm" className="rounded-full" onClick={() => setSelectedReservation(res)}>Chi tiết</Button>
                     )}
                   </td>
                 </tr>
@@ -143,6 +144,51 @@ export default function LibrarianReservationsPage() {
           </table>
         </div>
       </Card>
+
+      {/* Modal Chi Tiết Đặt Trước */}
+      <Modal open={!!selectedReservation} onClose={() => setSelectedReservation(null)} title="Chi tiết đặt trước" size="md">
+        <div className="space-y-6">
+           <div className="bg-blue-50 p-6 rounded-3xl border border-blue-100 text-center space-y-2">
+              <div className="w-16 h-16 bg-white border border-blue-200 text-blue-600 rounded-2xl mx-auto flex items-center justify-center text-2xl shadow-sm mb-4">📖</div>
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Sách đặt trước</p>
+              <p className="text-xl font-black text-gray-900 leading-tight">{selectedReservation?.book?.title}</p>
+           </div>
+           
+           <div className="space-y-4 text-sm px-2">
+              <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+                <span className="text-gray-400">Trạng thái</span>
+                <Badge className={cn(
+                  'border-none font-bold',
+                  selectedReservation?.status === 'notified' ? 'bg-emerald-50 text-emerald-600' : 
+                  selectedReservation?.status === 'waiting' ? 'bg-amber-50 text-amber-600' : 'bg-gray-100 text-gray-400'
+                )}>
+                  {selectedReservation?.status === 'waiting' ? '● Đang chờ' : 
+                   selectedReservation?.status === 'notified' ? '● Đã sẵn sàng' : '● ' + selectedReservation?.status}
+                </Badge>
+              </div>
+              <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+                <span className="text-gray-400">Độc giả</span>
+                <span className="font-bold text-gray-900">{selectedReservation?.libraryCard?.user?.fullName || selectedReservation?.libraryCard?.user?.username}</span>
+              </div>
+              <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+                <span className="text-gray-400">Liên hệ (SĐT)</span>
+                <span className="font-bold text-gray-900">{selectedReservation?.libraryCard?.user?.phone || '---'}</span>
+              </div>
+              <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+                <span className="text-gray-400">Ngày đặt</span>
+                <span className="font-bold text-gray-900">{selectedReservation?.reservedAt ? new Date(selectedReservation.reservedAt).toLocaleString('vi-VN') : '---'}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">Vị trí hàng đợi</span>
+                <span className="font-bold text-blue-600 text-lg">#{selectedReservation?.queuePosition}</span>
+              </div>
+           </div>
+
+           <div className="pt-4 border-t border-gray-50 text-center">
+              <Button variant="primary" className="rounded-2xl px-8" onClick={() => setSelectedReservation(null)}>Đóng</Button>
+           </div>
+        </div>
+      </Modal>
     </div>
   )
 }

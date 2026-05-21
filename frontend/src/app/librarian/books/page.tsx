@@ -19,8 +19,13 @@ export default function LibrarianBooksPage() {
   const [search, setSearch] = useState('')
   const [categories, setCategories] = useState<Category[]>([])
   const [categoryId, setCategoryId] = useState<string>('all')
-  
+  const [editingCopy, setEditingCopy] = useState<any>(null)
   const [selectedBookForCopies, setSelectedBookForCopies] = useState<Book | null>(null)
+  
+  const [editingBook, setEditingBook] = useState<Book | null>(null)
+  const [editBookData, setEditBookData] = useState({ isbn: '', title: '', author: '', categoryId: '' })
+  
+  const [addingCopy, setAddingCopy] = useState(false)
   const [showAddBookModal, setShowAddBookModal] = useState(false)
   const [newBook, setNewBook] = useState({ isbn: '', title: '', author: '', categoryId: '' })
 
@@ -55,8 +60,104 @@ export default function LibrarianBooksPage() {
       toast.success('Thêm sách mới thành công')
       setShowAddBookModal(false)
       loadData()
+    } catch (err: any) {
+      toast.error(err.message || 'Lỗi khi thêm sách')
+    }
+  }
+
+  const handleOpenEditBook = (book: Book) => {
+    setEditBookData({
+      isbn: book.isbn || '',
+      title: book.title || '',
+      author: book.author || '',
+      categoryId: book.category?.id?.toString() || ''
+    })
+    setEditingBook(book)
+  }
+
+  const handleUpdateBook = async () => {
+    if (!editingBook) return
+    try {
+      await booksApi.update(editingBook.id, editBookData)
+      toast.success('Cập nhật sách thành công')
+      setEditingBook(null)
+      loadData()
+    } catch (err: any) {
+      toast.error(err.message || 'Lỗi khi cập nhật sách')
+    }
+  }
+
+  const handleOpenCopies = async (book: Book) => {
+    try {
+      const detailedBook = await booksApi.detail(book.id)
+      setSelectedBookForCopies(detailedBook)
     } catch (err) {
-      toast.error('Lỗi khi thêm sách')
+      toast.error('Lỗi khi tải thông tin bản sao')
+    }
+  }
+
+  const handleAddCopy = async () => {
+    if (!selectedBookForCopies) return
+    setAddingCopy(true)
+    try {
+      // Tự động tạo mã bản sao dựa trên ISBN và tuần tự số thứ tự
+      const isbnSuffix = (selectedBookForCopies.isbn || '0000').slice(-4)
+      const existingSeqs = selectedBookForCopies.copies?.map((c: any) => parseInt(c.copyCode?.split('-')?.pop() || '0')) || []
+      const maxSeq = Math.max(0, ...existingSeqs.filter(n => !isNaN(n)))
+      const nextSeq = maxSeq + 1
+      const copyCode = `${isbnSuffix}-${String(nextSeq).padStart(3, '0')}`
+      
+      await booksApi.createCopy(selectedBookForCopies.id, { copyCode, condition: 'new', status: 'available' })
+      
+      // Refresh detailed book
+      const detailedBook = await booksApi.detail(selectedBookForCopies.id)
+      setSelectedBookForCopies(detailedBook)
+      loadData() // Refresh list to update available copies count
+      toast.success('Đã thêm bản sao mới')
+    } catch (err) {
+      toast.error('Lỗi khi thêm bản sao')
+    } finally {
+      setAddingCopy(false)
+    }
+  }
+
+  const handleUpdateCopy = async () => {
+    if (!editingCopy) return
+    try {
+      await booksApi.updateCopy(editingCopy.id, {
+        condition: editingCopy.condition,
+        status: editingCopy.status
+      })
+      toast.success('Cập nhật bản sao thành công')
+      setEditingCopy(null)
+      // Refresh detailed book
+      if (selectedBookForCopies) {
+        const detailedBook = await booksApi.detail(selectedBookForCopies.id)
+        setSelectedBookForCopies(detailedBook)
+        loadData() // Refresh list to update available copies count
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Lỗi khi cập nhật bản sao')
+    }
+  }
+
+  const handleDeleteCopy = async (copyId: string) => {
+    if (!confirm('Bạn có chắc chắn muốn xóa bản sao này? Hành động này không thể hoàn tác.')) return
+    try {
+      await booksApi.deleteCopy(copyId)
+      toast.success('Đã xóa bản sao thành công')
+      setEditingCopy(null)
+      
+      // Optimistic update for the copies modal
+      if (selectedBookForCopies) {
+        setSelectedBookForCopies({
+          ...selectedBookForCopies,
+          copies: selectedBookForCopies.copies?.filter(c => c.id !== copyId)
+        })
+        loadData() // Refresh background list to update available copies count
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Lỗi khi xóa bản sao')
     }
   }
 
@@ -130,8 +231,8 @@ export default function LibrarianBooksPage() {
                     )}
                   </td>
                   <td className="py-4 px-6 text-right space-x-2">
-                    <Button variant="ghost" size="sm" className="rounded-full opacity-0 group-hover:opacity-100 transition-opacity">Sửa</Button>
-                    <Button variant="secondary" size="sm" onClick={() => setSelectedBookForCopies(book)} className="rounded-full px-4">Bản sao</Button>
+                    <Button variant="ghost" size="sm" onClick={() => handleOpenEditBook(book)} className="rounded-full opacity-0 group-hover:opacity-100 transition-opacity">Sửa</Button>
+                    <Button variant="secondary" size="sm" onClick={() => handleOpenCopies(book)} className="rounded-full px-4">Bản sao</Button>
                   </td>
                 </tr>
               ))}
@@ -154,7 +255,7 @@ export default function LibrarianBooksPage() {
         <div className="space-y-6">
           <div className="flex justify-between items-center">
             <p className="text-sm text-gray-500">Danh sách các cuốn vật lý của đầu sách này hiện có trong kho.</p>
-            <Button variant="primary" size="sm" className="rounded-xl">+ Thêm bản sao</Button>
+            <Button variant="primary" size="sm" className="rounded-xl" onClick={handleAddCopy} loading={addingCopy}>+ Thêm bản sao</Button>
           </div>
           <div className="border border-gray-100 rounded-3xl overflow-hidden shadow-sm">
             <table className="w-full text-left">
@@ -177,7 +278,11 @@ export default function LibrarianBooksPage() {
                        <Badge className="bg-gray-100 text-gray-500 border-none">Mất/Thanh lý</Badge>}
                     </td>
                     <td className="py-4 px-6 text-right">
-                      <Button variant="ghost" size="sm" className="rounded-full">Sửa</Button>
+                      {copy.status !== 'borrowed' ? (
+                        <Button variant="ghost" size="sm" className="rounded-full" onClick={() => setEditingCopy(copy)}>Sửa</Button>
+                      ) : (
+                        <span className="text-xs text-gray-400 italic px-3">Đang mượn</span>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -188,6 +293,52 @@ export default function LibrarianBooksPage() {
             </table>
           </div>
         </div>
+      </Modal>
+
+      {/* Modal Cập Nhật Bản Sao */}
+      <Modal open={!!editingCopy} onClose={() => setEditingCopy(null)} title="Cập nhật bản sao" size="sm">
+         <div className="space-y-4">
+            <div className="p-4 rounded-xl bg-gray-50 border border-gray-100">
+               <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Mã bản sao:</p>
+               <p className="text-lg font-black text-gray-800 font-mono mt-0.5">{editingCopy?.copyCode}</p>
+            </div>
+            
+            <div className="space-y-3">
+               <div>
+                  <label className="text-xs font-bold text-gray-600 mb-1 block">Tình trạng vật lý</label>
+                  <Select 
+                    className="w-full rounded-xl"
+                    value={editingCopy?.condition}
+                    onChange={e => setEditingCopy({...editingCopy, condition: e.target.value})}
+                  >
+                     <option value="new">Mới (New)</option>
+                     <option value="good">Tốt (Good)</option>
+                     <option value="fair">Khá (Fair)</option>
+                     <option value="poor">Kém/Cũ (Poor)</option>
+                  </Select>
+               </div>
+               <div>
+                  <label className="text-xs font-bold text-gray-600 mb-1 block">Trạng thái lưu trữ</label>
+                  <Select 
+                    className="w-full rounded-xl"
+                    value={editingCopy?.status}
+                    onChange={e => setEditingCopy({...editingCopy, status: e.target.value})}
+                  >
+                     <option value="available">Có sẵn</option>
+                     <option value="lost">Đã mất</option>
+                     <option value="damaged">Thanh lý (Damaged)</option>
+                  </Select>
+               </div>
+            </div>
+
+            <div className="flex flex-col gap-2 pt-4">
+               <Button variant="primary" fullWidth onClick={handleUpdateCopy}>Lưu thay đổi</Button>
+               <Button variant="ghost" fullWidth onClick={() => setEditingCopy(null)}>Hủy bỏ</Button>
+               <div className="border-t border-gray-100 my-2 pt-2">
+                  <Button variant="ghost" fullWidth className="text-red-600 hover:bg-red-50 font-bold" onClick={() => handleDeleteCopy(editingCopy.id)}>Xóa bản sao này</Button>
+               </div>
+            </div>
+         </div>
       </Modal>
 
       {/* Modal Thêm Sách Mới */}
@@ -239,6 +390,59 @@ export default function LibrarianBooksPage() {
           <div className="flex justify-end gap-3 pt-6 border-t border-gray-50">
             <Button variant="ghost" onClick={() => setShowAddBookModal(false)}>Hủy bỏ</Button>
             <Button variant="primary" onClick={handleAddBook} className="rounded-2xl px-8">Lưu sách</Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal Cập Nhật Thông Tin Sách */}
+      <Modal open={!!editingBook} onClose={() => setEditingBook(null)} title="Cập nhật Thông tin Sách" size="lg">
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+             <div className="md:col-span-2">
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Mã ISBN</label>
+                <div className="flex gap-2 mt-1">
+                  <Input 
+                    placeholder="Quét hoặc nhập ISBN..." 
+                    className="flex-1 rounded-2xl" 
+                    value={editBookData.isbn}
+                    onChange={e => setEditBookData({...editBookData, isbn: e.target.value})}
+                  />
+                  <Button variant="secondary" className="rounded-2xl px-4">Tra cứu</Button>
+                </div>
+             </div>
+             <div className="md:col-span-2">
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Tên sách</label>
+                <Input 
+                  className="mt-1 rounded-2xl" 
+                  placeholder="Nhập tên sách đầy đủ" 
+                  value={editBookData.title}
+                  onChange={e => setEditBookData({...editBookData, title: e.target.value})}
+                />
+             </div>
+             <div>
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Tác giả</label>
+                <Input 
+                  className="mt-1 rounded-2xl" 
+                  placeholder="Tên tác giả" 
+                  value={editBookData.author}
+                  onChange={e => setEditBookData({...editBookData, author: e.target.value})}
+                />
+             </div>
+             <div>
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Thể loại</label>
+                <Select 
+                  className="mt-1 rounded-2xl"
+                  value={editBookData.categoryId}
+                  onChange={e => setEditBookData({...editBookData, categoryId: e.target.value})}
+                >
+                  <option value="">Chọn thể loại</option>
+                  {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </Select>
+             </div>
+          </div>
+          <div className="flex justify-end gap-3 pt-6 border-t border-gray-50">
+            <Button variant="ghost" onClick={() => setEditingBook(null)}>Hủy bỏ</Button>
+            <Button variant="primary" onClick={handleUpdateBook} className="rounded-2xl px-8">Lưu thay đổi</Button>
           </div>
         </div>
       </Modal>

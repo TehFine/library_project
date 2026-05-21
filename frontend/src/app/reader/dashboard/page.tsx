@@ -61,8 +61,8 @@ function BorrowItem({ borrow }: { borrow: BorrowRecord }) {
         </svg>
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-gray-800 truncate">{borrow.book?.title ?? '—'}</p>
-        <p className="text-xs text-gray-500 mt-0.5 truncate">{borrow.book?.author}</p>
+        <p className="text-sm font-semibold text-gray-800 truncate">{borrow.bookCopy?.book?.title ?? '—'}</p>
+        <p className="text-xs text-gray-500 mt-0.5 truncate">{borrow.bookCopy?.book?.author}</p>
       </div>
       <div className="text-right shrink-0">
         <p className={cn(
