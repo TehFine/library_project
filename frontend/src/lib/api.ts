@@ -139,6 +139,34 @@ export const finesApi = {
     request<PaginatedResponse<import('@/types').Fine>>(
       `/fines/mine${buildQueryString(params ?? {})}`
     ),
+  waive: (id: string, reason: string) =>
+    request<any>(`/fines/${id}/waive`, { method: 'PATCH', body: JSON.stringify({ reason }) }),
+  getAdminStats: (params?: { from?: string; to?: string; status?: string; fineType?: string }) =>
+    request<{ summary: AdminFineSummary; transactions: AdminFineTransaction[] }>(
+      `/fines/admin-stats${buildQueryString((params as any) ?? {})}`
+    ),
+}
+
+export interface AdminFineSummary {
+  totalAmount: number
+  paidAmount: number
+  unpaidAmount: number
+  waivedAmount: number
+  totalCount: number
+}
+
+export interface AdminFineTransaction {
+  id: string
+  createdAt: string
+  readerName: string
+  bookTitle: string
+  fineType: string
+  overdueDays: number
+  amount: number
+  status: 'pending' | 'paid' | 'waived'
+  paymentMethod: string | null
+  receiptNumber: string | null
+  paidAt: string | null
 }
 
 // ── Borrow Requests ───────────────────────────────────────────────────────────
