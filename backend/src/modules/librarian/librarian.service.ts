@@ -22,10 +22,10 @@ export class LibrarianService {
     async getStats() {
         const today = new Date()
         const todayStr = today.toISOString().split('T')[0]
-        
+
         // Start of today
         const startOfToday = new Date(todayStr)
-        
+
         // 1. Phiếu mượn hôm nay
         const borrowsToday = await this.borrowRepo.count({
             where: { borrowDate: todayStr }
@@ -59,7 +59,7 @@ export class LibrarianService {
                 status: 'borrowing',
                 dueDate: LessThan(todayStr)
             },
-            relations: ['bookCopy', 'bookCopy.book', 'libraryCard', 'libraryCard.user'],
+            relations: ['bookCopy', 'bookCopy.book', 'libraryCard', 'libraryCard.user', 'libraryCard.user.profile'],
             order: { dueDate: 'ASC' },
             take: 10
         })
@@ -69,7 +69,7 @@ export class LibrarianService {
             where: {
                 status: 'notified'
             },
-            relations: ['book', 'libraryCard', 'libraryCard.user'],
+            relations: ['book', 'libraryCard', 'libraryCard.user', 'libraryCard.user.profile'],
             order: { notifiedAt: 'DESC' },
             take: 10
         })
@@ -77,7 +77,7 @@ export class LibrarianService {
         // 7. Yêu cầu mượn đang chờ
         const pendingRequests = await this.requestRepo.find({
             where: { status: 'pending' },
-            relations: ['book', 'libraryCard', 'libraryCard.user'],
+            relations: ['book', 'libraryCard', 'libraryCard.user', 'libraryCard.user.profile'],
             order: { requestedAt: 'ASC' },
             take: 10
         })
@@ -98,20 +98,20 @@ export class LibrarianService {
                 return {
                     id: b.id,
                     title: b.bookCopy?.book?.title,
-                    user: b.libraryCard?.user?.fullName || b.libraryCard?.user?.username,
+                    user: b.libraryCard?.user?.profile?.fullName || b.libraryCard?.user?.username,
                     days: diffDays
                 }
             }),
             readyReservations: readyReservations.map(r => ({
                 id: r.id,
                 title: r.book?.title,
-                user: r.libraryCard?.user?.fullName || r.libraryCard?.user?.username,
+                user: r.libraryCard?.user?.profile?.fullName || r.libraryCard?.user?.username,
                 queue: r.queuePosition
             })),
             pendingRequests: pendingRequests.map(r => ({
                 id: r.id,
                 title: r.book?.title,
-                user: r.libraryCard?.user?.fullName || r.libraryCard?.user?.username,
+                user: r.libraryCard?.user?.profile?.fullName || r.libraryCard?.user?.username,
                 date: r.requestedAt
             }))
         }

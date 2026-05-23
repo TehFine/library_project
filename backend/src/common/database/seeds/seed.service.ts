@@ -9,6 +9,8 @@ import { LibraryCard } from '@/modules/library-cards/entities/library-card.entit
 import { BorrowRecord } from '@/modules/borrow-records/entities/borrow-record.entity'
 import { Reservation } from '@/modules/reservations/entities/reservation.entity'
 import { Fine } from '@/modules/fines/entities/fine.entity'
+import { Role, RoleName } from '@/modules/users/entities/role.entity'
+import { UserProfile } from '@/modules/users/entities/user-profile.entity'
 import { db } from './mock-db'
 
 @Injectable()
@@ -22,6 +24,8 @@ export class SeedService implements OnApplicationBootstrap {
         @InjectRepository(BorrowRecord) private borrowRepo: Repository<BorrowRecord>,
         @InjectRepository(Reservation) private resRepo: Repository<Reservation>,
         @InjectRepository(Fine) private fineRepo: Repository<Fine>,
+        @InjectRepository(Role) private roleRepo: Repository<Role>,
+        @InjectRepository(UserProfile) private profileRepo: Repository<UserProfile>,
     ) { }
 
     async onApplicationBootstrap() {
@@ -33,10 +37,46 @@ export class SeedService implements OnApplicationBootstrap {
 
         console.log('Seeding database...')
 
+        // 0. Roles
+        console.log('Seeding roles...')
+        const roles = [
+            { name: RoleName.LIBRARY_ADMIN, description: 'Library Administrator' },
+            { name: RoleName.LIBRARIAN, description: 'Librarian' },
+            { name: RoleName.READER, description: 'Reader' }
+        ]
+        const roleEntities: Record<string, Role> = {}
+        for (const r of roles) {
+            let role = await this.roleRepo.findOneBy({ name: r.name })
+            if (!role) {
+                role = await this.roleRepo.save(this.roleRepo.create(r))
+            }
+            roleEntities[r.name] = role
+        }
+
         // 1. Users
         console.log('Seeding users...')
         for (const u of db.users) {
-            await this.userRepo.save(this.userRepo.create(u))
+            const user = this.userRepo.create({
+                id: u.id,
+                username: u.username,
+                email: u.email,
+                passwordHash: u.passwordHash,
+                isActive: u.isActive,
+                lastLogin: u.lastLogin ? new Date(u.lastLogin) : undefined,
+                createdAt: u.createdAt ? new Date(u.createdAt) : undefined,
+                roleRelation: u.role ? roleEntities[u.role] : undefined,
+            })
+            const savedUser = await this.userRepo.save(user)
+
+            const profile = this.profileRepo.create({
+                userId: savedUser.id,
+                fullName: u.fullName,
+                phone: u.phone,
+                idCardNumber: u.idCardNumber,
+                dateOfBirth: u.dateOfBirth,
+                address: u.address,
+            })
+            await this.profileRepo.save(profile)
         }
 
         // 2. Categories

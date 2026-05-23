@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/co
 import { JwtService } from '@nestjs/jwt'
 import * as bcrypt from 'bcryptjs'
 import { UsersService } from '../users/users.service'
+import { RoleName } from '../users/entities/role.entity'
 
 @Injectable()
 export class AuthService {
@@ -12,7 +13,7 @@ export class AuthService {
 
   async login(email: string, password: string) {
     const user = await this.usersService.findByEmailOrUsername(email)
-    
+
     if (!user) throw new UnauthorizedException('Email hoặc mật khẩu không đúng')
     if (!user.isActive) throw new UnauthorizedException('Tài khoản đã bị khóa')
 
@@ -22,7 +23,8 @@ export class AuthService {
     // Cập nhật lastLogin
     await this.usersService.update(user.id, { lastLogin: new Date() })
 
-    const payload = { sub: user.id, role: user.role }
+    const primaryRole = user.role || 'reader'
+    const payload = { sub: user.id, role: primaryRole, roles: [primaryRole] }
     const accessToken = this.jwt.sign(payload)
 
     const { passwordHash: _, ...safeUser } = user
@@ -30,9 +32,9 @@ export class AuthService {
   }
 
   async register(dto: any) {
-    const exists = await this.usersService.findByEmailOrUsername(dto.email) || 
+    const exists = await this.usersService.findByEmailOrUsername(dto.email) ||
                    await this.usersService.findByEmailOrUsername(dto.username)
-    
+
     if (exists) throw new ConflictException('Email hoặc tên đăng nhập đã tồn tại')
 
     const passwordHash = await bcrypt.hash(dto.password, 10)
@@ -40,14 +42,16 @@ export class AuthService {
       username: dto.username,
       email: dto.email,
       passwordHash,
-      role: 'reader',
-      fullName: dto.fullName,
-      phone: dto.phone ?? null,
-      dateOfBirth: dto.dateOfBirth ?? null,
-      address: dto.address ?? null,
       isActive: true,
+      roleName: RoleName.READER,
+      profile: {
+        fullName: dto.fullName ?? null,
+        phone: dto.phone ?? null,
+        dateOfBirth: dto.dateOfBirth ?? null,
+        address: dto.address ?? null,
+      },
     })
-    
+
     return { message: 'Đăng ký thành công' }
   }
 

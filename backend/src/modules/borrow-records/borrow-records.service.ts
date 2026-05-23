@@ -4,7 +4,6 @@ import { Repository, DataSource, LessThan, MoreThanOrEqual } from 'typeorm'
 import { BorrowRecord } from './entities/borrow-record.entity'
 import { BookCopy } from '@/modules/books/entities/book-copy.entity'
 import { LibraryCard } from '@/modules/library-cards/entities/library-card.entity'
-import { Book } from '@/modules/books/entities/book.entity'
 
 @Injectable()
 export class BorrowRecordsService {
@@ -15,8 +14,6 @@ export class BorrowRecordsService {
         private copyRepo: Repository<BookCopy>,
         @InjectRepository(LibraryCard)
         private cardRepo: Repository<LibraryCard>,
-        @InjectRepository(Book)
-        private bookRepo: Repository<Book>,
         private dataSource: DataSource,
     ) { }
 
@@ -33,10 +30,7 @@ export class BorrowRecordsService {
             }
             if (!card || card.status !== 'active') throw new BadRequestException('Thẻ không hợp lệ, đã bị khóa hoặc hết hạn')
 
-            const copy = await this.copyRepo.findOne({
-                where: { id: dto.copyId },
-                relations: ['book']
-            })
+            const copy = await this.copyRepo.findOneBy({ id: dto.copyId })
             if (!copy || copy.status !== 'available') throw new BadRequestException('Sách không có sẵn để mượn')
 
             // Tạo phiếu mượn
@@ -55,14 +49,9 @@ export class BorrowRecordsService {
 
             await queryRunner.manager.save(record)
 
-            // Cập nhật trạng thái bản sao
+            // Cập nhật trạng thái bản sao → BookCopySubscriber tự động sync availableCopies
             copy.status = 'borrowed'
             await queryRunner.manager.save(copy)
-
-            // Cập nhật số lượng sách có sẵn
-            const book = copy.book
-            book.availableCopies -= 1
-            await queryRunner.manager.save(book)
 
             await queryRunner.commitTransaction()
             return record
@@ -120,18 +109,15 @@ export class BorrowRecordsService {
             record.status = 'returned'
             await queryRunner.manager.save(record)
 
+            // Cập nhật trạng thái bản sao → BookCopySubscriber tự động sync availableCopies
             const copy = record.bookCopy
             copy.status = 'available'
             copy.condition = condition
             await queryRunner.manager.save(copy)
 
-            const book = copy.book
-            book.availableCopies += 1
-            await queryRunner.manager.save(book)
-
             await queryRunner.commitTransaction()
-            
-            // Kiểm tra quá hạn để tính phạt (logic này có thể gọi FinesService)
+
+            // Kiểm tra quá hạn để tính phạt
             const overdue = new Date(record.returnDate) > new Date(record.dueDate)
             return { record, overdue }
         } catch (err) {
