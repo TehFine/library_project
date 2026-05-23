@@ -202,3 +202,23 @@ export const librarianApi = {
   getReservations: () => request<any[]>('/reservations'),
   notifyReservation: (id: string) => request<any>(`/reservations/${id}/notify`, { method: 'POST' }),
 }
+
+// ── Admin ──────────────────────────────────────────────────────────────────────
+export interface AdminDashboardStats {
+  totalUsers: number
+  totalBooks: number
+  borrowedBooks: number
+  totalFines: number
+  recentActivities: { id: number; type: string; user: string; content: string; time: string; color: string }[]
+  systemAlerts: { label: string; type: string; action: string }[]
+  topBooks: { rank: number; title: string; count: number }[]
+  categoryStats: { label: string; count: number; p: string; color: string }[]
+  borrowStats: { date: string; count: number }[]
+}
+
+export const adminApi = {
+  getDashboardStats: () => request<AdminDashboardStats>('/admin/dashboard/stats'),
+  getAllUsers: () => request<User[]>('/admin/users'),
+  updateUserRole: (id: string, role: string) => request<User>(`/admin/users/${id}/role`, { method: 'PATCH', body: JSON.stringify({ role }) }),
+  toggleUserStatus: (id: string, isActive: boolean) => request<User>(`/admin/users/${id}/status`, { method: 'PATCH', body: JSON.stringify({ isActive }) }),
+}

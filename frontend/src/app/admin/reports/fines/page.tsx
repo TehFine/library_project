@@ -5,6 +5,7 @@ import Button from '@/components/ui/Button'
 import Select from '@/components/ui/Select'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
+import { exportToExcel, exportToPDF } from '@/lib/export'
 
 // Mock Data
 const FINES_SUMMARY = [
@@ -33,8 +34,23 @@ export default function FinancialReportsPage() {
           description="Quản lý các khoản thu phí phạt và tình trạng thanh toán."
         />
         <div className="flex gap-2">
-           <Button variant="ghost" className="bg-white/50 border border-slate-200 font-bold text-xs">Xuất PDF</Button>
-           <Button variant="secondary" className="font-bold text-xs">Xuất Excel</Button>
+           <Button
+             variant="ghost"
+             className="bg-white/50 border border-slate-200 font-bold text-xs"
+             onClick={() => exportToPDF(
+               ['Ngay', 'Doc gia', 'Loai phat', 'So tien', 'Trang thai'],
+               TRANSACTIONS.map(tx => [tx.date, tx.reader, tx.type, tx.amount, tx.label]),
+               'Bao Cao Tai Chinh - Phi Phat', 'BaoCao_TaiChinh'
+             )}
+           >Xuất PDF</Button>
+           <Button
+             variant="secondary"
+             className="font-bold text-xs"
+             onClick={() => exportToExcel(
+               TRANSACTIONS.map(tx => ({ 'Ngay': tx.date, 'Doc gia': tx.reader, 'Loai phat': tx.type, 'So tien': tx.amount, 'Trang thai': tx.label })),
+               'BaoCao_TaiChinh', 'PhiPhat'
+             )}
+           >Xuất Excel</Button>
         </div>
       </div>
 
