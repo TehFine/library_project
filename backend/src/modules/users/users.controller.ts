@@ -23,7 +23,7 @@ export class UsersController {
 
     @Patch('me')
     async update(@Req() req: any, @Body() body: any) {
-        const user = await this.usersService.update(req.user.userId, body)
+        const user = await this.usersService.updateProfile(req.user.userId, body)
         const { passwordHash: _, ...safe } = user
         return safe
     }

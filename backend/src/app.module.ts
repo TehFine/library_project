@@ -14,6 +14,7 @@ import { UsersModule } from './modules/users/users.module'
 import { LibrarianModule } from './modules/librarian/librarian.module'
 import { BorrowRequestsModule } from './modules/borrow-requests/borrow-requests.module'
 import { DatabaseModule } from './common/database/database.module'
+import { AdminModule } from './modules/admin/admin.module'
 
 @Module({
     imports: [
@@ -46,6 +47,7 @@ import { DatabaseModule } from './common/database/database.module'
         UsersModule,
         LibrarianModule,
         BorrowRequestsModule,
+        AdminModule,
     ],
     controllers: [AppController],
     providers: [AppService],

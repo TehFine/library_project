@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository, LessThan } from 'typeorm'
+import { Repository, LessThan, Between } from 'typeorm'
 import { Fine } from './entities/fine.entity'
 import { BorrowRecord } from '@/modules/borrow-records/entities/borrow-record.entity'
 
@@ -44,7 +44,61 @@ export class FinesService {
         return this.fineRepo.save(fine)
     }
 
-    // Logic tính phí phạt dựa trên quy định
+    async waiveFine(id: string, librarianId: string, reason: string) {
+        const fine = await this.fineRepo.findOneBy({ id })
+        if (!fine) throw new NotFoundException('Fine record not found')
+        fine.status = 'waived'
+        fine.collectedBy = { id: librarianId } as any
+        fine.paymentMethod = reason
+        return this.fineRepo.save(fine)
+    }
+
+    async getAdminFineStats(from?: string, to?: string, status?: string, fineType?: string) {
+        const qb = this.fineRepo.createQueryBuilder('fine')
+            .leftJoinAndSelect('fine.borrowRecord', 'borrowRecord')
+            .leftJoinAndSelect('borrowRecord.libraryCard', 'libraryCard')
+            .leftJoinAndSelect('libraryCard.user', 'user')
+            .leftJoinAndSelect('user.profile', 'profile')
+            .leftJoinAndSelect('borrowRecord.bookCopy', 'bookCopy')
+            .leftJoinAndSelect('bookCopy.book', 'book')
+
+        if (from) qb.andWhere('fine.createdAt >= :from', { from: new Date(from) })
+        if (to) {
+            const toDate = new Date(to)
+            toDate.setHours(23, 59, 59, 999)
+            qb.andWhere('fine.createdAt <= :to', { to: toDate })
+        }
+        if (status) qb.andWhere('fine.status = :status', { status })
+        if (fineType) qb.andWhere('fine.fineType = :fineType', { fineType })
+
+        qb.orderBy('fine.createdAt', 'DESC')
+
+        const fines = await qb.getMany()
+
+        const totalAmount = fines.reduce((s, f) => s + Number(f.amount), 0)
+        const paidAmount = fines.filter(f => f.status === 'paid').reduce((s, f) => s + Number(f.amount), 0)
+        const unpaidAmount = fines.filter(f => f.status === 'pending').reduce((s, f) => s + Number(f.amount), 0)
+        const waivedAmount = fines.filter(f => f.status === 'waived').reduce((s, f) => s + Number(f.amount), 0)
+
+        return {
+            summary: { totalAmount, paidAmount, unpaidAmount, waivedAmount, totalCount: fines.length },
+            transactions: fines.map(f => ({
+                id: f.id,
+                createdAt: f.createdAt,
+                readerName: f.borrowRecord?.libraryCard?.user?.profile?.fullName ||
+                            f.borrowRecord?.libraryCard?.user?.username || '—',
+                bookTitle: f.borrowRecord?.bookCopy?.book?.title || '—',
+                fineType: f.fineType,
+                overdueDays: f.overdueDays,
+                amount: Number(f.amount),
+                status: f.status,
+                paymentMethod: f.paymentMethod,
+                receiptNumber: f.receiptNumber,
+                paidAt: f.paidAt,
+            }))
+        }
+    }
+
     calculateOverdueFine(days: number): number {
         if (days <= 0) return 0
         // Mẫu quy định: 1000đ/ngày cho 5 ngày đầu, 3000đ từ ngày thứ 6

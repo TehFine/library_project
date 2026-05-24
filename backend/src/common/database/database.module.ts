@@ -9,12 +9,15 @@ import { LibraryCard } from '@/modules/library-cards/entities/library-card.entit
 import { BorrowRecord } from '@/modules/borrow-records/entities/borrow-record.entity'
 import { Reservation } from '@/modules/reservations/entities/reservation.entity'
 import { Fine } from '@/modules/fines/entities/fine.entity'
+import { Role } from '@/modules/users/entities/role.entity'
+import { UserProfile } from '@/modules/users/entities/user-profile.entity'
 
 @Module({
     imports: [
         TypeOrmModule.forFeature([
             User, Category, Book, BookCopy, 
-            LibraryCard, BorrowRecord, Reservation, Fine
+            LibraryCard, BorrowRecord, Reservation, Fine,
+            Role, UserProfile
         ])
     ],
     providers: [SeedService],

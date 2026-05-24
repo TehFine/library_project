@@ -37,10 +37,8 @@ export class BorrowRecordsService {
             if (!card || card.status !== 'active') throw new BadRequestException('Thẻ không hợp lệ, đã bị khóa hoặc hết hạn')
 
             const copy = await this.copyRepo.findOne({
-                where: { id: dto.copyId },
-                relations: ['book']
+                where: { id: dto.copyId }
             })
-            
             if (!copy) throw new BadRequestException('Bản sao không tồn tại')
             
             if (isReservation) {
@@ -65,17 +63,9 @@ export class BorrowRecordsService {
 
             await queryRunner.manager.save(record)
 
-            // Cập nhật trạng thái bản sao
+            // Cập nhật trạng thái bản sao (Subscriber sẽ tự cập nhật availableCopies)
             copy.status = 'borrowed'
             await queryRunner.manager.save(copy)
-
-            // Cập nhật số lượng sách có sẵn (nếu không phải từ đặt trước)
-            // Vì khi được giữ (reserved), nó đã không được tính là available
-            if (!isReservation) {
-                const book = copy.book
-                book.availableCopies -= 1
-                await queryRunner.manager.save(book)
-            }
 
             await queryRunner.commitTransaction()
             return record
@@ -112,7 +102,7 @@ export class BorrowRecordsService {
         })
         if (!copy) throw new BadRequestException('Không còn bản sao nào có sẵn')
 
-        // Sử dụng logic borrow có sẵn (librarianId có thể là chính user trong demo hoặc 1 ID mặc định)
+        // Sử dụng logic borrow có sẵn
         return this.borrow({ cardId: card.id, copyId: copy.id }, userId)
     }
 
@@ -158,21 +148,15 @@ export class BorrowRecordsService {
                 copy.status = 'reserved'
                 copy.condition = condition
                 await queryRunner.manager.save(copy)
-
-                // availableCopies does NOT increment since it goes straight to reserved
             } else {
-                // Normal return
                 copy.status = 'available'
                 copy.condition = condition
                 await queryRunner.manager.save(copy)
-
-                book.availableCopies += 1
-                await queryRunner.manager.save(book)
             }
 
             await queryRunner.commitTransaction()
             
-            // Kiểm tra quá hạn để tính phạt (logic này có thể gọi FinesService)
+            // Kiểm tra quá hạn để tính phạt
             const overdue = new Date(record.returnDate) > new Date(record.dueDate)
             return { record, overdue }
         } catch (err) {
@@ -277,4 +261,3 @@ export class BorrowRecordsService {
         return this.borrowRepo.save(record)
     }
 }
-

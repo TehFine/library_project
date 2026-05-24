@@ -106,16 +106,13 @@ export class BooksService {
             ...dto,
             book
         })
-        
-        const savedCopy = await this.bookCopiesRepository.save(copy)
-        await this.updateCopyCounts(bookId)
-        return savedCopy as unknown as BookCopy
+        // BookCopySubscriber tự động cập nhật totalCopies và availableCopies
+        return this.bookCopiesRepository.save(copy) as unknown as BookCopy
     }
 
     async updateCopy(copyId: string, dto: any): Promise<BookCopy> {
         const copy = await this.bookCopiesRepository.findOne({ 
-            where: { id: copyId }, 
-            relations: ['book'] 
+            where: { id: copyId }
         })
         if (!copy) throw new NotFoundException('Không tìm thấy bản sao sách')
         
@@ -124,19 +121,13 @@ export class BooksService {
         }
 
         Object.assign(copy, dto)
-        const savedCopy = await this.bookCopiesRepository.save(copy)
-        
-        if (copy.book) {
-            await this.updateCopyCounts(copy.book.id)
-        }
-        
-        return savedCopy as unknown as BookCopy
+        // BookCopySubscriber tự động cập nhật totalCopies và availableCopies
+        return this.bookCopiesRepository.save(copy) as unknown as BookCopy
     }
 
     async removeCopy(copyId: string): Promise<{ success: boolean }> {
         const copy = await this.bookCopiesRepository.findOne({ 
-            where: { id: copyId }, 
-            relations: ['book'] 
+            where: { id: copyId }
         })
         if (!copy) throw new NotFoundException('Không tìm thấy bản sao sách')
         
@@ -144,25 +135,9 @@ export class BooksService {
             throw new Error('Không thể xóa bản sao đang được mượn')
         }
 
-        const bookId = copy.book?.id
+        // BookCopySubscriber tự động cập nhật totalCopies và availableCopies
         await this.bookCopiesRepository.remove(copy)
-        
-        if (bookId) {
-            await this.updateCopyCounts(bookId)
-        }
-        
         return { success: true }
-    }
-
-    private async updateCopyCounts(bookId: string) {
-        const copies = await this.bookCopiesRepository.find({ where: { bookId } })
-        const total = copies.length
-        const available = copies.filter(c => c.status === 'available').length
-        
-        await this.booksRepository.update(bookId, {
-            totalCopies: total,
-            availableCopies: available
-        })
     }
 
     async findCopyByCode(copyCode: string) {

@@ -6,6 +6,7 @@ import Button from '@/components/ui/Button'
 import Select from '@/components/ui/Select'
 import Input from '@/components/ui/Input'
 import { cn } from '@/lib/utils'
+import { exportToExcel, exportToPDF } from '@/lib/export'
 
 // Mock Data
 const TOP_BORROWED = [
@@ -33,6 +34,58 @@ const DISPOSAL = [
 
 type Tab = 'top' | 'stock' | 'replenish' | 'disposal'
 
+function handleExportExcel(activeTab: Tab) {
+  if (activeTab === 'top') {
+    exportToExcel(
+      TOP_BORROWED.map((b, i) => ({ '#': i + 1, 'Ten sach': b.title, 'Tac gia': b.author, 'The loai': b.category, 'Luot muon': b.total, 'TB muon (ngay)': b.avg })),
+      'Top_Sach_Muon_Nhieu', 'BaoCaoSach'
+    )
+  } else if (activeTab === 'stock') {
+    exportToExcel(
+      STOCK_STATUS.map(s => ({ 'Ten sach': s.title, 'Tong ban sao': s.total, 'Co san': s.available, 'Dang muon': s.borrowed })),
+      'Tinh_Trang_Kho', 'TinhTrangKho'
+    )
+  } else if (activeTab === 'replenish') {
+    exportToExcel(
+      REPLENISHMENT.map(r => ({ 'Ten sach': r.title, 'Ban sao hien co': r.total, 'Luot dat truoc': r.queue, 'De xuat': r.suggestion })),
+      'Can_Bo_Sung', 'BoSung'
+    )
+  } else if (activeTab === 'disposal') {
+    exportToExcel(
+      DISPOSAL.map(d => ({ 'Ten sach': d.title, 'Ma ban sao': d.copyCode, 'Tinh trang': d.condition, 'Ngay nhap': d.importedAt, 'Hanh dong': d.action })),
+      'Can_Thanh_Ly', 'ThanhLy'
+    )
+  }
+}
+
+function handleExportPDF(activeTab: Tab) {
+  if (activeTab === 'top') {
+    exportToPDF(
+      ['#', 'Ten sach', 'Tac gia', 'The loai', 'Luot muon', 'TB muon'],
+      TOP_BORROWED.map((b, i) => [i + 1, b.title, b.author, b.category, b.total, b.avg]),
+      'Top Sach Muon Nhieu Nhat', 'Top_Sach_Muon_Nhieu'
+    )
+  } else if (activeTab === 'stock') {
+    exportToPDF(
+      ['Ten sach', 'Tong BC', 'Co san', 'Dang muon'],
+      STOCK_STATUS.map(s => [s.title, s.total, s.available, s.borrowed]),
+      'Tinh Trang Kho Sach', 'Tinh_Trang_Kho'
+    )
+  } else if (activeTab === 'replenish') {
+    exportToPDF(
+      ['Ten sach', 'Ban sao hien co', 'Luot dat truoc', 'De xuat mua them'],
+      REPLENISHMENT.map(r => [r.title, r.total, r.queue, r.suggestion]),
+      'Sach Can Bo Sung', 'Can_Bo_Sung'
+    )
+  } else if (activeTab === 'disposal') {
+    exportToPDF(
+      ['Ten sach', 'Ma ban sao', 'Tinh trang', 'Ngay nhap', 'Hanh dong'],
+      DISPOSAL.map(d => [d.title, d.copyCode, d.condition, d.importedAt, d.action]),
+      'Sach Can Thanh Ly', 'Can_Thanh_Ly'
+    )
+  }
+}
+
 export default function BookReportsPage() {
   const [activeTab, setActiveTab] = useState<Tab>('top')
 
@@ -44,10 +97,10 @@ export default function BookReportsPage() {
           description="Theo dõi hiệu suất mượn sách và tình trạng kho sách thực tế."
         />
         <div className="flex gap-2">
-          <Button variant="ghost" className="bg-white/50 border border-slate-200 text-xs font-bold">
+          <Button variant="ghost" className="bg-white/50 border border-slate-200 text-xs font-bold" onClick={() => handleExportPDF(activeTab)}>
             📄 Xuất PDF
           </Button>
-          <Button variant="secondary" className="text-xs font-bold">
+          <Button variant="secondary" className="text-xs font-bold" onClick={() => handleExportExcel(activeTab)}>
             📊 Xuất Excel
           </Button>
         </div>

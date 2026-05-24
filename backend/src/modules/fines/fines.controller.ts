@@ -12,6 +12,16 @@ export class FinesController {
         return this.service.findAll()
     }
 
+    @Get('admin-stats')
+    getAdminStats(
+        @Query('from') from?: string,
+        @Query('to') to?: string,
+        @Query('status') status?: string,
+        @Query('fineType') fineType?: string,
+    ) {
+        return this.service.getAdminFineStats(from, to, status, fineType)
+    }
+
     @Get('mine')
     findMine(@Req() req: any, @Query() query: any) {
         return this.service.findMine(req.user.userId, query)
@@ -21,5 +31,11 @@ export class FinesController {
     pay(@Param('id') id: string, @Body() body: { method: string }, @Req() req: any) {
         return this.service.payFine(id, req.user.userId, body.method)
     }
+
+    @Patch(':id/waive')
+    waive(@Param('id') id: string, @Body() body: { reason: string }, @Req() req: any) {
+        return this.service.waiveFine(id, req.user.userId, body.reason)
+    }
 }
+
 

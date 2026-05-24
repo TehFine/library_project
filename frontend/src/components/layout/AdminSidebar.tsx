@@ -149,25 +149,6 @@ export default function AdminSidebar() {
           )
         })}
       </nav>
-
-      <div className="p-4 border-t border-amber-200/50">
-        <div className="bg-white/40 rounded-2xl p-4 flex items-center gap-3 border border-white/60">
-          <div className="w-10 h-10 rounded-full bg-slate-200 overflow-hidden ring-2 ring-white">
-             {/* eslint-disable-next-line @next/next/no-img-element */}
-             <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Admin" alt="Admin" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-slate-800 truncate">Adminstrator</p>
-            <p className="text-xs text-slate-500 truncate">admin@library.vn</p>
-          </div>
-        </div>
-        <button className="w-full mt-3 flex items-center justify-center gap-2 px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-50 rounded-xl transition-colors">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-          </svg>
-          Đăng xuất
-        </button>
-      </div>
     </aside>
   )
 }
