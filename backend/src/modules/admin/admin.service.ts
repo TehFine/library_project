@@ -24,7 +24,7 @@ export class AdminService {
         const totalBooks = await this.bookRepo.count();
         const borrowedBooks = await this.borrowRepo.count({ where: { status: 'borrowing' } });
         
-        const fines = await this.fineRepo.find({ where: { status: 'unpaid' } });
+        const fines = await this.fineRepo.find({ where: { status: 'pending' } });
         const totalFines = fines.reduce((sum, f) => sum + Number(f.amount), 0);
 
         const recentActivities = [
