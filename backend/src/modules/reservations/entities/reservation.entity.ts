@@ -1,6 +1,7 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, ManyToOne } from 'typeorm'
 import { LibraryCard } from '@/modules/library-cards/entities/library-card.entity'
 import { Book } from '@/modules/books/entities/book.entity'
+import { BookCopy } from '@/modules/books/entities/book-copy.entity'
 
 @Entity('reservations')
 export class Reservation {
@@ -18,6 +19,12 @@ export class Reservation {
 
     @Column()
     bookId: string
+
+    @ManyToOne(() => BookCopy, { nullable: true })
+    reservedCopy: BookCopy
+
+    @Column({ nullable: true })
+    reservedCopyId: string
 
     @Column({ default: 1 })
     queuePosition: number

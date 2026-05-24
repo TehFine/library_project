@@ -24,7 +24,7 @@ export class BookCopy {
 
     @Column({
         type: 'enum',
-        enum: ['available', 'borrowed', 'lost', 'disposed'],
+        enum: ['available', 'borrowed', 'lost', 'disposed', 'reserved'],
         default: 'available'
     })
     status: string

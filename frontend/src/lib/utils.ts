@@ -50,7 +50,7 @@ export const borrowStatusMap: Record<BorrowStatus, { label: string; color: strin
 export const reservationStatusMap: Record<ReservationStatus, { label: string; color: string }> = {
   waiting:   { label: 'Đang chờ',         color: 'bg-yellow-50 text-yellow-700' },
   notified:  { label: 'Sách đã có sẵn',   color: 'bg-green-50 text-green-700'  },
-  fulfilled: { label: 'Đã nhận sách',     color: 'bg-gray-100 text-gray-600'   },
+  completed: { label: 'Đã nhận sách',     color: 'bg-blue-50 text-blue-600'    },
   cancelled: { label: 'Đã hủy',           color: 'bg-gray-100 text-gray-500'   },
   expired:   { label: 'Hết hạn chờ',      color: 'bg-red-50 text-red-600'      },
 }

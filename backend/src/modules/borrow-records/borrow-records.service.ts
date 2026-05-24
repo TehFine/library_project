@@ -5,6 +5,7 @@ import { BorrowRecord } from './entities/borrow-record.entity'
 import { BookCopy } from '@/modules/books/entities/book-copy.entity'
 import { LibraryCard } from '@/modules/library-cards/entities/library-card.entity'
 import { Book } from '@/modules/books/entities/book.entity'
+import { Reservation } from '@/modules/reservations/entities/reservation.entity'
 
 @Injectable()
 export class BorrowRecordsService {
@@ -17,10 +18,12 @@ export class BorrowRecordsService {
         private cardRepo: Repository<LibraryCard>,
         @InjectRepository(Book)
         private bookRepo: Repository<Book>,
+        @InjectRepository(Reservation)
+        private resRepo: Repository<Reservation>,
         private dataSource: DataSource,
     ) { }
 
-    async borrow(dto: { cardId: string; copyId: string }, librarianId: string) {
+    async borrow(dto: { cardId: string; copyId: string }, librarianId: string, isReservation: boolean = false) {
         const queryRunner = this.dataSource.createQueryRunner()
         await queryRunner.connect()
         await queryRunner.startTransaction()
@@ -37,7 +40,14 @@ export class BorrowRecordsService {
                 where: { id: dto.copyId },
                 relations: ['book']
             })
-            if (!copy || copy.status !== 'available') throw new BadRequestException('Sách không có sẵn để mượn')
+            
+            if (!copy) throw new BadRequestException('Bản sao không tồn tại')
+            
+            if (isReservation) {
+                if (copy.status !== 'reserved') throw new BadRequestException('Bản sao này chưa được giữ cho đặt trước')
+            } else {
+                if (copy.status !== 'available') throw new BadRequestException('Sách không có sẵn để mượn')
+            }
 
             // Tạo phiếu mượn
             const now = new Date()
@@ -59,10 +69,13 @@ export class BorrowRecordsService {
             copy.status = 'borrowed'
             await queryRunner.manager.save(copy)
 
-            // Cập nhật số lượng sách có sẵn
-            const book = copy.book
-            book.availableCopies -= 1
-            await queryRunner.manager.save(book)
+            // Cập nhật số lượng sách có sẵn (nếu không phải từ đặt trước)
+            // Vì khi được giữ (reserved), nó đã không được tính là available
+            if (!isReservation) {
+                const book = copy.book
+                book.availableCopies -= 1
+                await queryRunner.manager.save(book)
+            }
 
             await queryRunner.commitTransaction()
             return record
@@ -121,13 +134,41 @@ export class BorrowRecordsService {
             await queryRunner.manager.save(record)
 
             const copy = record.bookCopy
-            copy.status = 'available'
-            copy.condition = condition
-            await queryRunner.manager.save(copy)
-
             const book = copy.book
-            book.availableCopies += 1
-            await queryRunner.manager.save(book)
+
+            // Check if there are any waiting reservations for this book
+            const oldestReservation = await queryRunner.manager.findOne(Reservation, {
+                where: { bookId: book.id, status: 'waiting' },
+                order: { reservedAt: 'ASC' }
+            })
+
+            if (oldestReservation) {
+                // Fulfill reservation
+                oldestReservation.status = 'notified'
+                oldestReservation.notifiedAt = new Date()
+                
+                const expiresAt = new Date()
+                expiresAt.setHours(expiresAt.getHours() + 48) // 48 hours deadline
+                oldestReservation.expiresAt = expiresAt
+                
+                oldestReservation.reservedCopyId = copy.id
+                await queryRunner.manager.save(oldestReservation)
+
+                // Copy goes to reserved
+                copy.status = 'reserved'
+                copy.condition = condition
+                await queryRunner.manager.save(copy)
+
+                // availableCopies does NOT increment since it goes straight to reserved
+            } else {
+                // Normal return
+                copy.status = 'available'
+                copy.condition = condition
+                await queryRunner.manager.save(copy)
+
+                book.availableCopies += 1
+                await queryRunner.manager.save(book)
+            }
 
             await queryRunner.commitTransaction()
             

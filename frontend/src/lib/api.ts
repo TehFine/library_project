@@ -201,4 +201,5 @@ export const librarianApi = {
   // Reservations
   getReservations: () => request<any[]>('/reservations'),
   notifyReservation: (id: string) => request<any>(`/reservations/${id}/notify`, { method: 'POST' }),
+  fulfillReservation: (id: string) => request<any>(`/reservations/${id}/fulfill`, { method: 'POST' }),
 }

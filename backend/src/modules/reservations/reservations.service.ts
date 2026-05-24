@@ -1,10 +1,11 @@
 import { Injectable, BadRequestException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository, In } from 'typeorm'
+import { Repository, In, LessThan } from 'typeorm'
 import { Reservation } from './entities/reservation.entity'
 import { Book } from '@/modules/books/entities/book.entity'
+import { BookCopy } from '@/modules/books/entities/book-copy.entity'
 import { LibraryCardsService } from '@/modules/library-cards/library-cards.service'
-import { SEED_IDS } from '@/common/database/seeds/mock-db'
+import { BorrowRecordsService } from '@/modules/borrow-records/borrow-records.service'
 
 @Injectable()
 export class ReservationsService {
@@ -13,7 +14,10 @@ export class ReservationsService {
         private resRepo: Repository<Reservation>,
         @InjectRepository(Book)
         private bookRepo: Repository<Book>,
+        @InjectRepository(BookCopy)
+        private copyRepo: Repository<BookCopy>,
         private cardService: LibraryCardsService,
+        private borrowService: BorrowRecordsService,
     ) { }
 
     async create(userId: string, bookId: string) {
@@ -56,7 +60,66 @@ export class ReservationsService {
         return this.resRepo.save(reservation)
     }
 
+    private async syncReservationsStatus() {
+        // 1. Xử lý quá hạn
+        const expiredReservations = await this.resRepo.find({
+            where: { status: 'notified', expiresAt: LessThan(new Date()) }
+        })
+
+        for (const res of expiredReservations) {
+            res.status = 'expired'
+            await this.resRepo.save(res)
+
+            if (res.reservedCopyId) {
+                const copy = await this.copyRepo.findOne({ where: { id: res.reservedCopyId }, relations: ['book'] })
+                if (copy && copy.status === 'reserved') {
+                    copy.status = 'available'
+                    await this.copyRepo.save(copy)
+
+                    const book = copy.book
+                    book.availableCopies += 1
+                    await this.bookRepo.save(book)
+                }
+            }
+        }
+
+        // 2. Tự động cấp phát sách có sẵn cho người đang đợi
+        const waitingReservations = await this.resRepo.find({
+            where: { status: 'waiting' },
+            order: { reservedAt: 'ASC' }
+        })
+
+        for (const res of waitingReservations) {
+            const availableCopy = await this.copyRepo.findOne({
+                where: { bookId: res.bookId, status: 'available' },
+                relations: ['book']
+            })
+
+            if (availableCopy) {
+                // Đặt bản sao này thành reserved
+                availableCopy.status = 'reserved'
+                await this.copyRepo.save(availableCopy)
+
+                const book = availableCopy.book
+                book.availableCopies -= 1
+                await this.bookRepo.save(book)
+
+                // Cập nhật reservation thành notified
+                res.status = 'notified'
+                res.notifiedAt = new Date()
+                
+                const expiresAt = new Date()
+                expiresAt.setHours(expiresAt.getHours() + 48)
+                res.expiresAt = expiresAt
+                
+                res.reservedCopyId = availableCopy.id
+                await this.resRepo.save(res)
+            }
+        }
+    }
+
     async findAll() {
+        await this.syncReservationsStatus()
         return this.resRepo.find({
             relations: ['libraryCard', 'libraryCard.user', 'book'],
             order: { reservedAt: 'ASC' }
@@ -80,7 +143,26 @@ export class ReservationsService {
         return this.resRepo.save(res)
     }
 
+    async fulfill(id: string, librarianId: string) {
+        const res = await this.resRepo.findOneBy({ id })
+        if (!res) throw new BadRequestException('Không tìm thấy yêu cầu đặt trước')
+        if (res.status !== 'notified') throw new BadRequestException('Chỉ có thể cấp sách cho yêu cầu đã được thông báo')
+        if (!res.reservedCopyId) throw new BadRequestException('Không tìm thấy bản sao sách được giữ cho yêu cầu này')
+
+        // Tạo phiếu mượn thực tế
+        await this.borrowService.borrow({
+            cardId: res.libraryCardId,
+            copyId: res.reservedCopyId
+        }, librarianId, true)
+
+        // Cập nhật trạng thái
+        res.status = 'completed'
+        return this.resRepo.save(res)
+    }
+
     async findMine(userId: string, query: any) {
+        await this.syncReservationsStatus()
+        
         const { status, page = 1, limit = 10 } = query
         const skip = (page - 1) * limit
 

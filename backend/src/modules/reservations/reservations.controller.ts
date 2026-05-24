@@ -32,6 +32,11 @@ export class ReservationsController {
         return this.service.notify(id)
     }
 
+    @Post(':id/fulfill')
+    fulfill(@Param('id') id: string, @Req() req: any) {
+        return this.service.fulfill(id, req.user.userId)
+    }
+
     @Delete(':id')
     delete(@Param('id') id: string) {
         return this.service.cancel(id)

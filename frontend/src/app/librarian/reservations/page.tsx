@@ -43,13 +43,14 @@ export default function LibrarianReservationsPage() {
     loadData()
   }, [loadData])
 
-  const handleNotify = async (id: string) => {
+  const handleFulfill = async (id: string) => {
     try {
-      await librarianApi.notifyReservation(id)
-      toast.success('Đã gửi thông báo cho độc giả')
+      await librarianApi.fulfillReservation(id)
+      toast.success('Đã cấp sách thành công cho độc giả đặt trước')
+      setSelectedReservation(null)
       loadData()
-    } catch (err) {
-      toast.error('Lỗi khi gửi thông báo')
+    } catch (err: any) {
+      toast.error(err.message || 'Lỗi khi cấp sách')
     }
   }
 
@@ -72,8 +73,8 @@ export default function LibrarianReservationsPage() {
             className="rounded-2xl"
           >
             <option value="all">Tất cả trạng thái</option>
-            <option value="waiting">Đang chờ (Waiting)</option>
-            <option value="notified">Đã thông báo (Notified)</option>
+            <option value="waiting">Chờ có sách (Waiting)</option>
+            <option value="notified">Chờ đến nhận (Ready)</option>
             <option value="completed">Đã hoàn tất</option>
             <option value="cancelled">Đã hủy</option>
           </Select>
@@ -125,18 +126,19 @@ export default function LibrarianReservationsPage() {
                     <Badge className={cn(
                       'border-none font-bold',
                       res.status === 'notified' ? 'bg-emerald-50 text-emerald-600' : 
+                      res.status === 'completed' ? 'bg-blue-50 text-blue-600' :
                       res.status === 'waiting' ? 'bg-amber-50 text-amber-600' : 'bg-gray-100 text-gray-400'
                     )}>
-                      {res.status === 'waiting' ? '● Đang chờ' : 
-                       res.status === 'notified' ? '● Đã sẵn sàng' : '● ' + res.status}
+                      {res.status === 'waiting' ? '● Chờ có sách' : 
+                       res.status === 'notified' ? '● Chờ đến nhận' : 
+                       res.status === 'completed' ? '● Đã hoàn tất' : '● ' + res.status}
                     </Badge>
                   </td>
-                  <td className="py-4 px-6 text-right">
-                    {res.status === 'waiting' ? (
-                      <Button variant="primary" size="sm" className="rounded-full px-4" onClick={() => handleNotify(res.id)}>Thông báo</Button>
-                    ) : (
-                      <Button variant="ghost" size="sm" className="rounded-full" onClick={() => setSelectedReservation(res)}>Chi tiết</Button>
+                  <td className="py-4 px-6 text-right space-x-2">
+                    {res.status === 'notified' && (
+                      <Button variant="primary" size="sm" className="rounded-full px-4" onClick={() => handleFulfill(res.id)}>Cấp Sách</Button>
                     )}
+                    <Button variant="ghost" size="sm" className="rounded-full" onClick={() => setSelectedReservation(res)}>Chi tiết</Button>
                   </td>
                 </tr>
               ))}
@@ -160,10 +162,12 @@ export default function LibrarianReservationsPage() {
                 <Badge className={cn(
                   'border-none font-bold',
                   selectedReservation?.status === 'notified' ? 'bg-emerald-50 text-emerald-600' : 
+                  selectedReservation?.status === 'completed' ? 'bg-blue-50 text-blue-600' :
                   selectedReservation?.status === 'waiting' ? 'bg-amber-50 text-amber-600' : 'bg-gray-100 text-gray-400'
                 )}>
-                  {selectedReservation?.status === 'waiting' ? '● Đang chờ' : 
-                   selectedReservation?.status === 'notified' ? '● Đã sẵn sàng' : '● ' + selectedReservation?.status}
+                  {selectedReservation?.status === 'waiting' ? '● Chờ có sách' : 
+                   selectedReservation?.status === 'notified' ? '● Chờ đến nhận' : 
+                   selectedReservation?.status === 'completed' ? '● Đã hoàn tất' : '● ' + selectedReservation?.status}
                 </Badge>
               </div>
               <div className="flex justify-between items-center border-b border-gray-100 pb-3">
@@ -184,8 +188,8 @@ export default function LibrarianReservationsPage() {
               </div>
            </div>
 
-           <div className="pt-4 border-t border-gray-50 text-center">
-              <Button variant="primary" className="rounded-2xl px-8" onClick={() => setSelectedReservation(null)}>Đóng</Button>
+           <div className="pt-4 border-t border-gray-50 flex justify-center gap-3">
+              <Button variant="secondary" className="rounded-2xl px-8" onClick={() => setSelectedReservation(null)}>Đóng</Button>
            </div>
         </div>
       </Modal>

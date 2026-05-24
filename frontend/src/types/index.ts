@@ -98,7 +98,7 @@ export interface BorrowRecord {
 }
 
 // ── Reservation ───────────────────────────────────────────────────────────────
-export type ReservationStatus = 'waiting' | 'notified' | 'fulfilled' | 'cancelled' | 'expired'
+export type ReservationStatus = 'waiting' | 'notified' | 'completed' | 'cancelled' | 'expired'
 
 export interface Reservation {
   id: string
