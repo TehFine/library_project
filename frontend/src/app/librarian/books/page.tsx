@@ -274,7 +274,7 @@ export default function LibrarianBooksPage() {
                     <td className="py-4 px-6 text-gray-500 capitalize">{copy.condition}</td>
                     <td className="py-4 px-6">
                       {copy.status === 'available' ? <Badge className="bg-emerald-50 text-emerald-600 border-none font-bold">✓ Có sẵn</Badge> : 
-                       copy.status === 'borrowed' ? <Badge className="bg-blue-50 text-blue-600 border-none font-bold italic">📖 Đang mượn</Badge> :
+                       copy.status === 'borrowed' ? <Badge className="bg-blue-50 text-blue-600 border-none font-bold">● Đang mượn</Badge> :
                        <Badge className="bg-gray-100 text-gray-500 border-none">Mất/Thanh lý</Badge>}
                     </td>
                     <td className="py-4 px-6 text-right">

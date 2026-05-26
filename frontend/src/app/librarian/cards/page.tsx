@@ -14,6 +14,7 @@ export default function LibrarianCardsPage() {
   const [cards, setCards] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [filterStatus, setFilterStatus] = useState<string>('all')
   
   const [showAddCardModal, setShowAddCardModal] = useState(false)
   const [searchUser, setSearchUser] = useState('')
@@ -28,13 +29,17 @@ export default function LibrarianCardsPage() {
     try {
       // Vì backend chưa có filter cho cards nên ta dùng search với chuỗi rỗng để lấy list hoặc dùng findAll
       const res = await (search ? librarianApi.searchCards(search) : librarianApi.searchCards(''))
-      setCards(res)
+      // Lọc theo trạng thái trên client nếu có filter
+      const filtered = filterStatus !== 'all' 
+        ? res.filter((c: any) => c.status === filterStatus)
+        : res
+      setCards(filtered)
     } catch (err) {
       toast.error('Lỗi khi tải danh sách thẻ')
     } finally {
       setLoading(false)
     }
-  }, [search])
+  }, [search, filterStatus])
 
   useEffect(() => {
     loadData()
@@ -97,8 +102,8 @@ export default function LibrarianCardsPage() {
             className="max-w-xs rounded-2xl"
           />
           <Select 
-            value="all"
-            onChange={() => {}}
+            value={filterStatus}
+            onChange={e => setFilterStatus(e.target.value)}
             className="rounded-2xl"
           >
             <option value="all">Tất cả trạng thái</option>

@@ -88,7 +88,7 @@ export default function LibrarianReservationsPage() {
             <thead>
               <tr className="bg-gray-50/50 border-b border-gray-100 text-[11px] font-bold text-gray-400 uppercase tracking-widest">
                 <th className="py-5 px-6">Sách</th>
-                <th className="py-5 px-6">Độc giả</th>
+                <th className="py-5 px-6">Người dùng</th>
                 <th className="py-5 px-6">Ngày đặt</th>
                 <th className="py-5 px-6">Vị trí</th>
                 <th className="py-5 px-6">Trạng thái</th>
@@ -171,7 +171,7 @@ export default function LibrarianReservationsPage() {
                 </Badge>
               </div>
               <div className="flex justify-between items-center border-b border-gray-100 pb-3">
-                <span className="text-gray-400">Độc giả</span>
+                <span className="text-gray-400">Người dùng</span>
                 <span className="font-bold text-gray-900">{selectedReservation?.libraryCard?.user?.fullName || selectedReservation?.libraryCard?.user?.username}</span>
               </div>
               <div className="flex justify-between items-center border-b border-gray-100 pb-3">

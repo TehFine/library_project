@@ -1,93 +1,126 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import PageHeader from '@/components/layout/PageHeader'
-import { Card, Badge, Pagination } from '@/components/ui'
+import { Card, Badge } from '@/components/ui'
 import Button from '@/components/ui/Button'
 import Select from '@/components/ui/Select'
-import Input from '@/components/ui/Input'
 import { cn } from '@/lib/utils'
+import { adminApi, BookReportData } from '@/lib/api'
 import { exportToExcel, exportToPDF } from '@/lib/export'
-
-// Mock Data
-const TOP_BORROWED = [
-  { id: 1, title: 'Đắc Nhân Tâm', author: 'Dale Carnegie', category: 'Kỹ năng', total: 142, avg: '12.3n' },
-  { id: 2, title: 'Atomic Habits', author: 'James Clear', category: 'Kỹ năng', total: 118, avg: '11.1n' },
-  { id: 3, title: 'Sapiens: Lược sử loài người', author: 'Yuval Noah Harari', category: 'Lịch sử', total: 96, avg: '13.5n' },
-  { id: 4, title: 'Nhà Giả Kim', author: 'Paulo Coelho', category: 'Tiểu thuyết', total: 88, avg: '10.2n' },
-]
-
-const STOCK_STATUS = [
-  { id: 1, title: 'Nhà Giả Kim', total: 4, available: 0, borrowed: 4, action: 'Đề xuất mua thêm', critical: true },
-  { id: 2, title: 'Đắc Nhân Tâm', total: 5, available: 3, borrowed: 2, action: null, critical: false },
-  { id: 3, title: 'Clean Code', total: 4, available: 4, borrowed: 0, action: '⚠️ Ít được mượn', critical: false },
-]
-
-const REPLENISHMENT = [
-  { id: 1, title: 'Nhà Giả Kim', total: 4, queue: 8, suggestion: 'Mua thêm 4 bản' },
-  { id: 2, title: 'Atomic Habits', total: 5, queue: 3, suggestion: 'Mua thêm 2 bản' },
-]
-
-const DISPOSAL = [
-  { id: 1, title: 'Dune', copyCode: '5678-003', condition: 'Hư nặng', importedAt: '01/2022', action: 'Thanh lý' },
-  { id: 2, title: 'Sapiens', copyCode: '3456-002', condition: 'Mất (đã xử lý)', importedAt: '06/2021', action: 'Xóa khỏi hệ thống' },
-]
+import toast from 'react-hot-toast'
 
 type Tab = 'top' | 'stock' | 'replenish' | 'disposal'
 
-function handleExportExcel(activeTab: Tab) {
-  if (activeTab === 'top') {
-    exportToExcel(
-      TOP_BORROWED.map((b, i) => ({ '#': i + 1, 'Ten sach': b.title, 'Tac gia': b.author, 'The loai': b.category, 'Luot muon': b.total, 'TB muon (ngay)': b.avg })),
-      'Top_Sach_Muon_Nhieu', 'BaoCaoSach'
-    )
-  } else if (activeTab === 'stock') {
-    exportToExcel(
-      STOCK_STATUS.map(s => ({ 'Ten sach': s.title, 'Tong ban sao': s.total, 'Co san': s.available, 'Dang muon': s.borrowed })),
-      'Tinh_Trang_Kho', 'TinhTrangKho'
-    )
-  } else if (activeTab === 'replenish') {
-    exportToExcel(
-      REPLENISHMENT.map(r => ({ 'Ten sach': r.title, 'Ban sao hien co': r.total, 'Luot dat truoc': r.queue, 'De xuat': r.suggestion })),
-      'Can_Bo_Sung', 'BoSung'
-    )
-  } else if (activeTab === 'disposal') {
-    exportToExcel(
-      DISPOSAL.map(d => ({ 'Ten sach': d.title, 'Ma ban sao': d.copyCode, 'Tinh trang': d.condition, 'Ngay nhap': d.importedAt, 'Hanh dong': d.action })),
-      'Can_Thanh_Ly', 'ThanhLy'
-    )
-  }
-}
-
-function handleExportPDF(activeTab: Tab) {
-  if (activeTab === 'top') {
-    exportToPDF(
-      ['#', 'Ten sach', 'Tac gia', 'The loai', 'Luot muon', 'TB muon'],
-      TOP_BORROWED.map((b, i) => [i + 1, b.title, b.author, b.category, b.total, b.avg]),
-      'Top Sach Muon Nhieu Nhat', 'Top_Sach_Muon_Nhieu'
-    )
-  } else if (activeTab === 'stock') {
-    exportToPDF(
-      ['Ten sach', 'Tong BC', 'Co san', 'Dang muon'],
-      STOCK_STATUS.map(s => [s.title, s.total, s.available, s.borrowed]),
-      'Tinh Trang Kho Sach', 'Tinh_Trang_Kho'
-    )
-  } else if (activeTab === 'replenish') {
-    exportToPDF(
-      ['Ten sach', 'Ban sao hien co', 'Luot dat truoc', 'De xuat mua them'],
-      REPLENISHMENT.map(r => [r.title, r.total, r.queue, r.suggestion]),
-      'Sach Can Bo Sung', 'Can_Bo_Sung'
-    )
-  } else if (activeTab === 'disposal') {
-    exportToPDF(
-      ['Ten sach', 'Ma ban sao', 'Tinh trang', 'Ngay nhap', 'Hanh dong'],
-      DISPOSAL.map(d => [d.title, d.copyCode, d.condition, d.importedAt, d.action]),
-      'Sach Can Thanh Ly', 'Can_Thanh_Ly'
-    )
-  }
-}
-
 export default function BookReportsPage() {
   const [activeTab, setActiveTab] = useState<Tab>('top')
+  const [loading, setLoading] = useState(true)
+  const [reportData, setReportData] = useState<BookReportData | null>(null)
+
+  const [fromDate, setFromDate] = useState('')
+  const [toDate, setToDate] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState('')
+  const [filteredBooks, setFilteredBooks] = useState<BookReportData['topBorrowed']>([])
+
+  const fetchData = useCallback(async () => {
+    setLoading(true)
+    try {
+      const data = await adminApi.getBookReports()
+      setReportData(data)
+      setFilteredBooks(data.topBorrowed)
+    } catch {
+      toast.error('Không thể tải dữ liệu báo cáo sách')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { fetchData() }, [fetchData])
+
+  const applyFilter = () => {
+    if (!reportData) return
+    let result = reportData.topBorrowed
+    if (selectedCategory) {
+      const categoryMap: Record<string, string> = {
+        '1': 'Kỹ năng',
+        '2': 'Tiểu thuyết',
+        '3': 'Lịch sử',
+      }
+      const catLabel = categoryMap[selectedCategory]
+      if (catLabel) {
+        result = result.filter(b => b.category === catLabel)
+      }
+    }
+    setFilteredBooks(result)
+  }
+
+  const handleExportExcel = () => {
+    if (!reportData) return
+    if (activeTab === 'top') {
+      exportToExcel(
+        filteredBooks.map((b, i) => ({ '#': i + 1, 'Ten sach': b.title, 'Tac gia': b.author, 'The loai': b.category, 'Luot muon': b.totalBorrows, 'TB muon (ngay)': b.avgBorrowDays })),
+        'Top_Sach_Muon_Nhieu', 'BaoCaoSach'
+      )
+    } else if (activeTab === 'stock') {
+      exportToExcel(
+        reportData.stockStatus.map(s => ({ 'Ten sach': s.title, 'The loai': s.category, 'Tong ban sao': s.totalCopies, 'Co san': s.availableCopies, 'Dang muon': s.borrowedCopies })),
+        'Tinh_Trang_Kho', 'TinhTrangKho'
+      )
+    } else if (activeTab === 'replenish') {
+      exportToExcel(
+        displayReplenishment.map(r => ({ 'Ten sach': r.title, 'Ban sao hien co': r.totalCopies, 'Luot dat truoc': r.queueCount, 'De xuat': r.suggestion })),
+        'Can_Bo_Sung', 'BoSung'
+      )
+    } else if (activeTab === 'disposal') {
+      exportToExcel(
+        reportData.disposal.map(d => ({ 'Ten sach': d.title, 'Ma ban sao': d.copyCode, 'Tinh trang': d.condition, 'Ngay nhap': d.importedAt, 'Hanh dong': d.action })),
+        'Can_Thanh_Ly', 'ThanhLy'
+      )
+    }
+  }
+
+  const handleExportPDF = () => {
+    if (!reportData) return
+    if (activeTab === 'top') {
+      exportToPDF(
+        ['#', 'Ten sach', 'Tac gia', 'The loai', 'Luot muon', 'TB muon'],
+        filteredBooks.map((b, i) => [i + 1, b.title, b.author, b.category, b.totalBorrows, b.avgBorrowDays]),
+        'Top Sach Muon Nhieu Nhat', 'Top_Sach_Muon_Nhieu'
+      )
+    } else if (activeTab === 'stock') {
+      exportToPDF(
+        ['Ten sach', 'The loai', 'Tong BC', 'Co san', 'Dang muon'],
+        reportData.stockStatus.map(s => [s.title, s.category, s.totalCopies, s.availableCopies, s.borrowedCopies]),
+        'Tinh Trang Kho Sach', 'Tinh_Trang_Kho'
+      )
+    } else if (activeTab === 'replenish') {
+      exportToPDF(
+        ['Ten sach', 'Ban sao hien co', 'Luot dat truoc', 'De xuat mua them'],
+        displayReplenishment.map(r => [r.title, r.totalCopies, r.queueCount, r.suggestion]),
+        'Sach Can Bo Sung', 'Can_Bo_Sung'
+      )
+    } else if (activeTab === 'disposal') {
+      exportToPDF(
+        ['Ten sach', 'Ma ban sao', 'Tinh trang', 'Ngay nhap', 'Hanh dong'],
+        reportData.disposal.map(d => [d.title, d.copyCode, d.condition, d.importedAt, d.action]),
+        'Sach Can Thanh Ly', 'Can_Thanh_Ly'
+      )
+    }
+  }
+
+  const stockSummary = reportData ? reportData.stockStatus.reduce(
+    (acc, s) => ({
+      totalCopies: acc.totalCopies + s.totalCopies,
+      availableCopies: acc.availableCopies + s.availableCopies,
+      borrowedCopies: acc.borrowedCopies + s.borrowedCopies,
+    }),
+    { totalCopies: 0, availableCopies: 0, borrowedCopies: 0 }
+  ) : { totalCopies: 0, availableCopies: 0, borrowedCopies: 0 }
+
+  const availPct = stockSummary.totalCopies > 0
+    ? Math.round((stockSummary.availableCopies / stockSummary.totalCopies) * 100)
+    : 0
+
+  const displayReplenishment = reportData?.replenishment || []
 
   return (
     <div className="space-y-6">
@@ -97,10 +130,10 @@ export default function BookReportsPage() {
           description="Theo dõi hiệu suất mượn sách và tình trạng kho sách thực tế."
         />
         <div className="flex gap-2">
-          <Button variant="ghost" className="bg-white/50 border border-slate-200 text-xs font-bold" onClick={() => handleExportPDF(activeTab)}>
+          <Button variant="ghost" className="bg-white/50 border border-slate-200 text-xs font-bold" onClick={handleExportPDF}>
             📄 Xuất PDF
           </Button>
-          <Button variant="secondary" className="text-xs font-bold" onClick={() => handleExportExcel(activeTab)}>
+          <Button variant="secondary" className="text-xs font-bold" onClick={handleExportExcel}>
             📊 Xuất Excel
           </Button>
         </div>
@@ -127,195 +160,224 @@ export default function BookReportsPage() {
         ))}
       </div>
 
-      {/* Filters (only for some tabs) */}
-      {(activeTab === 'top' || activeTab === 'stock') && (
+      {/* Filters (only for top tab) */}
+      {activeTab === 'top' && (
         <Card padding="md" className="flex items-center gap-4 bg-white/80 backdrop-blur">
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold text-slate-400 uppercase ml-2">Khoảng thời gian:</span>
-            <input type="date" className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-medium outline-none" defaultValue="2026-05-01" />
+            <input type="date" className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-medium outline-none" value={fromDate} onChange={e => setFromDate(e.target.value)} />
             <span className="text-slate-300">→</span>
-            <input type="date" className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-medium outline-none" defaultValue="2026-05-11" />
+            <input type="date" className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-medium outline-none" value={toDate} onChange={e => setToDate(e.target.value)} />
           </div>
           <div className="w-48">
-            <Select placeholder="Thể loại">
+            <Select placeholder="Tất cả thể loại" value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)}>
               <option value="1">Kỹ năng</option>
               <option value="2">Tiểu thuyết</option>
               <option value="3">Lịch sử</option>
             </Select>
           </div>
-          <Button variant="primary" size="sm" className="px-6 font-bold">Áp dụng</Button>
+          <Button variant="primary" size="sm" className="px-6 font-bold" onClick={applyFilter}>Áp dụng</Button>
         </Card>
       )}
 
-      {/* Content */}
-      {activeTab === 'top' && (
-        <Card padding="none" className="overflow-hidden shadow-card border-none">
-          <table className="w-full text-left border-collapse">
-            <thead className="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
-              <tr>
-                <th className="px-6 py-4">#</th>
-                <th className="px-6 py-4">Tên sách / Tác giả</th>
-                <th className="px-6 py-4">Thể loại</th>
-                <th className="px-6 py-4 text-center">Lượt mượn</th>
-                <th className="px-6 py-4 text-center">TB mượn</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {TOP_BORROWED.map((b, i) => (
-                <tr key={b.id} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="px-6 py-5 font-bold text-indigo-600">#{i + 1}</td>
-                  <td className="px-6 py-5">
-                    <p className="text-sm font-bold text-slate-800">{b.title}</p>
-                    <p className="text-xs text-slate-400">{b.author}</p>
-                  </td>
-                  <td className="px-6 py-5">
-                    <Badge className="bg-slate-100 text-slate-600 border-slate-200">{b.category}</Badge>
-                  </td>
-                  <td className="px-6 py-5 text-center font-black text-slate-800">{b.total} lượt</td>
-                  <td className="px-6 py-5 text-center text-xs font-bold text-slate-500">{b.avg}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <div className="bg-slate-50 px-6 py-4 border-t border-slate-100 flex justify-center">
-             <Pagination page={1} totalPages={12} onPageChange={() => {}} />
-          </div>
-        </Card>
-      )}
-
-      {activeTab === 'stock' && (
-        <div className="space-y-6">
-          <Card padding="lg" className="bg-indigo-600 text-white border-none shadow-glow">
-             <h3 className="text-xs font-bold uppercase tracking-widest opacity-60">Tổng quan kho sách</h3>
-             <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-8">
-                <div>
-                   <p className="text-3xl font-black italic">1.240</p>
-                   <p className="text-xs font-medium opacity-80 mt-1">Tổng bản sao</p>
-                </div>
-                <div>
-                   <p className="text-3xl font-black italic text-emerald-300">893 <span className="text-sm opacity-60">(72%)</span></p>
-                   <p className="text-xs font-medium opacity-80 mt-1">Đang có sẵn</p>
-                </div>
-                <div>
-                   <p className="text-3xl font-black italic text-amber-300">315</p>
-                   <p className="text-xs font-medium opacity-80 mt-1">Đang được mượn</p>
-                </div>
-                <div>
-                   <p className="text-3xl font-black italic text-red-300">20</p>
-                   <p className="text-xs font-medium opacity-80 mt-1">Sách bị mất</p>
-                </div>
-             </div>
-          </Card>
-
-          <Card padding="none" className="overflow-hidden shadow-card border-none">
-            <table className="w-full text-left">
-              <thead className="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
-                <tr>
-                  <th className="px-6 py-4">Tên sách</th>
-                  <th className="px-6 py-4 text-center">Tổng BC</th>
-                  <th className="px-6 py-4 text-center">Có sẵn</th>
-                  <th className="px-6 py-4 text-center">Đang mượn</th>
-                  <th className="px-6 py-4 text-right">Thao tác</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {STOCK_STATUS.map(s => (
-                  <tr key={s.id} className="hover:bg-slate-50/50">
-                    <td className="px-6 py-4 font-bold text-slate-800 text-sm">{s.title}</td>
-                    <td className="px-6 py-4 text-center font-bold text-slate-600">{s.total}</td>
-                    <td className="px-6 py-4 text-center font-black">
-                      <span className={s.available === 0 ? 'text-red-600' : 'text-emerald-600'}>
-                        {s.available} {s.available === 0 ? '❌' : '✅'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-center text-slate-600 font-medium">{s.borrowed}</td>
-                    <td className="px-6 py-4 text-right">
-                       {s.action && (
-                         <button className={cn(
-                           "text-xs font-bold py-1 px-3 rounded-lg border",
-                           s.critical ? "border-indigo-100 bg-indigo-50 text-indigo-700 hover:bg-indigo-100" : "border-slate-100 bg-slate-50 text-slate-500"
-                         )}>
-                           {s.action}
-                         </button>
-                       )}
-                    </td>
+      {loading ? (
+        <div className="text-center py-20 text-slate-400 text-sm">Đang tải dữ liệu...</div>
+      ) : !reportData ? (
+        <div className="text-center py-20 text-slate-400 text-sm">Không thể tải dữ liệu. Vui lòng thử lại sau.</div>
+      ) : (
+        <>
+          {/* Content - Top Borrowed */}
+          {activeTab === 'top' && (
+            <Card padding="none" className="overflow-hidden shadow-card border-none">
+              <table className="w-full text-left border-collapse">
+                <thead className="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
+                  <tr>
+                    <th className="px-6 py-4">#</th>
+                    <th className="px-6 py-4">Tên sách / Tác giả</th>
+                    <th className="px-6 py-4">Thể loại</th>
+                    <th className="px-6 py-4 text-center">Lượt mượn</th>
+                    <th className="px-6 py-4 text-center">TB mượn (ngày)</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </Card>
-        </div>
-      )}
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {filteredBooks.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-12 text-center text-sm text-slate-400">
+                        Không có dữ liệu phù hợp với bộ lọc
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredBooks.map((b, i) => (
+                      <tr key={b.rank} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="px-6 py-5 font-bold text-indigo-600">#{b.rank}</td>
+                        <td className="px-6 py-5">
+                          <p className="text-sm font-bold text-slate-800">{b.title}</p>
+                          <p className="text-xs text-slate-400">{b.author}</p>
+                        </td>
+                        <td className="px-6 py-5">
+                          <Badge className="bg-slate-100 text-slate-600 border-slate-200">{b.category}</Badge>
+                        </td>
+                        <td className="px-6 py-5 text-center font-black text-slate-800">{b.totalBorrows} lượt</td>
+                        <td className="px-6 py-5 text-center text-xs font-bold text-slate-500">{b.avgBorrowDays}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </Card>
+          )}
 
-      {activeTab === 'replenish' && (
-        <Card padding="none" className="overflow-hidden shadow-card border-none">
-          <table className="w-full text-left">
-            <thead className="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase border-b border-slate-100">
-              <tr>
-                <th className="px-6 py-4">Tên sách</th>
-                <th className="px-6 py-4 text-center">Bản sao hiện có</th>
-                <th className="px-6 py-4 text-center">Lượt đặt trước</th>
-                <th className="px-6 py-4 text-right">Đề xuất mua thêm</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50 text-sm">
-              {REPLENISHMENT.map(r => (
-                <tr key={r.id}>
-                  <td className="px-6 py-5 font-bold text-slate-800">{r.title}</td>
-                  <td className="px-6 py-5 text-center text-slate-600 font-bold">{r.total}</td>
-                  <td className="px-6 py-5 text-center">
-                    <span className="text-red-600 font-black">{r.queue} người chờ</span>
-                  </td>
-                  <td className="px-6 py-5 text-right">
-                    <Button variant="primary" size="sm" className="font-bold">
-                       {r.suggestion}
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Card>
-      )}
+          {/* Content - Stock Status */}
+          {activeTab === 'stock' && (
+            <div className="space-y-6">
+              <Card padding="lg" className="bg-indigo-600 text-white border-none shadow-glow">
+                <h3 className="text-xs font-bold uppercase tracking-widest opacity-60">Tổng quan kho sách</h3>
+                <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-8">
+                  <div>
+                    <p className="text-3xl font-black italic">{stockSummary.totalCopies.toLocaleString()}</p>
+                    <p className="text-xs font-medium opacity-80 mt-1">Tổng bản sao</p>
+                  </div>
+                  <div>
+                    <p className="text-3xl font-black italic text-emerald-300">
+                      {stockSummary.availableCopies.toLocaleString()} <span className="text-sm opacity-60">({availPct}%)</span>
+                    </p>
+                    <p className="text-xs font-medium opacity-80 mt-1">Đang có sẵn</p>
+                  </div>
+                  <div>
+                    <p className="text-3xl font-black italic text-amber-300">{stockSummary.borrowedCopies.toLocaleString()}</p>
+                    <p className="text-xs font-medium opacity-80 mt-1">Đang được mượn</p>
+                  </div>
+                  <div>
+                    <p className="text-3xl font-black italic text-red-300">{reportData.disposal.length}</p>
+                    <p className="text-xs font-medium opacity-80 mt-1">Sách cần xử lý</p>
+                  </div>
+                </div>
+              </Card>
 
-      {activeTab === 'disposal' && (
-        <Card padding="none" className="overflow-hidden shadow-card border-none">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase border-b border-slate-100">
-              <tr>
-                <th className="px-6 py-4">Tên sách</th>
-                <th className="px-6 py-4">Mã bản sao</th>
-                <th className="px-6 py-4">Tình trạng</th>
-                <th className="px-6 py-4">Ngày nhập</th>
-                <th className="px-6 py-4 text-right">Thao tác</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {DISPOSAL.map(d => (
-                <tr key={d.id}>
-                  <td className="px-6 py-5 font-bold text-slate-800">{d.title}</td>
-                  <td className="px-6 py-5 font-mono text-xs text-slate-500">{d.copyCode}</td>
-                  <td className="px-6 py-5">
-                    <Badge className={d.condition.includes('Hư nặng') ? 'bg-red-50 text-red-700' : 'bg-slate-100 text-slate-600'}>
-                      {d.condition}
-                    </Badge>
-                  </td>
-                  <td className="px-6 py-5 text-slate-500 font-medium">{d.importedAt}</td>
-                  <td className="px-6 py-5 text-right flex justify-end gap-2">
-                    <button className="text-xs font-bold text-red-600 px-3 py-1.5 rounded-lg border border-red-100 hover:bg-red-50">
-                      {d.action}
-                    </button>
-                    {d.action.includes('Hư nặng') && (
-                      <button className="text-xs font-bold text-slate-500 px-3 py-1.5 rounded-lg border border-slate-100 hover:bg-slate-50">
-                        In danh sách PDF
-                      </button>
+              <Card padding="none" className="overflow-hidden shadow-card border-none">
+                <table className="w-full text-left">
+                  <thead className="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
+                    <tr>
+                      <th className="px-6 py-4">Tên sách</th>
+                      <th className="px-6 py-4">Thể loại</th>
+                      <th className="px-6 py-4 text-center">Tổng BC</th>
+                      <th className="px-6 py-4 text-center">Có sẵn</th>
+                      <th className="px-6 py-4 text-center">Đang mượn</th>
+                      <th className="px-6 py-4 text-right">Thao tác</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {reportData.stockStatus.length === 0 ? (
+                      <tr><td colSpan={6} className="px-6 py-12 text-center text-sm text-slate-400">Không có dữ liệu</td></tr>
+                    ) : (
+                      reportData.stockStatus.map(s => (
+                        <tr key={s.bookId} className="hover:bg-slate-50/50">
+                          <td className="px-6 py-4 font-bold text-slate-800 text-sm">{s.title}</td>
+                          <td className="px-6 py-4">
+                            <Badge className="bg-slate-100 text-slate-600 border-slate-200">{s.category}</Badge>
+                          </td>
+                          <td className="px-6 py-4 text-center font-bold text-slate-600">{s.totalCopies}</td>
+                          <td className="px-6 py-4 text-center font-black">
+                            <span className={s.availableCopies === 0 ? 'text-red-600' : 'text-emerald-600'}>
+                              {s.availableCopies} {s.availableCopies === 0 ? '❌' : '✅'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-center text-slate-600 font-medium">{s.borrowedCopies}</td>
+                          <td className="px-6 py-4 text-right">
+                            {s.action && (
+                              <button className={cn(
+                                "text-xs font-bold py-1 px-3 rounded-lg border",
+                                s.critical ? "border-indigo-100 bg-indigo-50 text-indigo-700 hover:bg-indigo-100" : "border-slate-100 bg-slate-50 text-slate-500"
+                              )}>
+                                {s.action}
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))
                     )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Card>
+                  </tbody>
+                </table>
+              </Card>
+            </div>
+          )}
+
+          {/* Content - Replenishment */}
+          {activeTab === 'replenish' && (
+            <Card padding="none" className="overflow-hidden shadow-card border-none">
+              <table className="w-full text-left">
+                <thead className="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase border-b border-slate-100">
+                  <tr>
+                    <th className="px-6 py-4">Tên sách</th>
+                    <th className="px-6 py-4 text-center">Bản sao hiện có</th>
+                    <th className="px-6 py-4 text-center">Lượt đặt trước</th>
+                    <th className="px-6 py-4 text-right">Đề xuất mua thêm</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50 text-sm">
+                  {displayReplenishment.length === 0 ? (
+                    <tr><td colSpan={4} className="px-6 py-12 text-center text-sm text-slate-400">Không có dữ liệu</td></tr>
+                  ) : (
+                    displayReplenishment.map((r, i) => (
+                      <tr key={r.bookId}>
+                        <td className="px-6 py-5 font-bold text-slate-800">{r.title}</td>
+                        <td className="px-6 py-5 text-center text-slate-600 font-bold">{r.totalCopies}</td>
+                        <td className="px-6 py-5 text-center">
+                          <span className="text-red-600 font-black">{r.queueCount} người chờ</span>
+                        </td>
+                        <td className="px-6 py-5 text-right">
+                          <Button variant="primary" size="sm" className="font-bold">
+                            {r.suggestion}
+                          </Button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </Card>
+          )}
+
+          {/* Content - Disposal */}
+          {activeTab === 'disposal' && (
+            <Card padding="none" className="overflow-hidden shadow-card border-none">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase border-b border-slate-100">
+                  <tr>
+                    <th className="px-6 py-4">Tên sách</th>
+                    <th className="px-6 py-4">Mã bản sao</th>
+                    <th className="px-6 py-4">Tình trạng</th>
+                    <th className="px-6 py-4">Ngày nhập</th>
+                    <th className="px-6 py-4 text-right">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {reportData.disposal.length === 0 ? (
+                    <tr><td colSpan={5} className="px-6 py-12 text-center text-sm text-slate-400">Không có sách cần thanh lý</td></tr>
+                  ) : (
+                    reportData.disposal.map((d, i) => (
+                      <tr key={d.copyCode + i}>
+                        <td className="px-6 py-5 font-bold text-slate-800">{d.title}</td>
+                        <td className="px-6 py-5 font-mono text-xs text-slate-500">{d.copyCode}</td>
+                        <td className="px-6 py-5">
+                          <Badge className={d.condition.includes('Hư hỏng') || d.condition.includes('Mất') ? 'bg-red-50 text-red-700' : 'bg-slate-100 text-slate-600'}>
+                            {d.condition}
+                          </Badge>
+                        </td>
+                        <td className="px-6 py-5 text-slate-500 font-medium">{d.importedAt}</td>
+                        <td className="px-6 py-5 text-right">
+                          <button className="text-xs font-bold text-red-600 px-3 py-1.5 rounded-lg border border-red-100 hover:bg-red-50">
+                            {d.action}
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </Card>
+          )}
+        </>
       )}
     </div>
   )

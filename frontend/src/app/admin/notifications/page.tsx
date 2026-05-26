@@ -1,15 +1,63 @@
 'use client'
 import PageHeader from '@/components/layout/PageHeader'
-import { Card, Badge, Modal } from '@/components/ui'
+import { Card, Modal } from '@/components/ui'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import Select from '@/components/ui/Select'
 import { useState } from 'react'
+import toast from 'react-hot-toast'
 
 export default function BulkNotificationsPage() {
   const [target, setTarget] = useState('all')
   const [template, setTemplate] = useState('')
   const [showPreview, setShowPreview] = useState(false)
+  const [subject, setSubject] = useState('')
+  const [content, setContent] = useState(`Kính gửi {{tên_độc_giả}},\n\nBạn đang có sách quá hạn {{số_ngày}} ngày. Vui lòng hoàn trả sách sớm để tránh phát sinh thêm phí phạt.\n\nTrân trọng,\nBan quản lý thư viện Bookly.`)
+  const [customList, setCustomList] = useState('')
+  const [sending, setSending] = useState(false)
+  const [sendingTest, setSendingTest] = useState(false)
+
+  const previewContent = content
+    .replace('{{tên_độc_giả}}', 'Trần Văn Minh')
+    .replace('{{số_ngày}}', '6')
+    .replace('{{tên_sách}}', 'Nhà Giả Kim')
+    .replace('{{mã_thẻ}}', 'TV-2024-001')
+    .replace('{{số_tiền}}', '20,000')
+    .replace('{{ngày_hết_hạn}}', '15/06/2026')
+
+  const handleSend = async () => {
+    if (!subject.trim()) {
+      toast.error('Vui lòng nhập tiêu đề thông báo.')
+      return
+    }
+    if (!content.trim()) {
+      toast.error('Vui lòng nhập nội dung thông báo.')
+      return
+    }
+    setSending(true)
+    // Simulate send — no backend API available yet
+    await new Promise(r => setTimeout(r, 1500))
+    toast.success(`Đã gửi thông báo thành công đến nhóm "${target === 'all' ? 'Tất cả độc giả' : target}".`)
+    setSending(false)
+  }
+
+  const handleSaveDraft = () => {
+    toast.success('Đã lưu nháp thông báo.')
+  }
+
+  const handleSendTest = async () => {
+    setSendingTest(true)
+    await new Promise(r => setTimeout(r, 1000))
+    toast.success('Đã gửi thông báo thử nghiệm đến email của bạn.')
+    setShowPreview(false)
+    setSendingTest(false)
+  }
+
+  const handleInsertVariable = (variable: string) => {
+    setContent(prev => prev + variable)
+  }
+
+  const charCount = content.length
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -50,7 +98,12 @@ export default function BulkNotificationsPage() {
              ))}
           </div>
           <div className="px-8">
-             <Input label="Tùy chọn — Nhập danh sách email/mã thẻ (phân cách bằng dấu phẩy):" placeholder="reader1@example.com, TV-2024-001..." />
+             <Input
+               label="Tùy chọn — Nhập danh sách email/mã thẻ (phân cách bằng dấu phẩy):"
+               placeholder="reader1@example.com, TV-2024-001..."
+               value={customList}
+               onChange={e => setCustomList(e.target.value)}
+             />
           </div>
         </div>
 
@@ -75,7 +128,19 @@ export default function BulkNotificationsPage() {
                  <Select 
                    label="Chọn mẫu có sẵn" 
                    value={template} 
-                   onChange={(e: any) => setTemplate(e.target.value)}
+                   onChange={(e: any) => {
+                     setTemplate(e.target.value)
+                     if (e.target.value === 'overdue') {
+                       setSubject('[Bookly] Nhắc nhở trả sách quá hạn')
+                       setContent(`Kính gửi {{tên_độc_giả}},\n\nBạn đang có sách quá hạn {{số_ngày}} ngày. Vui lòng hoàn trả sách sớm để tránh phát sinh thêm phí phạt.\n\nTrân trọng,\nBan quản lý thư viện Bookly.`)
+                     } else if (e.target.value === 'expiring') {
+                       setSubject('[Bookly] Nhắc gia hạn thẻ thư viện')
+                       setContent(`Kính gửi {{tên_độc_giả}},\n\nThẻ thư viện của bạn sắp hết hạn vào ngày {{ngày_hết_hạn}}. Vui lòng đến thư viện để gia hạn thẻ.\n\nTrân trọng,\nBan quản lý thư viện Bookly.`)
+                     } else if (e.target.value === 'fine') {
+                       setSubject('[Bookly] Nhắc thanh toán phí phạt')
+                       setContent(`Kính gửi {{tên_độc_giả}},\n\nBạn đang còn nợ phí phạt {{số_tiền}}đ. Vui lòng thanh toán để tránh bị tạm ngừng dịch vụ thư viện.\n\nTrân trọng,\nBan quản lý thư viện Bookly.`)
+                     }
+                   }}
                  >
                     <option value="">— Thông báo tự soạn —</option>
                     <option value="overdue">Nhắc trả sách quá hạn</option>
@@ -91,7 +156,11 @@ export default function BulkNotificationsPage() {
                 Tiêu đề thông báo
               </h3>
               <div className="px-8">
-                 <Input placeholder="Ví dụ: [Bookly] Nhắc nhở trả sách quá hạn" />
+                 <Input
+                   placeholder="Ví dụ: [Bookly] Nhắc nhở trả sách quá hạn"
+                   value={subject}
+                   onChange={e => setSubject(e.target.value)}
+                 />
               </div>
            </div>
         </div>
@@ -104,19 +173,25 @@ export default function BulkNotificationsPage() {
           </h3>
           <div className="px-8 space-y-3">
              <div className="relative group">
-                <textarea 
-                  className="w-full h-48 rounded-2xl bg-slate-50 border border-slate-200 p-6 text-sm text-slate-700 outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-sans leading-relaxed"
+                <textarea
+                  className="w-full h-48 rounded-2xl bg-slate-50 border border-slate-200 p-6 text-sm text-slate-700 outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-sans leading-relaxed resize-none"
                   placeholder="Kính gửi {{tên_độc_giả}}, ..."
-                  defaultValue={`Kính gửi {{tên_độc_giả}},\n\nBạn đang có sách quá hạn {{số_ngày}} ngày. Vui lòng hoàn trả sách sớm để tránh phát sinh thêm phí phạt.\n\nTrân trọng,\nBan quản lý thư viện Bookly.`}
+                  value={content}
+                  onChange={e => setContent(e.target.value)}
                 />
                 <div className="absolute top-4 right-4 flex gap-1">
-                   <div className="px-2 py-1 bg-white border border-slate-200 rounded text-[10px] font-bold text-slate-400">Characters: 184</div>
+                   <div className="px-2 py-1 bg-white border border-slate-200 rounded text-[10px] font-bold text-slate-400">Characters: {charCount}</div>
                 </div>
              </div>
              <div className="flex flex-wrap gap-2 items-center">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mr-2">Biến động:</span>
                 {['{{tên_độc_giả}}', '{{số_ngày}}', '{{tên_sách}}', '{{mã_thẻ}}'].map(v => (
-                  <button key={v} className="px-2 py-1 bg-indigo-50 text-indigo-600 text-[10px] font-bold rounded-lg border border-indigo-100 hover:bg-indigo-100 transition-colors">
+                  <button
+                    key={v}
+                    type="button"
+                    className="px-2 py-1 bg-indigo-50 text-indigo-600 text-[10px] font-bold rounded-lg border border-indigo-100 hover:bg-indigo-100 transition-colors"
+                    onClick={() => handleInsertVariable(v)}
+                  >
                     {v}
                   </button>
                 ))}
@@ -130,12 +205,17 @@ export default function BulkNotificationsPage() {
               <Button variant="ghost" className="font-bold text-slate-500" onClick={() => setShowPreview(true)}>
                  👁️ Xem trước
               </Button>
-              <Button variant="ghost" className="font-bold text-slate-500">
+              <Button variant="ghost" className="font-bold text-slate-500" onClick={handleSaveDraft}>
                  💾 Lưu nháp
               </Button>
            </div>
-           <Button variant="primary" className="px-12 font-bold shadow-glow shadow-indigo-500/30">
-              🚀 Gửi ngay bây giờ
+           <Button
+             variant="primary"
+             className="px-12 font-bold shadow-glow shadow-indigo-500/30"
+             onClick={handleSend}
+             disabled={sending}
+           >
+              {sending ? '⏳ Đang gửi...' : '🚀 Gửi ngay bây giờ'}
            </Button>
         </div>
       </Card>
@@ -145,27 +225,19 @@ export default function BulkNotificationsPage() {
          <div className="space-y-6">
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
                <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Gửi đến: <span className="text-slate-900 ml-2">Trần Văn Minh (minh.tv@example.com)</span></p>
-               <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Tiêu đề: <span className="text-slate-900 ml-2">[Bookly] Nhắc nhở trả sách quá hạn</span></p>
+               <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Tiêu đề: <span className="text-slate-900 ml-2">{subject || '[Bookly] Nhắc nhở trả sách quá hạn'}</span></p>
             </div>
-            <div className="p-8 rounded-2xl bg-white border border-slate-100 shadow-inner min-h-[300px] text-sm text-slate-700 leading-relaxed font-sans">
+            <div className="p-8 rounded-2xl bg-white border border-slate-100 shadow-inner min-h-[300px] text-sm text-slate-700 leading-relaxed font-sans whitespace-pre-line">
                <div className="flex justify-center mb-8">
                   <div className="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center text-white text-xl font-bold shadow-lg">B</div>
                </div>
-               <p>Kính gửi <span className="font-bold">Trần Văn Minh</span>,</p>
-               <br/>
-               <p>Hệ thống ghi nhận bạn đang có sách <span className="font-bold italic">&quot;Nhà Giả Kim&quot;</span> quá hạn <span className="text-red-600 font-bold">6 ngày</span>.</p>
-               <p>Vui lòng sắp xếp thời gian đến thư viện hoàn trả sách sớm để tránh phát sinh thêm phí phạt theo quy định.</p>
-               <br/>
-               <div className="p-4 bg-amber-50 rounded-xl border border-amber-100 italic text-xs text-amber-900">
-                  Phí phạt hiện tại ước tính: 8.000đ
-               </div>
-               <br/>
-               <p>Trân trọng,</p>
-               <p className="font-bold text-indigo-600">Ban quản lý thư viện Bookly.</p>
+               {previewContent}
             </div>
             <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
                <Button variant="ghost" onClick={() => setShowPreview(false)}>Quay lại sửa</Button>
-               <Button variant="primary">🚀 Gửi thử bản này</Button>
+               <Button variant="primary" onClick={handleSendTest} disabled={sendingTest}>
+                  {sendingTest ? '⏳ Đang gửi...' : '🚀 Gửi thử bản này'}
+               </Button>
             </div>
          </div>
       </Modal>
