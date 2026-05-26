@@ -13,6 +13,21 @@ export class AdminController {
         return this.adminService.getDashboardStats();
     }
 
+    @Get('reports/books')
+    getBookReports() {
+        return this.adminService.getBookReports();
+    }
+
+    @Get('audit-logs')
+    getAuditLogs() {
+        return this.adminService.getAuditLogs();
+    }
+
+    @Get('reports/violations')
+    getViolationReports() {
+        return this.adminService.getViolationReports();
+    }
+
     @Get('users')
     getAllUsers() {
         return this.adminService.getAllUsers();

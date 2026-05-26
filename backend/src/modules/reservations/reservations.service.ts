@@ -121,7 +121,7 @@ export class ReservationsService {
     async findAll() {
         await this.syncReservationsStatus()
         return this.resRepo.find({
-            relations: ['libraryCard', 'libraryCard.user', 'book'],
+            relations: ['libraryCard', 'libraryCard.user', 'libraryCard.user.profile', 'book'],
             order: { reservedAt: 'ASC' }
         })
     }

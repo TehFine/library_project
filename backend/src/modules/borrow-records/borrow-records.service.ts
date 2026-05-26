@@ -224,6 +224,15 @@ export class BorrowRecordsService {
         }
     }
 
+    async findByCardNumber(cardNumber: string) {
+        return this.borrowRepo.find({
+            where: { libraryCard: { cardNumber } },
+            relations: ['bookCopy', 'bookCopy.book', 'libraryCard', 'libraryCard.user', 'libraryCard.user.profile'],
+            order: { createdAt: 'DESC' },
+            take: 20
+        });
+    }
+
     async renew(id: string, userId: string) {
         const record = await this.borrowRepo.findOne({
             where: { id },

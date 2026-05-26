@@ -577,7 +577,8 @@ export class MockDB {
         const borrowedCopies = copies.filter(c => c.status === 'borrowed')
         const bookCopyForBook = (bookId: string) => borrowedCopies.find(c => c.bookId === bookId)
 
-        this.borrowRecords = [
+        // Seed 3 specific borrow records
+        const seedBorrowRecords = [
             {
                 id: SEED_IDS.borrow1,
                 libraryCardId: SEED_IDS.card1,
@@ -625,6 +626,32 @@ export class MockDB {
             },
         ]
 
+        // Auto-generate borrow records for ALL other borrowed copies (not in seed)
+        const seedCopyIds = new Set(seedBorrowRecords.filter(r => r.status !== 'returned').map(r => r.bookCopyId))
+        const otherBorrowedCopies = borrowedCopies.filter(c => !seedCopyIds.has(c.id))
+
+        for (const copy of otherBorrowedCopies) {
+            const borrowDate = daysAgo(7 + Math.floor(Math.random() * 14))
+            const dueDate = daysAhead(3 + Math.floor(Math.random() * 10))
+            seedBorrowRecords.push({
+                id: uuid(),
+                libraryCardId: SEED_IDS.card1,
+                bookCopyId: copy.id,
+                librarianId: SEED_IDS.librarianUser,
+                borrowDate,
+                dueDate,
+                returnDate: null,
+                status: 'borrowing',
+                renewalCount: 0,
+                originalDueDate: null,
+                renewedAt: null,
+                renewedBy: null,
+                createdAt: borrowDate + 'T09:00:00Z',
+            })
+        }
+
+        this.borrowRecords = seedBorrowRecords
+
         // ── Reservations ──────────────────────────────────────────────────────────
         this.reservations = [
             {
@@ -634,6 +661,66 @@ export class MockDB {
                 queuePosition: 1,
                 status: 'waiting',
                 reservedAt: daysAgo(3) + 'T08:00:00Z',
+                notifiedAt: null,
+                expiresAt: null,
+            },
+            {
+                id: uuid(),
+                libraryCardId: SEED_IDS.card1,
+                bookId: SEED_IDS.book2,
+                queuePosition: 2,
+                status: 'waiting',
+                reservedAt: daysAgo(2) + 'T09:00:00Z',
+                notifiedAt: null,
+                expiresAt: null,
+            },
+            {
+                id: uuid(),
+                libraryCardId: SEED_IDS.card1,
+                bookId: SEED_IDS.book2,
+                queuePosition: 3,
+                status: 'waiting',
+                reservedAt: daysAgo(1) + 'T10:00:00Z',
+                notifiedAt: null,
+                expiresAt: null,
+            },
+            {
+                id: uuid(),
+                libraryCardId: SEED_IDS.card1,
+                bookId: SEED_IDS.book6,
+                queuePosition: 1,
+                status: 'waiting',
+                reservedAt: daysAgo(4) + 'T07:00:00Z',
+                notifiedAt: null,
+                expiresAt: null,
+            },
+            {
+                id: uuid(),
+                libraryCardId: SEED_IDS.card1,
+                bookId: SEED_IDS.book6,
+                queuePosition: 2,
+                status: 'waiting',
+                reservedAt: daysAgo(3) + 'T11:00:00Z',
+                notifiedAt: null,
+                expiresAt: null,
+            },
+            {
+                id: uuid(),
+                libraryCardId: SEED_IDS.card1,
+                bookId: SEED_IDS.book8,
+                queuePosition: 1,
+                status: 'waiting',
+                reservedAt: daysAgo(5) + 'T06:00:00Z',
+                notifiedAt: null,
+                expiresAt: null,
+            },
+            {
+                id: uuid(),
+                libraryCardId: SEED_IDS.card1,
+                bookId: SEED_IDS.book20,
+                queuePosition: 1,
+                status: 'waiting',
+                reservedAt: daysAgo(2) + 'T14:00:00Z',
                 notifiedAt: null,
                 expiresAt: null,
             },

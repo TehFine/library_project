@@ -17,6 +17,11 @@ export class BorrowRecordsController {
         return this.service.findByCopyCode(code)
     }
 
+    @Get('by-card/:cardNumber')
+    findByCardNumber(@Param('cardNumber') cardNumber: string) {
+        return this.service.findByCardNumber(cardNumber)
+    }
+
     @Get('mine')
     findMine(@Req() req: any, @Query() query: any) {
         return this.service.findMine(req.user.userId, query)
