@@ -117,6 +117,8 @@ export const borrowsApi = {
     }),
   renew: (id: string) =>
     request<import('@/types').BorrowRecord>(`/borrow-records/${id}/renew`, { method: 'POST' }),
+  findByCardNumber: (cardNumber: string) =>
+    request<import('@/types').BorrowRecord[]>(`/borrow-records/by-card/${encodeURIComponent(cardNumber)}`),
 }
 
 // ── Reservations ──────────────────────────────────────────────────────────────
@@ -245,8 +247,97 @@ export interface AdminDashboardStats {
   borrowStats: { date: string; count: number }[]
 }
 
+export interface BookReportData {
+  topBorrowed: {
+    rank: number
+    title: string
+    author: string
+    category: string
+    totalBorrows: number
+    avgBorrowDays: number
+  }[]
+  stockStatus: {
+    bookId: string
+    title: string
+    category: string
+    totalCopies: number
+    availableCopies: number
+    borrowedCopies: number
+    critical: boolean
+    action: string | null
+  }[]
+  replenishment: {
+    bookId: string
+    title: string
+    totalCopies: number
+    queueCount: number
+    suggestion: string
+  }[]
+  disposal: {
+    bookId: string
+    title: string
+    copyCode: string
+    condition: string
+    importedAt: string
+    action: string
+  }[]
+}
+
+// ── Admin Violation Reports ─────────────────────────────────────────────────
+export interface AuditLogEntry {
+  id: string
+  time: string
+  user: string
+  action: string
+  table: string
+  content: string
+  ip: string
+}
+
+export interface ViolationReportData {
+  overdueReaders: {
+    id: string
+    name: string
+    cardNumber: string
+    bookTitle: string
+    dueDate: string
+    overdueDays: number
+    status: 'critical' | 'warning'
+  }[]
+  expiringCards: {
+    id: string
+    name: string
+    cardNumber: string
+    expiryDate: string
+    status: 'warning'
+  }[]
+  frequentViolators: {
+    userId: string
+    name: string
+    cardNumber: string
+    violationCount: number
+    lastViolation: string
+  }[]
+  unpaidFines: {
+    name: string
+    cardNumber: string
+    totalAmount: number
+    fineCount: number
+    fines: { id: string; amount: number; type: string; createdAt: string }[]
+  }[]
+  totals: {
+    overdueCount: number
+    expiringCount: number
+    frequentCount: number
+    unpaidCount: number
+  }
+}
+
 export const adminApi = {
   getDashboardStats: () => request<AdminDashboardStats>('/admin/dashboard/stats'),
+  getBookReports: () => request<BookReportData>('/admin/reports/books'),
+  getAuditLogs: () => request<AuditLogEntry[]>('/admin/audit-logs'),
+  getViolationReports: () => request<ViolationReportData>('/admin/reports/violations'),
   getAllUsers: () => request<User[]>('/admin/users'),
   updateUserRole: (id: string, role: string) => request<User>(`/admin/users/${id}/role`, { method: 'PATCH', body: JSON.stringify({ role }) }),
   toggleUserStatus: (id: string, isActive: boolean) => request<User>(`/admin/users/${id}/status`, { method: 'PATCH', body: JSON.stringify({ isActive }) }),
