@@ -59,7 +59,7 @@ export class LibrarianService {
                 status: 'borrowing',
                 dueDate: LessThan(todayStr)
             },
-            relations: ['bookCopy', 'bookCopy.book', 'libraryCard', 'libraryCard.user', 'libraryCard.user.profile'],
+            relations: { bookCopy: { book: true }, libraryCard: { user: { profile: true } } },
             order: { dueDate: 'ASC' },
             take: 10
         })
@@ -69,7 +69,7 @@ export class LibrarianService {
             where: {
                 status: 'notified'
             },
-            relations: ['book', 'libraryCard', 'libraryCard.user', 'libraryCard.user.profile'],
+            relations: { book: true, libraryCard: { user: { profile: true } } },
             order: { notifiedAt: 'DESC' },
             take: 10
         })
@@ -77,7 +77,7 @@ export class LibrarianService {
         // 7. Yêu cầu mượn đang chờ
         const pendingRequests = await this.requestRepo.find({
             where: { status: 'pending' },
-            relations: ['book', 'libraryCard', 'libraryCard.user', 'libraryCard.user.profile'],
+            relations: { book: true, libraryCard: { user: { profile: true } } },
             order: { requestedAt: 'ASC' },
             take: 10
         })

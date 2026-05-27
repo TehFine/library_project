@@ -1,6 +1,7 @@
 import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
 import * as bcrypt from 'bcryptjs'
+import { RealtimeGateway } from '@/common/websocket/realtime.gateway'
 import { UsersService } from '../users/users.service'
 import { RoleName } from '../users/entities/role.entity'
 
@@ -8,7 +9,8 @@ import { RoleName } from '../users/entities/role.entity'
 export class AuthService {
   constructor(
     private jwt: JwtService,
-    private usersService: UsersService
+    private usersService: UsersService,
+    private realtime: RealtimeGateway,
   ) { }
 
   async login(email: string, password: string) {
@@ -52,6 +54,8 @@ export class AuthService {
       },
     })
 
+    this.realtime.emit('admin:dashboard-update')
+    
     return { message: 'Đăng ký thành công' }
   }
 

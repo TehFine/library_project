@@ -66,7 +66,7 @@ export class BooksService {
     async findOne(id: string): Promise<Book> {
         const book = await this.booksRepository.findOne({
             where: { id },
-            relations: ['category', 'copies']
+            relations: { category: true, copies: true }
         })
         if (!book) throw new NotFoundException('Book not found')
         return book
@@ -143,7 +143,7 @@ export class BooksService {
     async findCopyByCode(copyCode: string) {
         const copy = await this.bookCopiesRepository.findOne({
             where: { copyCode },
-            relations: ['book']
+            relations: { book: true }
         })
         if (!copy) throw new NotFoundException('Không tìm thấy bản sao sách')
         return copy
@@ -155,9 +155,27 @@ export class BooksService {
                 { copyCode: ILike(`%${q}%`) },
                 { book: { title: ILike(`%${q}%`) } }
             ],
-            relations: ['book'],
+            relations: { book: true },
             take: 20
         })
+    }
+
+    async getAvailableCopies(bookId: string) {
+        const book = await this.booksRepository.findOne({
+            where: { id: bookId },
+            relations: { category: true }
+        })
+        if (!book) throw new NotFoundException('Không tìm thấy sách')
+
+        const copies = await this.bookCopiesRepository.find({
+            where: { bookId, status: 'available' },
+            order: { copyCode: 'ASC' }
+        })
+
+        return {
+            book,
+            availableCopies: copies
+        }
     }
 }
 

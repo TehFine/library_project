@@ -69,5 +69,11 @@ export class BooksController {
     findCopyByCode(@Param('code') code: string) {
         return this.booksService.findCopyByCode(code)
     }
+
+    @Get(':id/available-copies')
+    @UseGuards(JwtAuthGuard)
+    getAvailableCopies(@Param('id') id: string) {
+        return this.booksService.getAvailableCopies(id)
+    }
 }
 

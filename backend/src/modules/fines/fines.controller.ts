@@ -32,6 +32,11 @@ export class FinesController {
         return this.service.payFine(id, req.user.userId, body.method)
     }
 
+    @Post(':id/simulate-pay')
+    simulatePay(@Param('id') id: string, @Req() req: any) {
+        return this.service.simulatePayFine(id, req.user.userId)
+    }
+
     @Patch(':id/waive')
     waive(@Param('id') id: string, @Body() body: { reason: string }, @Req() req: any) {
         return this.service.waiveFine(id, req.user.userId, body.reason)

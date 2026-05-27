@@ -6,6 +6,8 @@ import { BookCopy } from '@/modules/books/entities/book-copy.entity'
 import { LibraryCard } from '@/modules/library-cards/entities/library-card.entity'
 import { Book } from '@/modules/books/entities/book.entity'
 import { Reservation } from '@/modules/reservations/entities/reservation.entity'
+import { BorrowRequest } from '@/modules/borrow-requests/entities/borrow-request.entity'
+import { RealtimeGateway } from '@/common/websocket/realtime.gateway'
 
 @Injectable()
 export class BorrowRecordsService {
@@ -21,9 +23,10 @@ export class BorrowRecordsService {
         @InjectRepository(Reservation)
         private resRepo: Repository<Reservation>,
         private dataSource: DataSource,
+        private realtime: RealtimeGateway,
     ) { }
 
-    async borrow(dto: { cardId: string; copyId: string }, librarianId: string, isReservation: boolean = false) {
+    async borrow(dto: { cardId: string; copyId: string; requestId?: string }, librarianId: string, isReservation: boolean = false) {
         const queryRunner = this.dataSource.createQueryRunner()
         await queryRunner.connect()
         await queryRunner.startTransaction()
@@ -68,6 +71,22 @@ export class BorrowRecordsService {
             await queryRunner.manager.save(copy)
 
             await queryRunner.commitTransaction()
+            
+            // Nếu có requestId, cập nhật trạng thái yêu cầu mượn thành 'approved'
+            if (dto.requestId) {
+                try {
+                    await this.approveBorrowRequest(dto.requestId, record.id, librarianId)
+                } catch (err) {
+                    // Không throw lỗi — phiếu mượn đã tạo thành công
+                    console.error('Failed to approve borrow request:', err.message)
+                }
+            }
+
+            // Emit realtime events
+            this.realtime.emit('librarian:dashboard-update')
+            this.realtime.emit('admin:dashboard-update')
+            this.realtime.emit('reader:dashboard-update')
+            
             return record
         } catch (err) {
             await queryRunner.rollbackTransaction()
@@ -114,7 +133,7 @@ export class BorrowRecordsService {
         try {
             const record = await this.borrowRepo.findOne({
                 where: { id: recordId },
-                relations: ['bookCopy', 'bookCopy.book']
+                relations: { bookCopy: { book: true } }
             })
             if (!record || record.status === 'returned') throw new BadRequestException('Phiếu mượn không hợp lệ')
 
@@ -156,6 +175,11 @@ export class BorrowRecordsService {
 
             await queryRunner.commitTransaction()
             
+            // Emit realtime events
+            this.realtime.emit('librarian:dashboard-update')
+            this.realtime.emit('admin:dashboard-update')
+            this.realtime.emit('reader:dashboard-update')
+            
             // Kiểm tra quá hạn để tính phạt
             const overdue = new Date(record.returnDate) > new Date(record.dueDate)
             return { record, overdue }
@@ -167,20 +191,35 @@ export class BorrowRecordsService {
         }
     }
 
+    private async approveBorrowRequest(requestId: string, borrowRecordId: string, librarianId: string) {
+        const requestRepo = this.dataSource.manager.getRepository(BorrowRequest)
+        const request = await requestRepo.findOneBy({ id: requestId })
+        if (!request || request.status !== 'pending') {
+            throw new BadRequestException('Yêu cầu mượn không hợp lệ hoặc đã được xử lý')
+        }
+        request.status = 'approved'
+        request.borrowRecordId = borrowRecordId
+        request.processedAt = new Date()
+        request.processedBy = { id: librarianId } as any
+        await requestRepo.save(request)
+
+        this.realtime.emit('reader:request-update')
+    }
+
     async findByCopyCode(copyCode: string) {
         return this.borrowRepo.findOne({
             where: [
                 { bookCopy: { copyCode }, status: 'borrowing' },
                 { bookCopy: { copyCode }, status: 'overdue' }
             ],
-            relations: ['bookCopy', 'bookCopy.book', 'libraryCard', 'libraryCard.user'],
+            relations: { bookCopy: { book: true }, libraryCard: { user: true } },
             order: { createdAt: 'DESC' }
         })
     }
 
     async findAll() {
         return this.borrowRepo.find({
-            relations: ['libraryCard', 'libraryCard.user', 'bookCopy', 'bookCopy.book'],
+            relations: { libraryCard: { user: true }, bookCopy: { book: true } },
             order: { createdAt: 'DESC' }
         })
     }
@@ -209,7 +248,7 @@ export class BorrowRecordsService {
 
         const [data, total] = await this.borrowRepo.findAndCount({
             where,
-            relations: ['bookCopy', 'bookCopy.book'],
+            relations: { bookCopy: { book: true } },
             order: { createdAt: 'DESC' },
             take: limit,
             skip: skip
@@ -227,16 +266,117 @@ export class BorrowRecordsService {
     async findByCardNumber(cardNumber: string) {
         return this.borrowRepo.find({
             where: { libraryCard: { cardNumber } },
-            relations: ['bookCopy', 'bookCopy.book', 'libraryCard', 'libraryCard.user', 'libraryCard.user.profile'],
+            relations: { bookCopy: { book: true }, libraryCard: { user: { profile: true } } },
             order: { createdAt: 'DESC' },
             take: 20
         });
     }
 
+    async searchByBookTitle(q: string) {
+        // Tìm tất cả phiếu mượn đang active, join với book để search theo title
+        const records = await this.borrowRepo.find({
+            where: [
+                { status: 'borrowing' },
+                { status: 'overdue' },
+            ],
+            relations: { bookCopy: { book: true }, libraryCard: { user: { profile: true } } },
+            order: { createdAt: 'DESC' }
+        })
+
+        // Lọc theo tên sách (client-side vì TypeORM không dễ join deep)
+        if (!q) return records.slice(0, 20)
+        const lower = q.toLowerCase()
+        return records.filter(r =>
+            r.bookCopy?.book?.title?.toLowerCase().includes(lower) ||
+            r.bookCopy?.copyCode?.toLowerCase().includes(lower)
+        ).slice(0, 20)
+    }
+
+    async findPendingReturns() {
+        return this.borrowRepo.find({
+            where: { returnRequested: true, status: 'borrowing' },
+            relations: { bookCopy: { book: true }, libraryCard: { user: { profile: true } } },
+            order: { createdAt: 'DESC' }
+        });
+    }
+
+    async requestReturn(recordId: string, userId: string) {
+        const record = await this.borrowRepo.findOne({
+            where: { id: recordId },
+            relations: { libraryCard: true }
+        })
+        if (!record) throw new NotFoundException('Không tìm thấy phiếu mượn')
+        if (record.libraryCard.userId !== userId) {
+            throw new BadRequestException('Bạn không có quyền yêu cầu trả phiếu mượn này')
+        }
+        if (record.status === 'returned') {
+            throw new BadRequestException('Phiếu mượn này đã được trả rồi')
+        }
+        if (record.returnRequested) {
+            throw new BadRequestException('Bạn đã yêu cầu trả sách này rồi, vui lòng chờ thủ thư xác nhận')
+        }
+
+        record.returnRequested = true
+        const saved = await this.borrowRepo.save(record)
+
+        // Emit realtime events
+        this.realtime.emit('librarian:dashboard-update')
+        this.realtime.emit('reader:dashboard-update')
+
+        return saved
+    }
+
+    async approveReturn(recordId: string, librarianId: string, condition: string) {
+        const record = await this.borrowRepo.findOne({
+            where: { id: recordId },
+            relations: { libraryCard: true }
+        })
+        if (!record) throw new NotFoundException('Không tìm thấy phiếu mượn')
+        if (!record.returnRequested) {
+            throw new BadRequestException('Độc giả chưa yêu cầu trả sách này')
+        }
+        if (record.status === 'returned') {
+            throw new BadRequestException('Phiếu mượn này đã được trả rồi')
+        }
+
+        // Xóa cờ yêu cầu trả trước khi gọi returnBook
+        record.returnRequested = false
+        await this.borrowRepo.save(record)
+
+        // Gọi logic trả sách có sẵn (cập nhật trạng thái bản sao, xử lý reservation...)
+        return this.returnBook(recordId, condition)
+    }
+
+    async simulateReturn(recordId: string, userId: string) {
+        const record = await this.borrowRepo.findOne({
+            where: { id: recordId },
+            relations: { libraryCard: true, bookCopy: { book: true } }
+        })
+        if (!record) throw new NotFoundException('Không tìm thấy phiếu mượn')
+        if (record.libraryCard.userId !== userId) {
+            throw new BadRequestException('Bạn không có quyền trả phiếu mượn này')
+        }
+        if (record.status === 'returned') {
+            throw new BadRequestException('Phiếu mượn này đã được trả rồi')
+        }
+
+        // Gọi logic trả sách giống librarian, mặc định condition là 'good'
+        const result = await this.returnBook(recordId, 'good')
+        
+        // Emit thêm reader event
+        this.realtime.emit('reader:dashboard-update')
+        
+        return {
+            ...result,
+            simulated: true,
+            message: 'Trả sách thành công (Mô phỏng)'
+        }
+    }
+
     async renew(id: string, userId: string) {
         const record = await this.borrowRepo.findOne({
             where: { id },
-            relations: ['libraryCard']
+            relations: { libraryCard: true }
         })
         if (!record) throw new NotFoundException('Không tìm thấy phiếu mượn')
         

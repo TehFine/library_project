@@ -4,7 +4,9 @@ import { Repository } from 'typeorm'
 import { BorrowRequest } from './entities/borrow-request.entity'
 import { LibraryCard } from '../library-cards/entities/library-card.entity'
 import { Book } from '../books/entities/book.entity'
+import { BorrowRecord } from '../borrow-records/entities/borrow-record.entity'
 import { BorrowRecordsService } from '../borrow-records/borrow-records.service'
+import { RealtimeGateway } from '@/common/websocket/realtime.gateway'
 
 @Injectable()
 export class BorrowRequestsService {
@@ -15,7 +17,10 @@ export class BorrowRequestsService {
         private cardRepo: Repository<LibraryCard>,
         @InjectRepository(Book)
         private bookRepo: Repository<Book>,
+        @InjectRepository(BorrowRecord)
+        private borrowRecordRepo: Repository<BorrowRecord>,
         private borrowRecordsService: BorrowRecordsService,
+        private realtime: RealtimeGateway,
     ) { }
 
     async create(userId: string, bookId: string) {
@@ -38,12 +43,19 @@ export class BorrowRequestsService {
             bookId,
             status: 'pending'
         })
-        return this.requestRepo.save(request)
+        const saved = await this.requestRepo.save(request)
+        
+        // Emit realtime events
+        this.realtime.emit('librarian:dashboard-update')
+        this.realtime.emit('admin:dashboard-update')
+        this.realtime.emit('reader:dashboard-update')
+        
+        return saved
     }
 
     async findAll() {
         return this.requestRepo.find({
-            relations: ['libraryCard', 'libraryCard.user', 'book'],
+            relations: { libraryCard: { user: true }, book: true },
             order: { requestedAt: 'DESC' }
         })
     }
@@ -51,40 +63,66 @@ export class BorrowRequestsService {
     async findMine(userId: string) {
         const card = await this.cardRepo.findOneBy({ userId })
         if (!card) return []
-        return this.requestRepo.find({
+        
+        const requests = await this.requestRepo.find({
             where: { libraryCardId: card.id },
-            relations: ['book'],
+            relations: { book: true },
             order: { requestedAt: 'DESC' }
         })
+        
+        // For approved requests, attach borrow record info
+        const approvedIds = requests.filter(r => r.status === 'approved').map(r => r.id)
+        if (approvedIds.length > 0) {
+            const records = await this.borrowRecordRepo.find({
+                where: { libraryCardId: card.id },
+                relations: { bookCopy: { book: true } },
+                order: { createdAt: 'DESC' }
+            })
+            // Map borrowRecordId to borrow record
+            const recordMap = new Map(records.map(r => [r.id, r]))
+            for (const req of requests) {
+                if (req.borrowRecordId && recordMap.has(req.borrowRecordId)) {
+                    ;(req as any).borrowRecord = recordMap.get(req.borrowRecordId)
+                }
+            }
+        }
+        
+        return requests
     }
 
     async approve(id: string, librarianId: string, copyId?: string) {
         const request = await this.requestRepo.findOne({
             where: { id },
-            relations: ['book', 'libraryCard']
+            relations: { book: true, libraryCard: true }
         })
         if (!request || request.status !== 'pending') throw new BadRequestException('Yêu cầu không hợp lệ')
-
-        // Khi duyệt, ta cần chọn 1 bản sao cụ thể (nếu chưa chọn)
-        // Nếu librarian không truyền copyId, ta tự tìm 1 bản có sẵn
-        // Nhưng thường librarian sẽ chọn bản sao cụ thể khi duyệt
-        
-        // Chuyển thành phiếu mượn thật
-        // Lưu ý: borrowRecordsService.borrow cần copyId
-        // Ta có thể tìm 1 bản sao có sẵn của sách đó
-        
-        // Cần truyền copyId từ controller (librarian chọn)
         if (!copyId) throw new BadRequestException('Vui lòng chọn mã bản sao để cấp cho độc giả')
 
-        await this.borrowRecordsService.borrow({
+        // Tạo phiếu mượn thực tế
+        const borrowRecord = await this.borrowRecordsService.borrow({
             cardId: request.libraryCardId,
             copyId: copyId
         }, librarianId)
 
+        // Lưu borrowRecordId vào request để reader có thể tra cứu sau này
+        request.borrowRecordId = borrowRecord.id
         request.status = 'approved'
         request.processedAt = new Date()
         request.processedBy = { id: librarianId } as any
-        return this.requestRepo.save(request)
+        const saved = await this.requestRepo.save(request)
+        
+        // Fetch full borrow record details for the response
+        const fullRecord = await this.borrowRecordRepo.findOne({
+            where: { id: borrowRecord.id },
+            relations: { bookCopy: { book: true } }
+        })
+        
+        // Emit realtime events
+        this.realtime.emit('librarian:dashboard-update')
+        this.realtime.emit('reader:request-update')
+        this.realtime.emit('admin:dashboard-update')
+        
+        return { request: saved, borrowRecord: fullRecord }
     }
 
     async reject(id: string, librarianId: string, reason: string) {
@@ -95,6 +133,13 @@ export class BorrowRequestsService {
         request.processedAt = new Date()
         request.processedBy = { id: librarianId } as any
         request.rejectionReason = reason
-        return this.requestRepo.save(request)
+        const saved = await this.requestRepo.save(request)
+        
+        // Emit realtime events
+        this.realtime.emit('librarian:dashboard-update')
+        this.realtime.emit('reader:request-update')
+        this.realtime.emit('admin:dashboard-update')
+        
+        return saved
     }
 }

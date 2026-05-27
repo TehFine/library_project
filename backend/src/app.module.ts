@@ -14,7 +14,9 @@ import { UsersModule } from './modules/users/users.module'
 import { LibrarianModule } from './modules/librarian/librarian.module'
 import { BorrowRequestsModule } from './modules/borrow-requests/borrow-requests.module'
 import { DatabaseModule } from './common/database/database.module'
+import { RealtimeModule } from './common/websocket/realtime.module'
 import { AdminModule } from './modules/admin/admin.module'
+import { NotificationsModule } from './modules/notifications/notifications.module'
 
 @Module({
     imports: [
@@ -37,6 +39,7 @@ import { AdminModule } from './modules/admin/admin.module'
             inject: [ConfigService],
         }),
         DatabaseModule,
+        RealtimeModule,
         AuthModule,
         CategoriesModule,
         BooksModule,
@@ -48,6 +51,7 @@ import { AdminModule } from './modules/admin/admin.module'
         LibrarianModule,
         BorrowRequestsModule,
         AdminModule,
+        NotificationsModule,
     ],
     controllers: [AppController],
     providers: [AppService],

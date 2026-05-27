@@ -39,6 +39,9 @@ export class BorrowRecord {
     })
     status: string
 
+    @Column({ default: false })
+    returnRequested: boolean
+
     @Column({ default: 0 })
     renewalCount: number
 

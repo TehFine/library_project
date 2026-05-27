@@ -38,4 +38,7 @@ export class BorrowRequest {
 
     @Column({ nullable: true })
     rejectionReason: string
+
+    @Column({ nullable: true })
+    borrowRecordId: string
 }

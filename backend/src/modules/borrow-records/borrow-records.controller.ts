@@ -28,13 +28,38 @@ export class BorrowRecordsController {
     }
 
     @Post()
-    borrow(@Body() dto: { cardId: string; copyId: string }, @Req() req: any) {
+    borrow(@Body() dto: { cardId: string; copyId: string; requestId?: string }, @Req() req: any) {
         return this.service.borrow(dto, req.user.userId)
     }
 
     @Patch(':id/return')
     returnBook(@Param('id') id: string, @Body() body: { condition: string }) {
         return this.service.returnBook(id, body.condition)
+    }
+
+    @Get('search-by-book-title')
+    searchByBookTitle(@Query('q') q: string) {
+        return this.service.searchByBookTitle(q || '')
+    }
+
+    @Get('pending-returns')
+    pendingReturns() {
+        return this.service.findPendingReturns()
+    }
+
+    @Post(':id/request-return')
+    requestReturn(@Param('id') id: string, @Req() req: any) {
+        return this.service.requestReturn(id, req.user.userId)
+    }
+
+    @Post(':id/approve-return')
+    approveReturn(@Param('id') id: string, @Body() body: { condition: string }, @Req() req: any) {
+        return this.service.approveReturn(id, req.user.userId, body.condition)
+    }
+
+    @Post(':id/simulate-return')
+    simulateReturn(@Param('id') id: string, @Req() req: any) {
+        return this.service.simulateReturn(id, req.user.userId)
     }
 
     @Post(':id/renew')

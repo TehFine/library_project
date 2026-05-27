@@ -2,16 +2,18 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository, ILike } from 'typeorm'
 import { LibraryCard } from './entities/library-card.entity'
+import { RealtimeGateway } from '@/common/websocket/realtime.gateway'
 
 @Injectable()
 export class LibraryCardsService {
     constructor(
         @InjectRepository(LibraryCard)
         private cardRepo: Repository<LibraryCard>,
+        private realtime: RealtimeGateway,
     ) { }
 
     async findAll() {
-        const cards = await this.cardRepo.find({ relations: ['user', 'user.profile'] })
+        const cards = await this.cardRepo.find({ relations: { user: { profile: true } } })
         return this.checkAndUpdateStatus(cards)
     }
 
@@ -32,7 +34,7 @@ export class LibraryCardsService {
     async findByCardNumber(cardNumber: string) {
         const card = await this.cardRepo.findOne({
             where: { cardNumber },
-            relations: ['user', 'user.profile']
+            relations: { user: { profile: true } }
         })
         if (!card) throw new NotFoundException('Không tìm thấy thẻ thư viện')
         return this.checkAndUpdateStatus(card)
@@ -49,7 +51,7 @@ export class LibraryCardsService {
     async findByIdWithDetails(id: string) {
         const card = await this.cardRepo.findOne({
             where: { id },
-            relations: ['user', 'user.profile', 'borrowRecords', 'borrowRecords.bookCopy', 'borrowRecords.bookCopy.book']
+            relations: { user: { profile: true }, borrowRecords: { bookCopy: { book: true } } }
         })
         if (!card) throw new NotFoundException('Card not found')
         return this.checkAndUpdateStatus(card)
@@ -74,6 +76,9 @@ export class LibraryCardsService {
             expiryDate,
             issuedBy: { id: creatorId } as any
         })
+        this.realtime.emit('admin:dashboard-update')
+        this.realtime.emit('reader:dashboard-update')
+        
         return this.cardRepo.save(card)
     }
 
@@ -106,6 +111,9 @@ export class LibraryCardsService {
 
         card.expiryDate = newExpiry.toISOString().split('T')[0]
         card.status = 'active'
+        this.realtime.emit('admin:dashboard-update')
+        this.realtime.emit('reader:dashboard-update')
+        
         return this.cardRepo.save(card)
     }
 

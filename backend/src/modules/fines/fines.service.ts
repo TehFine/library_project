@@ -1,8 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common'
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository, LessThan, Between } from 'typeorm'
 import { Fine } from './entities/fine.entity'
 import { BorrowRecord } from '@/modules/borrow-records/entities/borrow-record.entity'
+import { RealtimeGateway } from '@/common/websocket/realtime.gateway'
 
 @Injectable()
 export class FinesService {
@@ -11,17 +12,14 @@ export class FinesService {
         private fineRepo: Repository<Fine>,
         @InjectRepository(BorrowRecord)
         private borrowRepo: Repository<BorrowRecord>,
+        private realtime: RealtimeGateway,
     ) { }
 
     async findAll() {
         return this.fineRepo.find({
-            relations: [
-                'borrowRecord', 
-                'borrowRecord.libraryCard', 
-                'borrowRecord.libraryCard.user',
-                'borrowRecord.bookCopy',
-                'borrowRecord.bookCopy.book'
-            ],
+            relations: {
+                borrowRecord: { libraryCard: { user: true }, bookCopy: { book: true } }
+            },
             order: { createdAt: 'DESC' }
         })
     }
@@ -40,8 +38,14 @@ export class FinesService {
         fine.paymentMethod = method
         fine.collectedBy = { id: librarianId } as any
         fine.receiptNumber = `REC-${Date.now()}`
-
-        return this.fineRepo.save(fine)
+        const saved = await this.fineRepo.save(fine)
+        
+        // Emit realtime events
+        this.realtime.emit('librarian:dashboard-update')
+        this.realtime.emit('admin:dashboard-update')
+        this.realtime.emit('reader:dashboard-update')
+        
+        return saved
     }
 
     async waiveFine(id: string, librarianId: string, reason: string) {
@@ -50,7 +54,31 @@ export class FinesService {
         fine.status = 'waived'
         fine.collectedBy = { id: librarianId } as any
         fine.paymentMethod = reason
-        return this.fineRepo.save(fine)
+        const saved = await this.fineRepo.save(fine)
+        
+        // Emit realtime events
+        this.realtime.emit('librarian:dashboard-update')
+        this.realtime.emit('admin:dashboard-update')
+        this.realtime.emit('reader:dashboard-update')
+        
+        return saved
+    }
+
+    async simulatePayFine(id: string, userId: string) {
+        const fine = await this.fineRepo.findOne({
+            where: { id },
+            relations: { borrowRecord: { libraryCard: true } }
+        })
+        if (!fine) throw new NotFoundException('Không tìm thấy khoản phí')
+        if (fine.borrowRecord?.libraryCard?.userId !== userId) {
+            throw new BadRequestException('Bạn không có quyền thanh toán khoản phí này')
+        }
+        if (fine.status !== 'pending') {
+            throw new BadRequestException('Khoản phí này đã được xử lý')
+        }
+
+        // Gọi logic thanh toán giống librarian, mặc định method là 'online'
+        return this.payFine(id, userId, 'online')
     }
 
     async getAdminFineStats(from?: string, to?: string, status?: string, fineType?: string) {
@@ -107,7 +135,7 @@ export class FinesService {
     }
 
     async findMine(userId: string, query: any) {
-        const { page = 1, limit = 10 } = query
+        const { page = 1, limit = 10, status } = query
         const skip = (page - 1) * limit
 
         // 1. Lấy phí phạt thật trong DB
@@ -115,7 +143,7 @@ export class FinesService {
             where: {
                 borrowRecord: { libraryCard: { userId } }
             },
-            relations: ['borrowRecord', 'borrowRecord.bookCopy', 'borrowRecord.bookCopy.book'],
+            relations: { borrowRecord: { bookCopy: { book: true } } },
             order: { createdAt: 'DESC' },
         })
 
@@ -129,7 +157,7 @@ export class FinesService {
                 status: 'borrowing',
                 dueDate: LessThan(todayStr)
             },
-            relations: ['bookCopy', 'bookCopy.book']
+            relations: { bookCopy: { book: true } }
         })
 
         const virtualFines = overdueBorrows
@@ -155,9 +183,15 @@ export class FinesService {
                 }
             })
 
-        const allFines = [...virtualFines, ...realFines].sort((a, b) => 
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        )
+        const allFines = [...virtualFines, ...realFines]
+            .filter(f => {
+                // Virtual fines luôn là 'pending', real fines có thể có nhiều trạng thái
+                if (!status) return true // Không lọc -> trả về tất cả
+                return f.status === status
+            })
+            .sort((a, b) =>
+                new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            )
 
         const pagedData = allFines.slice(skip, skip + limit)
         const totalAmount = allFines
@@ -174,4 +208,3 @@ export class FinesService {
         }
     }
 }
-

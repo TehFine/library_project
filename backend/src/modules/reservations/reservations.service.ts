@@ -71,7 +71,7 @@ export class ReservationsService {
             await this.resRepo.save(res)
 
             if (res.reservedCopyId) {
-                const copy = await this.copyRepo.findOne({ where: { id: res.reservedCopyId }, relations: ['book'] })
+                const copy = await this.copyRepo.findOne({ where: { id: res.reservedCopyId }, relations: { book: true } })
                 if (copy && copy.status === 'reserved') {
                     copy.status = 'available'
                     await this.copyRepo.save(copy)
@@ -89,10 +89,9 @@ export class ReservationsService {
             order: { reservedAt: 'ASC' }
         })
 
-        for (const res of waitingReservations) {
-            const availableCopy = await this.copyRepo.findOne({
+        for (const res of waitingReservations) {                const availableCopy = await this.copyRepo.findOne({
                 where: { bookId: res.bookId, status: 'available' },
-                relations: ['book']
+                relations: { book: true }
             })
 
             if (availableCopy) {
@@ -121,7 +120,7 @@ export class ReservationsService {
     async findAll() {
         await this.syncReservationsStatus()
         return this.resRepo.find({
-            relations: ['libraryCard', 'libraryCard.user', 'libraryCard.user.profile', 'book'],
+            relations: { libraryCard: { user: { profile: true } }, book: true },
             order: { reservedAt: 'ASC' }
         })
     }
@@ -176,7 +175,7 @@ export class ReservationsService {
                 libraryCard: { userId },
                 ...(statusFilter ? { status: statusFilter } : {})
             },
-            relations: ['book'],
+            relations: { book: true },
             order: { reservedAt: 'DESC' },
             take: limit,
             skip: skip

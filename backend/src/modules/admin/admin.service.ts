@@ -10,6 +10,7 @@ import { BorrowRecord } from '../borrow-records/entities/borrow-record.entity';
 import { Reservation } from '../reservations/entities/reservation.entity';
 import { Fine } from '../fines/entities/fine.entity';
 import { LibraryCard } from '../library-cards/entities/library-card.entity';
+import { RealtimeGateway } from '@/common/websocket/realtime.gateway';
 import { UsersService } from '../users/users.service';
 
 @Injectable()
@@ -24,6 +25,7 @@ export class AdminService {
         @InjectRepository(Role) private roleRepo: Repository<Role>,
         @InjectRepository(LibraryCard) private cardRepo: Repository<LibraryCard>,
         private usersService: UsersService,
+        private realtime: RealtimeGateway,
     ) {}
 
     async getDashboardStats() {
@@ -137,7 +139,7 @@ export class AdminService {
 
         // 2. Stock status — books with available/total copies
         const stockBooks = await this.bookRepo.find({
-            relations: ['category'],
+            relations: { category: true },
             order: { title: 'ASC' }
         });
         const stockStatus = stockBooks.map(b => {
@@ -192,7 +194,7 @@ export class AdminService {
                 { status: 'disposed' as any },
                 { condition: 'damaged' as any, status: 'available' as any },
             ],
-            relations: ['book'],
+            relations: { book: true },
             order: { createdAt: 'DESC' },
             take: 50,
         });
@@ -229,11 +231,11 @@ export class AdminService {
 
         // 1. Borrow records — mượn sách
         const recentBorrows = await this.borrowRepo.find({
-            relations: [
-                'bookCopy', 'bookCopy.book',
-                'libraryCard', 'libraryCard.user', 'libraryCard.user.profile',
-                'librarian', 'librarian.profile'
-            ],
+            relations: {
+                bookCopy: { book: true },
+                libraryCard: { user: { profile: true } },
+                librarian: { profile: true }
+            },
             order: { createdAt: 'DESC' },
             take: 30,
         });
@@ -253,10 +255,9 @@ export class AdminService {
 
         // 2. Fines — phát sinh phí phạt
         const recentFines = await this.fineRepo.find({
-            relations: [
-                'borrowRecord', 'borrowRecord.libraryCard',
-                'borrowRecord.libraryCard.user', 'borrowRecord.libraryCard.user.profile'
-            ],
+            relations: {
+                borrowRecord: { libraryCard: { user: { profile: true } } }
+            },
             order: { createdAt: 'DESC' },
             take: 30,
         });
@@ -276,10 +277,10 @@ export class AdminService {
 
         // 3. Reservations — đặt trước sách
         const recentReservations = await this.resRepo.find({
-            relations: [
-                'libraryCard', 'libraryCard.user', 'libraryCard.user.profile',
-                'book'
-            ],
+            relations: {
+                libraryCard: { user: { profile: true } },
+                book: true
+            },
             order: { reservedAt: 'DESC' },
             take: 30,
         });
@@ -301,7 +302,7 @@ export class AdminService {
 
         // 4. Library cards — cấp thẻ mới
         const recentCards = await this.cardRepo.find({
-            relations: ['user', 'user.profile', 'issuedBy', 'issuedBy.profile'],
+            relations: { user: { profile: true }, issuedBy: { profile: true } },
             order: { createdAt: 'DESC' },
             take: 30,
         });
@@ -321,7 +322,7 @@ export class AdminService {
 
         // 5. Users — đăng ký tài khoản
         const recentUsers = await this.userRepo.find({
-            relations: ['profile'],
+            relations: { profile: true },
             order: { createdAt: 'DESC' },
             take: 30,
         });
@@ -342,10 +343,11 @@ export class AdminService {
         const recentRequests = await this.borrowRepo.manager
             .getRepository('borrow_requests')
             .find({
-                relations: [
-                    'libraryCard', 'libraryCard.user', 'libraryCard.user.profile',
-                    'book', 'processedBy', 'processedBy.profile'
-                ],
+                relations: {
+                    libraryCard: { user: { profile: true } },
+                    book: true,
+                    processedBy: { profile: true }
+                },
                 order: { requestedAt: 'DESC' },
                 take: 20,
             });
@@ -398,10 +400,10 @@ export class AdminService {
                 status: In(['borrowing', 'overdue']),
                 dueDate: LessThan(todayStr)
             },
-            relations: [
-                'bookCopy', 'bookCopy.book',
-                'libraryCard', 'libraryCard.user', 'libraryCard.user.profile'
-            ],
+            relations: {
+                bookCopy: { book: true },
+                libraryCard: { user: { profile: true } }
+            },
             order: { dueDate: 'ASC' }
         });
 
@@ -430,7 +432,7 @@ export class AdminService {
                 status: 'active',
                 expiryDate: LessThan(thirtyDaysLaterStr),
             },
-            relations: ['user', 'user.profile'],
+            relations: { user: { profile: true } },
             order: { expiryDate: 'ASC' }
         });
 
@@ -445,7 +447,7 @@ export class AdminService {
         // 3. Độc giả quá hạn nhiều lần (có > 1 lần quá hạn)
         const allBorrows = await this.borrowRepo.find({
             where: { status: 'overdue' },
-            relations: ['libraryCard', 'libraryCard.user', 'libraryCard.user.profile'],
+            relations: { libraryCard: { user: { profile: true } } },
             order: { createdAt: 'DESC' }
         });
 
@@ -483,10 +485,9 @@ export class AdminService {
         // 4. Độc giả còn nợ phí
         const unpaidFines = await this.fineRepo.find({
             where: { status: 'pending' },
-            relations: [
-                'borrowRecord', 'borrowRecord.libraryCard',
-                'borrowRecord.libraryCard.user', 'borrowRecord.libraryCard.user.profile'
-            ],
+            relations: {
+                borrowRecord: { libraryCard: { user: { profile: true } } }
+            },
             order: { createdAt: 'DESC' }
         });
 
@@ -539,13 +540,13 @@ export class AdminService {
 
     async getAllUsers() {
         return this.userRepo.find({
-            relations: ['roleRelation', 'profile'],
+            relations: { roleRelation: true, profile: true },
             order: { createdAt: 'DESC' }
         });
     }
 
     async updateUserRole(userId: string, roleName: RoleName) {
-        const user = await this.userRepo.findOne({ where: { id: userId }, relations: ['roleRelation'] });
+        const user = await this.userRepo.findOne({ where: { id: userId }, relations: { roleRelation: true } });
         if (!user) throw new NotFoundException('User not found');
         
         const role = await this.roleRepo.findOneBy({ name: roleName });
@@ -553,11 +554,19 @@ export class AdminService {
 
         user.roleRelation = role;
         await this.userRepo.save(user);
+        
+        this.realtime.emit('admin:dashboard-update');
+        this.realtime.emit('admin:user-update');
+        
         return this.usersService.findOne(userId);
     }
 
     async toggleUserStatus(userId: string, isActive: boolean) {
         await this.userRepo.update(userId, { isActive });
+        
+        this.realtime.emit('admin:dashboard-update');
+        this.realtime.emit('admin:user-update');
+        
         return this.usersService.findOne(userId);
     }
 }

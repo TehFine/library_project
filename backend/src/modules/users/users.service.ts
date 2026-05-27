@@ -19,7 +19,7 @@ export class UsersService {
     async findOne(id: string): Promise<User> {
         const user = await this.usersRepository.findOne({
             where: { id },
-            relations: ['roleRelation', 'profile'],
+            relations: { roleRelation: true, profile: true },
         })
         if (!user) throw new NotFoundException('User not found')
         return user
@@ -35,16 +35,38 @@ export class UsersService {
             .getOne()
     }
 
-    async searchUsers(q: string): Promise<User[]> {
-        return this.usersRepository
+    async searchUsers(q: string): Promise<any[]> {
+        const raw = await this.usersRepository
             .createQueryBuilder('user')
             .leftJoinAndSelect('user.roleRelation', 'roleRelation')
             .leftJoinAndSelect('user.profile', 'profile')
+            .leftJoin('library_cards', 'lc', 'lc.userId = user.id')
             .where('LOWER(user.username) LIKE LOWER(:q)', { q: `%${q}%` })
+            .orWhere('LOWER(user.email) LIKE LOWER(:q)', { q: `%${q}%` })
             .orWhere('LOWER(profile.fullName) LIKE LOWER(:q)', { q: `%${q}%` })
             .orWhere('LOWER(profile.idCardNumber) LIKE LOWER(:q)', { q: `%${q}%` })
+            .orWhere('LOWER(lc.cardNumber) LIKE LOWER(:q)', { q: `%${q}%` })
+            .select([
+                'user.id', 'user.username', 'user.email', 'user.isActive',
+                'roleRelation',
+                'profile',
+                'lc.cardNumber',
+            ])
             .take(10)
-            .getMany()
+            .getRawAndEntities()
+
+        // Map cardNumber from raw results
+        const cardMap = new Map<string, string>()
+        for (const r of raw.raw) {
+            if (r.user_id && r.lc_cardNumber) {
+                cardMap.set(r.user_id, r.lc_cardNumber)
+            }
+        }
+
+        return raw.entities.map(u => ({
+            ...u,
+            cardNumber: cardMap.get(u.id) || null,
+        }))
     }
 
     async findByIdWithPassword(id: string): Promise<User> {
