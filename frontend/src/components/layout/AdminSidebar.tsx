@@ -104,17 +104,17 @@ export default function AdminSidebar() {
   const pathname = usePathname()
 
   return (
-    <aside className="w-64 bg-app-sidebar border-r border-amber-200/50 flex flex-col h-screen sticky top-0 shrink-0">
+    <aside className="w-64 bg-app-sidebar border-r border-amber-200/50 flex flex-col h-screen sticky top-0 shrink-0 rounded-3xl shadow-[2px_0_20px_-4px_rgba(0,0,0,0.05)]">
       <div className="p-6">
         <Link href="/admin/dashboard" className="flex items-center gap-3 group">
-          <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary-dark flex items-center justify-center text-white shadow-glow group-hover:scale-110 transition-transform">
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
             </svg>
           </div>
           <div>
-            <h1 className="text-xl font-bold text-slate-800 tracking-tight">Bookly Admin</h1>
-            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Quản trị hệ thống</p>
+            <h1 className="text-xl font-bold text-slate-800 tracking-tight">Bookly</h1>
+            <p className="text-[10px] font-black uppercase tracking-[0.1em] text-primary mt-1">Quản trị hệ thống</p>
           </div>
         </Link>
       </div>
@@ -137,11 +137,11 @@ export default function AdminSidebar() {
               className={cn(
                 'flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 group',
                 active
-                  ? 'bg-indigo-600 text-white shadow-md'
-                  : 'text-slate-600 hover:bg-white/50 hover:text-indigo-600'
+                  ? 'bg-gradient-to-r from-primary to-primary-light text-white shadow-glow'
+                  : 'text-gray-600 hover:bg-white/60 hover:text-gray-900'
               )}
             >
-              <span className={cn('shrink-0 transition-transform duration-200 group-hover:scale-110', active ? 'text-white' : 'text-slate-400 group-hover:text-indigo-600')}>
+              <span className={cn('shrink-0 transition-transform duration-200 group-hover:scale-110', active ? 'text-white' : 'text-gray-400')}>
                 {item.icon}
               </span>
               {item.label}
