@@ -6,6 +6,7 @@ import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import Select from '@/components/ui/Select'
 import { cn } from '@/lib/utils'
+import { Mail } from 'lucide-react'
 
 type Tab = 'rules' | 'email' | 'tasks'
 
@@ -26,7 +27,7 @@ export default function SystemSettingsPage() {
           title="Cấu hình hệ thống" 
           description="Thiết lập các quy định nghiệp vụ và thông số kỹ thuật."
         />
-        <Button variant="primary" className="px-8 shadow-glow shadow-indigo-500/30">
+        <Button variant="primary" className="px-8 shadow-glow shadow-amber-500/30">
            Lưu thay đổi
         </Button>
       </div>
@@ -43,7 +44,7 @@ export default function SystemSettingsPage() {
             onClick={() => setActiveTab(t.id as Tab)}
             className={cn(
               'px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-200',
-              activeTab === t.id ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              activeTab === t.id ? 'bg-white text-amber-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
             )}
           >
             {t.label}
@@ -157,7 +158,7 @@ export default function SystemSettingsPage() {
              <div className="flex items-center justify-between border-b border-slate-100 pb-4">
                 <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">CẤU HÌNH SMTP EMAIL</h3>
                 <div className="flex gap-2">
-                   <Button variant="ghost" className="text-xs font-bold text-indigo-600">Kiểm tra kết nối (Test)</Button>
+                   <Button variant="ghost" className="text-xs font-bold text-amber-600">Kiểm tra kết nối (Test)</Button>
                 </div>
              </div>
              <div className="grid grid-cols-2 gap-6">
@@ -174,9 +175,9 @@ export default function SystemSettingsPage() {
                 <Input label="Tên hiển thị" defaultValue="Thư Viện Bookly" />
                 <Input label="Email gửi đi" defaultValue="no-reply@library.vn" />
              </div>
-             <div className="p-4 rounded-2xl bg-indigo-50 border border-indigo-100 flex gap-4">
-                <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white shrink-0 shadow-lg">✉️</div>
-                <p className="text-xs text-indigo-800 leading-relaxed">
+             <div className="p-4 rounded-2xl bg-amber-50 border border-amber-100 flex gap-4">
+                <div className="w-10 h-10 rounded-full bg-amber-600 flex items-center justify-center text-white shrink-0 shadow-lg"><Mail className="w-5 h-5" /></div>
+                <p className="text-xs text-amber-800 leading-relaxed">
                   Cấu hình này được dùng để gửi thông báo quá hạn, đặt trước, gia hạn thẻ và cấp lại mật khẩu cho nhân viên/độc giả. Đảm bảo thông tin SMTP là chính xác để không bị gián đoạn dịch vụ.
                 </p>
              </div>
@@ -213,11 +214,11 @@ export default function SystemSettingsPage() {
                                setTasks(tasks.map(t => t.id === task.id ? { ...t, enabled: !t.enabled } : t))
                             }}
                           />
-                          <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                          <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
                        </label>
                     </td>
                     <td className="px-6 py-4 text-right">
-                       <button className="text-xs font-bold text-indigo-600 hover:bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-100 transition-all">
+                       <button className="text-xs font-bold text-amber-600 hover:bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-100 transition-all">
                           ▶ Chạy ngay
                        </button>
                     </td>

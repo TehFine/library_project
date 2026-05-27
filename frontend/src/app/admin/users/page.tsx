@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import PageHeader from '@/components/layout/PageHeader'
 import { Card, Badge, Modal } from '@/components/ui'
 import Input from '@/components/ui/Input'
@@ -7,7 +7,9 @@ import Button from '@/components/ui/Button'
 import Select from '@/components/ui/Select'
 import { adminApi } from '@/lib/api'
 import { User, Role } from '@/types'
+import { useRealtimeRefresh } from '@/hooks/useWebSocket'
 import { toast } from 'react-hot-toast'
+import { Crown, UserCog, User as UserIcon, CheckCircle, XCircle, AlertTriangle } from 'lucide-react'
 
 export default function UsersManagementPage() {
   const [users, setUsers] = useState<User[]>([])
@@ -22,7 +24,7 @@ export default function UsersManagementPage() {
   const [filterRole, setFilterRole] = useState('all')
   const [filterStatus, setFilterStatus] = useState('all')
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setLoading(true)
     try {
       const data = await adminApi.getAllUsers()
@@ -32,11 +34,13 @@ export default function UsersManagementPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     fetchUsers()
-  }, [])
+  }, [fetchUsers])
+
+  useRealtimeRefresh('admin:user-update', fetchUsers)
 
   const handleToggleStatus = async (user: User) => {
     try {
@@ -128,7 +132,7 @@ export default function UsersManagementPage() {
                     <div className="flex items-center gap-3">
                       <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs ring-1 ${
                         user.role === 'library_admin' ? 'bg-purple-50 text-purple-600 ring-purple-100' :
-                        user.role === 'librarian' ? 'bg-indigo-50 text-indigo-600 ring-indigo-100' :
+                        user.role === 'librarian' ? 'bg-amber-50 text-amber-600 ring-amber-100' :
                         'bg-sky-50 text-sky-600 ring-sky-100'
                       }`}>
                         {(user.fullName || user.username).charAt(0).toUpperCase()}
@@ -149,14 +153,14 @@ export default function UsersManagementPage() {
                       user.role === 'librarian' ? 'bg-blue-50 text-blue-700 border-blue-100' :
                       'bg-slate-100 text-slate-700 border-slate-200'
                     }>
-                      {user.role === 'library_admin' ? '👑 Admin' : user.role === 'librarian' ? '🟦 Thủ thư' : '👤 Độc giả'}
+                      {user.role === 'library_admin' ? <><Crown className="w-3.5 h-3.5 inline mr-1 text-amber-500" /> Admin</> : user.role === 'librarian' ? <><UserCog className="w-3.5 h-3.5 inline mr-1 text-blue-500" /> Thủ thư</> : <><UserIcon className="w-3.5 h-3.5 inline mr-1" /> Độc giả</>}
                     </Badge>
                   </td>
                   <td className="px-6 py-4">
                     {user.isActive ? (
-                      <Badge className="bg-emerald-50 text-emerald-700 border-emerald-100">✅ Hoạt động</Badge>
+                      <Badge className="bg-emerald-50 text-emerald-700 border-emerald-100"><CheckCircle className="w-3.5 h-3.5 inline mr-1" /> Hoạt động</Badge>
                     ) : (
-                      <Badge className="bg-red-50 text-red-700 border-red-100">🔴 Bị khóa</Badge>
+                      <Badge className="bg-red-50 text-red-700 border-red-100"><XCircle className="w-3.5 h-3.5 inline mr-1" /> Bị khóa</Badge>
                     )}
                   </td>
                   <td className="px-6 py-4 text-right">
@@ -166,7 +170,7 @@ export default function UsersManagementPage() {
                           setShowRoleModal(user)
                           setSelectedRole(user.role)
                         }}
-                        className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors text-xs font-bold"
+                        className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors text-xs font-bold"
                       >
                         Đổi vai trò
                       </button>
@@ -214,7 +218,7 @@ export default function UsersManagementPage() {
       <Modal open={!!showLockModal} onClose={() => setShowLockModal(null)} title={`Khóa tài khoản ${showLockModal?.fullName || showLockModal?.username}?`} size="sm">
         <div className="space-y-4">
            <div className="p-4 rounded-xl bg-red-50 border border-red-100 flex gap-3 text-red-800 text-xs">
-              <span className="text-xl">⚠️</span>
+              <AlertTriangle className="w-5 h-5 text-red-500 shrink-0" />
               <p>Người dùng này sẽ bị đăng xuất khỏi tất cả thiết bị và không thể đăng nhập lại cho đến khi được mở khóa.</p>
            </div>
            <div className="flex justify-end gap-3 pt-2">

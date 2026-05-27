@@ -2,26 +2,31 @@
 import { Card, Badge } from '@/components/ui'
 import PageHeader from '@/components/layout/PageHeader'
 import Link from 'next/link'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { useRealtimeRefresh } from '@/hooks/useWebSocket'
 import { adminApi, AdminDashboardStats } from '@/lib/api'
+import { Users, BookOpen, Book, DollarSign, AlertTriangle } from 'lucide-react'
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<AdminDashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const data = await adminApi.getDashboardStats()
-        setStats(data)
-      } catch (error) {
-        console.error('Failed to fetch admin stats:', error)
-      } finally {
-        setLoading(false)
-      }
+  const fetchStats = useCallback(async () => {
+    try {
+      const data = await adminApi.getDashboardStats()
+      setStats(data)
+    } catch (error) {
+      console.error('Failed to fetch admin stats:', error)
+    } finally {
+      setLoading(false)
     }
-    fetchStats()
   }, [])
+
+  useEffect(() => {
+    fetchStats()
+  }, [fetchStats])
+
+  useRealtimeRefresh('admin:dashboard-update', fetchStats)
 
   if (loading) {
     return <div className="flex items-center justify-center min-h-[500px]">Đang tải...</div>
@@ -32,10 +37,10 @@ export default function AdminDashboard() {
   }
 
   const KPI_CARDS = [
-    { label: 'Tổng độc giả', value: stats.totalUsers, trend: 'Tất cả tài khoản', icon: '👥', color: 'indigo', href: '/admin/users' },
-    { label: 'Sách đang mượn', value: stats.borrowedBooks, trend: 'Đang lưu hành', icon: '📚', color: 'amber', href: '/admin/reports/books' },
-    { label: 'Phí phạt chưa thu', value: new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(stats.totalFines), trend: 'Chờ xử lý', icon: '💰', color: 'emerald', href: '/admin/reports/fines' },
-    { label: 'Đầu sách', value: stats.totalBooks, trend: 'Tổng trong kho', icon: '📖', color: 'sky', href: '/admin/reports/books' },
+    { label: 'Tổng độc giả', value: stats.totalUsers, trend: 'Tất cả tài khoản', icon: Users, color: 'amber', href: '/admin/users' },
+    { label: 'Sách đang mượn', value: stats.borrowedBooks, trend: 'Đang lưu hành', icon: BookOpen, color: 'amber', href: '/admin/reports/books' },
+    { label: 'Phí phạt chưa thu', value: new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(stats.totalFines), trend: 'Chờ xử lý', icon: DollarSign, color: 'emerald', href: '/admin/reports/fines' },
+    { label: 'Đầu sách', value: stats.totalBooks, trend: 'Tổng trong kho', icon: Book, color: 'sky', href: '/admin/reports/books' },
   ]
 
   return (
@@ -49,10 +54,20 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {KPI_CARDS.map((kpi, idx) => (
           <Card key={idx} padding="lg" className="relative overflow-hidden group hover:shadow-glow transition-all">
-            <div className={`absolute top-0 right-0 w-24 h-24 -mr-8 -mt-8 bg-${kpi.color}-500/10 rounded-full blur-2xl group-hover:bg-${kpi.color}-500/20 transition-colors`} />
+            <div className={`absolute top-0 right-0 w-24 h-24 -mr-8 -mt-8 rounded-full blur-2xl transition-colors ${
+              kpi.color === 'amber' ? 'bg-amber-500/10 group-hover:bg-amber-500/20' :
+              kpi.color === 'emerald' ? 'bg-emerald-500/10 group-hover:bg-emerald-500/20' :
+              kpi.color === 'emerald' ? 'bg-emerald-500/10 group-hover:bg-emerald-500/20' :
+              'bg-sky-500/10 group-hover:bg-sky-500/20'
+            }`} />
             <div className="flex items-center gap-4">
-              <div className={`w-12 h-12 rounded-2xl bg-${kpi.color}-50 flex items-center justify-center text-2xl shadow-inner`}>
-                {kpi.icon}
+              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner ${
+                kpi.color === 'amber' ? 'bg-amber-50 text-amber-600' :
+                kpi.color === 'emerald' ? 'bg-emerald-50 text-emerald-600' :
+                kpi.color === 'emerald' ? 'bg-emerald-50 text-emerald-600' :
+                'bg-sky-50 text-sky-600'
+              }`}>
+                <kpi.icon className="w-6 h-6" />
               </div>
               <div className="flex-1">
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{kpi.label}</p>
@@ -60,10 +75,10 @@ export default function AdminDashboard() {
               </div>
             </div>
             <div className="mt-4 flex items-center justify-between">
-              <span className={`text-xs font-bold ${kpi.trend.includes('quá hạn') || kpi.trend.includes('chưa thu') ? 'text-red-500' : 'text-emerald-500'}`}>
+              <span className={`text-xs font-bold ${kpi.trend.includes('quá hạn') || kpi.trend.includes('chưa thu') || kpi.trend === 'Chờ xử lý' ? 'text-red-500' : 'text-emerald-500'}`}>
                 {kpi.trend}
               </span>
-              <Link href={kpi.href} className="text-xs font-bold text-indigo-600 hover:underline">
+              <Link href={kpi.href} className="text-xs font-bold text-amber-600 hover:underline">
                 Xem chi tiết →
               </Link>
             </div>
@@ -75,7 +90,7 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Bar Chart - Borrows */}
         <Card className="lg:col-span-2" padding="lg">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-left justify-between mb-6">
             <h3 className="font-bold text-slate-800">Lượt mượn sách 30 ngày qua</h3>
             <div className="flex gap-2">
               <button 
@@ -86,7 +101,7 @@ export default function AdminDashboard() {
                     exportToExcel(data, 'Luot_Muon_Sach_30_Ngay', 'ThongKe')
                   }
                 }}
-                className="text-xs font-bold text-white bg-indigo-600 px-3 py-1.5 rounded-lg shadow-sm hover:bg-indigo-700"
+                className="text-xs font-bold text-white bg-amber-600 px-3 py-1.5 rounded-lg shadow-sm hover:bg-amber-700"
               >
                 Xuất Excel
               </button>
@@ -98,11 +113,11 @@ export default function AdminDashboard() {
                 <div className="w-full text-center text-slate-400 text-sm mb-10">Chưa có dữ liệu mượn sách 30 ngày qua</div>
              ) : stats.borrowStats.map((b, i) => {
                const maxCount = Math.max(...stats.borrowStats.map(s => s.count), 1);
-               const h = Math.max(Math.round((b.count / maxCount) * 100), 2); // min height 2%
+               const h = Math.max(Math.round((b.count / maxCount) * 100), 2);
                return (
                <div key={i} className="flex-1 group relative">
                   <div 
-                    className="w-full bg-indigo-500/20 rounded-t-sm group-hover:bg-indigo-500 transition-all duration-500 cursor-pointer" 
+                    className="w-full bg-amber-500/20 rounded-t-sm group-hover:bg-amber-500 transition-all duration-500 cursor-pointer" 
                     style={{ height: `${h}%` }}
                   >
                      <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none">
@@ -127,11 +142,9 @@ export default function AdminDashboard() {
              <svg viewBox="0 0 36 36" className="w-full h-full transform -rotate-90">
                 <circle cx="18" cy="18" r="16" fill="transparent" stroke="#E2E8F0" strokeWidth="4" />
                 {stats.categoryStats.map((cat, idx) => {
-                  // Calculate stroke-dasharray dynamically for SVG pie chart effect (simplified)
-                  // Real SVG pie charts need careful offset calculation, but for now we'll just keep the static ring visually and show the dynamic list below.
                   return null;
                 })}
-                <circle cx="18" cy="18" r="16" fill="transparent" stroke="#6366F1" strokeWidth="4" strokeDasharray="32 100" strokeDashoffset="0" />
+                <circle cx="18" cy="18" r="16" fill="transparent" stroke="#E8941A" strokeWidth="4" strokeDasharray="32 100" strokeDashoffset="0" />
                 <circle cx="18" cy="18" r="16" fill="transparent" stroke="#F59E0B" strokeWidth="4" strokeDasharray="28 100" strokeDashoffset="-32" />
                 <circle cx="18" cy="18" r="16" fill="transparent" stroke="#10B981" strokeWidth="4" strokeDasharray="18 100" strokeDashoffset="-60" />
                 <circle cx="18" cy="18" r="16" fill="transparent" stroke="#0EA5E9" strokeWidth="4" strokeDasharray="14 100" strokeDashoffset="-78" />
@@ -162,7 +175,7 @@ export default function AdminDashboard() {
         <Card padding="lg">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-bold text-slate-800">Top sách mượn nhiều nhất</h3>
-            <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
             </svg>
           </div>
@@ -177,14 +190,14 @@ export default function AdminDashboard() {
             <tbody className="text-sm">
               {stats.topBooks.map((b, i) => (
                 <tr key={i} className="group hover:bg-slate-50 transition-colors">
-                  <td className="py-3 font-bold text-indigo-600">#{b.rank}</td>
+                  <td className="py-3 font-bold text-amber-600">#{b.rank}</td>
                   <td className="py-3 font-medium text-slate-700">{b.title}</td>
                   <td className="py-3 text-right font-black text-slate-800">{b.count}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <Link href="/admin/reports/books" className="block w-full text-center mt-4 text-xs font-bold text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 py-2 rounded-lg transition-all">
+          <Link href="/admin/reports/books" className="block w-full text-center mt-4 text-xs font-bold text-amber-600 hover:text-amber-700 hover:bg-amber-50 py-2 rounded-lg transition-all">
             Xem báo cáo đầy đủ →
           </Link>
         </Card>
@@ -205,7 +218,7 @@ export default function AdminDashboard() {
               </div>
             ))}
           </div>
-          <Link href="/admin/audit-logs" className="block w-full text-center mt-6 text-xs font-bold text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 py-2 rounded-lg transition-all">
+          <Link href="/admin/audit-logs" className="block w-full text-center mt-6 text-xs font-bold text-slate-500 hover:text-amber-600 hover:bg-amber-50 py-2 rounded-lg transition-all">
             Xem nhật ký đầy đủ
           </Link>
         </Card>
@@ -213,7 +226,7 @@ export default function AdminDashboard() {
         {/* System Alerts */}
         <Card padding="lg" className="bg-slate-900 border-none">
           <h3 className="font-bold text-white mb-4 flex items-center gap-2">
-            <span className="text-amber-400 animate-pulse">⚠️</span> Cần xử lý
+            <AlertTriangle className="w-4 h-4 text-amber-400 animate-pulse" /> Cần xử lý
           </h3>
           <div className="space-y-3">
             {stats.systemAlerts.map((alert, idx) => (
@@ -226,14 +239,14 @@ export default function AdminDashboard() {
                   <span className="text-xs font-medium text-slate-300">{alert.label}</span>
                 </div>
                 <Link href="/admin/audit-logs" className={`text-[10px] font-bold px-2 py-1 rounded-md ${
-                  alert.action === 'Backup' || alert.action === 'Chi tiết' ? 'bg-indigo-500 text-white' : 'text-indigo-400 hover:bg-indigo-500/20'
+                  alert.action === 'Backup' || alert.action === 'Chi tiết' ? 'bg-amber-500 text-white' : 'text-amber-400 hover:bg-amber-500/20'
                 }`}>
                   [{alert.action}]
                 </Link>
               </div>
             ))}
           </div>
-          <div className="mt-6 p-4 rounded-2xl bg-gradient-to-br from-indigo-600 to-indigo-800 text-white">
+          <div className="mt-6 p-4 rounded-2xl bg-gradient-to-br from-primary to-primary-dark text-white">
              <p className="text-[10px] font-bold uppercase tracking-wider opacity-60">Sức khỏe hệ thống</p>
              <div className="flex items-center gap-4 mt-2">
                 <div className="text-2xl font-black italic">Excellent</div>

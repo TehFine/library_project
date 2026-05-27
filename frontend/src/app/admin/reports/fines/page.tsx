@@ -7,7 +7,9 @@ import { useState, useEffect, useCallback } from 'react'
 import { cn } from '@/lib/utils'
 import { finesApi, AdminFineTransaction, AdminFineSummary } from '@/lib/api'
 import { exportToExcel, exportToPDF } from '@/lib/export'
+import { useRealtimeRefresh } from '@/hooks/useWebSocket'
 import toast from 'react-hot-toast'
+import { CheckCircle, Clock, MinusCircle, Printer, AlertTriangle } from 'lucide-react'
 
 const fmt = (n: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n)
 const fmtDate = (s: string | Date | null) => s ? new Date(s).toLocaleDateString('vi-VN') : '—'
@@ -19,7 +21,10 @@ const statusBadgeClass = (status: string) =>
   'bg-slate-100 text-slate-600 border-slate-200'
 
 const statusLabel = (status: string) =>
-  status === 'paid' ? '✅ Đã thu' : status === 'pending' ? '⏰ Nợ' : '🟡 Miễn'
+  status === 'paid' ? <><CheckCircle className="w-3.5 h-3.5 inline mr-1 text-emerald-500" /> Đã thu</> : status === 'pending' ? <><Clock className="w-3.5 h-3.5 inline mr-1 text-amber-500" /> Nợ</> : <><MinusCircle className="w-3.5 h-3.5 inline mr-1 text-gray-400" /> Miễn</>
+
+const statusLabelText = (status: string) =>
+  status === 'paid' ? 'Đã thu' : status === 'pending' ? 'Nợ' : 'Miễn'
 
 export default function FinancialReportsPage() {
   const [loading, setLoading] = useState(true)
@@ -55,6 +60,7 @@ export default function FinancialReportsPage() {
   }, [])
 
   useEffect(() => { fetchData() }, [fetchData])
+  useRealtimeRefresh('admin:dashboard-update', fetchData)
 
   const applyFilter = () => {
     fetchData({
@@ -131,7 +137,7 @@ export default function FinancialReportsPage() {
         'Loai phat': fineTypeLabel(tx.fineType),
         'So ngay tre': tx.overdueDays,
         'So tien': tx.amount,
-        'Trang thai': statusLabel(tx.status),
+        'Trang thai': statusLabelText(tx.status),
         'Phuong thuc': tx.paymentMethod || '',
         'So bien lai': tx.receiptNumber || '',
       })),
@@ -143,13 +149,13 @@ export default function FinancialReportsPage() {
     const { exportToPDF } = await import('@/lib/export')
     exportToPDF(
       ['Ngay', 'Doc gia', 'Loai phat', 'So tien', 'Trang thai'],
-      transactions.map(tx => [fmtDate(tx.createdAt), tx.readerName, fineTypeLabel(tx.fineType), fmt(tx.amount), statusLabel(tx.status)]),
+      transactions.map(tx => [fmtDate(tx.createdAt), tx.readerName, fineTypeLabel(tx.fineType), fmt(tx.amount), statusLabelText(tx.status)]),
       'Bao Cao Tai Chinh - Phi Phat', 'BaoCao_TaiChinh'
     )
   }
 
   const SUMMARY_CARDS = summary ? [
-    { label: 'Tổng phí phát sinh', value: fmt(summary.totalAmount), color: 'indigo', p: null },
+    { label: 'Tổng phí phát sinh', value: fmt(summary.totalAmount), color: 'amber', p: null },
     { label: 'Đã thu', value: fmt(summary.paidAmount), color: 'emerald', p: summary.totalAmount ? Math.round(summary.paidAmount / summary.totalAmount * 100) + '%' : '0%' },
     { label: 'Chưa thu', value: fmt(summary.unpaidAmount), color: 'red', p: summary.totalAmount ? Math.round(summary.unpaidAmount / summary.totalAmount * 100) + '%' : '0%' },
     { label: 'Được miễn', value: fmt(summary.waivedAmount), color: 'slate', p: summary.totalAmount ? Math.round(summary.waivedAmount / summary.totalAmount * 100) + '%' : '0%' },
@@ -172,7 +178,7 @@ export default function FinancialReportsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {loading ? (
           Array.from({ length: 4 }).map((_, i) => (
-            <Card key={i} padding="lg" className="animate-pulse h-24 bg-slate-100 border-none" />
+            <Card key={i} padding="lg" className="animate-pulse h-24 bg-slate-100 border-none"><div /></Card>
           ))
         ) : (
           SUMMARY_CARDS.map((f, idx) => (
@@ -196,7 +202,7 @@ export default function FinancialReportsPage() {
       </div>
 
       {/* Filters */}
-      <Card padding="lg" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end bg-indigo-900 border-none text-white shadow-glow">
+      <Card padding="lg" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end bg-amber-900 border-none text-white shadow-glow">
         <div className="space-y-1.5">
           <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Loại phạt</label>
           <Select className="bg-white/10 border-white/20 text-white" value={filterType} onChange={e => setFilterType(e.target.value)}>
@@ -223,7 +229,7 @@ export default function FinancialReportsPage() {
           <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Đến ngày</label>
           <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} className="w-full bg-white/10 border border-white/20 rounded-xl px-3 py-2 text-xs text-white outline-none" />
         </div>
-        <Button variant="primary" className="w-full shadow-lg shadow-indigo-500/50" onClick={applyFilter}>Áp dụng</Button>
+        <Button variant="primary" className="w-full shadow-lg shadow-amber-500/50" onClick={applyFilter}>Áp dụng</Button>
       </Card>
 
       {/* Transactions Table */}
@@ -260,10 +266,7 @@ export default function FinancialReportsPage() {
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex justify-end gap-1">
-                      {tx.status === 'paid' && (
-                        <button onClick={() => handlePrintReceipt(tx)} className="text-xs font-bold text-indigo-600 hover:bg-indigo-50 px-3 py-1.5 rounded-lg">
-                          🖨 In biên lai
-                        </button>
+                      {tx.status === 'paid' && (<button onClick={() => handlePrintReceipt(tx)} className="text-xs font-bold text-amber-600 hover:bg-amber-50 px-3 py-1.5 rounded-lg inline-flex items-center gap-1.5"><Printer className="w-3.5 h-3.5" /> In biên lai</button>
                       )}
                       {tx.status === 'pending' && (
                         <>
@@ -307,14 +310,15 @@ export default function FinancialReportsPage() {
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-slate-700">Lý do miễn giảm: <span className="text-red-500">*</span></label>
             <textarea
-              className="w-full h-24 rounded-xl bg-slate-50 border border-slate-200 p-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500/20"
+              className="w-full h-24 rounded-xl bg-slate-50 border border-slate-200 p-3 text-sm outline-none focus:ring-2 focus:ring-amber-500/20"
               placeholder="Nhập lý do chi tiết..."
               value={waiveReason}
               onChange={e => setWaiveReason(e.target.value)}
             />
           </div>
-          <div className="p-3 rounded-lg bg-amber-50 text-[10px] text-amber-800 border border-amber-100">
-            ⚠️ Thao tác này sẽ xóa khoản nợ và được lưu vào nhật ký hoạt động hệ thống.
+          <div className="p-3 rounded-lg bg-amber-50 text-[10px] text-amber-800 border border-amber-100 flex items-start gap-2">
+            <AlertTriangle className="w-3.5 h-3.5 text-amber-600 mt-0.5 shrink-0" />
+            <span>Thao tác này sẽ xóa khoản nợ và được lưu vào nhật ký hoạt động hệ thống.</span>
           </div>
           <div className="flex flex-col gap-2 pt-2">
             <Button variant="primary" fullWidth onClick={handleWaive} disabled={waiveLoading || !waiveReason.trim()}>
@@ -344,7 +348,7 @@ export default function FinancialReportsPage() {
           </div>
           <div className="flex flex-col gap-2 pt-2">
             <Button variant="primary" fullWidth onClick={handlePay} disabled={payLoading}>
-              {payLoading ? 'Đang xử lý...' : '✅ Xác nhận đã thu tiền'}
+              {payLoading ? 'Đang xử lý...' : <><CheckCircle className="w-4 h-4" /> Xác nhận đã thu tiền</>}
             </Button>
             <Button variant="ghost" fullWidth onClick={() => setShowPayModal(null)}>Hủy</Button>
           </div>
@@ -362,7 +366,7 @@ export default function FinancialReportsPage() {
                 ['Loại phạt', fineTypeLabel(showDetailModal.fineType)],
                 ['Số ngày trễ', showDetailModal.overdueDays > 0 ? `${showDetailModal.overdueDays} ngày` : '—'],
                 ['Số tiền', fmt(showDetailModal.amount)],
-                ['Trạng thái', statusLabel(showDetailModal.status)],
+                ['Trạng thái', statusLabelText(showDetailModal.status)],
                 ['Phương thức', showDetailModal.paymentMethod || '—'],
                 ['Số biên lai', showDetailModal.receiptNumber || '—'],
                 ['Ngày thu', fmtDate(showDetailModal.paidAt)],
@@ -376,7 +380,7 @@ export default function FinancialReportsPage() {
             </div>
             <div className="flex gap-2 pt-2">
               {showDetailModal.status === 'paid' && (
-                <Button variant="secondary" fullWidth onClick={() => handlePrintReceipt(showDetailModal)}>🖨 In biên lai</Button>
+                <Button variant="secondary" fullWidth onClick={() => handlePrintReceipt(showDetailModal)}><Printer className="w-4 h-4" /> In biên lai</Button>
               )}
               <Button variant="ghost" fullWidth onClick={() => setShowDetailModal(null)}>Đóng</Button>
             </div>

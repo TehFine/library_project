@@ -6,6 +6,8 @@ import Select from '@/components/ui/Select'
 import Button from '@/components/ui/Button'
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import { adminApi, AuditLogEntry } from '@/lib/api'
+import { useRealtimeRefresh } from '@/hooks/useWebSocket'
+import { ClipboardList, Search } from 'lucide-react'
 
 // Mock fallback data — used when API is empty or errors out
 const MOCK_LOGS: AuditLogEntry[] = [
@@ -65,19 +67,23 @@ export default function AuditLogsPage() {
   const [isFiltered, setIsFiltered] = useState(true)
   const [displayLimit, setDisplayLimit] = useState(20)
 
-  // Fetch real data on mount
-  useEffect(() => {
-    (async () => {
-      try {
-        const data = await adminApi.getAuditLogs()
-        setLogs(data && data.length > 0 ? data : MOCK_LOGS)
-      } catch {
-        setLogs(MOCK_LOGS)
-      } finally {
-        setLoading(false)
-      }
-    })()
+  // Fetch real data on mount & via realtime
+  const fetchLogs = useCallback(async () => {
+    try {
+      const data = await adminApi.getAuditLogs()
+      setLogs(data && data.length > 0 ? data : MOCK_LOGS)
+    } catch {
+      setLogs(MOCK_LOGS)
+    } finally {
+      setLoading(false)
+    }
   }, [])
+
+  useEffect(() => {
+    fetchLogs()
+  }, [fetchLogs])
+
+  useRealtimeRefresh('admin:dashboard-update', fetchLogs)
 
   // Derive user list from loaded data
   const allUsers = useMemo(() => {
@@ -235,7 +241,7 @@ export default function AuditLogsPage() {
       {/* Loading state */}
       {loading ? (
         <Card padding="lg" className="text-center py-16 border-none shadow-card">
-          <div className="inline-block w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mb-3" />
+          <div className="inline-block w-6 h-6 border-2 border-amber-500 border-t-transparent rounded-full animate-spin mb-3" />
           <p className="text-sm text-slate-400">Đang tải nhật ký hoạt động...</p>
         </Card>
       ) : (
@@ -252,13 +258,13 @@ export default function AuditLogsPage() {
           <Card padding="none" className="overflow-hidden border-none shadow-card">
             {!isFiltered ? (
               <div className="text-center py-20">
-                <div className="text-5xl mb-4 opacity-30">📋</div>
+                <div className="text-5xl mb-4 opacity-30"><ClipboardList className="w-16 h-16 mx-auto text-gray-300" /></div>
                 <p className="text-sm font-bold text-slate-400">Chọn bộ lọc và nhấn &ldquo;Tìm kiếm&rdquo; để xem nhật ký</p>
                 <p className="text-xs text-slate-300 mt-1">Hỗ trợ lọc theo ngày, người dùng, thao tác và bảng dữ liệu</p>
               </div>
             ) : filteredLogs.length === 0 ? (
               <div className="text-center py-20">
-                <div className="text-5xl mb-4 opacity-30">🔍</div>
+                <div className="text-5xl mb-4 opacity-30"><Search className="w-16 h-16 mx-auto text-gray-300" /></div>
                 <p className="text-sm font-bold text-slate-400">Không tìm thấy kết quả nào</p>
                 <p className="text-xs text-slate-300 mt-1">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm</p>
                 <Button variant="ghost" size="sm" className="mt-4" onClick={() => {
@@ -291,7 +297,7 @@ export default function AuditLogsPage() {
                       <tr 
                         key={log.id} 
                         onClick={() => setSelectedLog(log)}
-                        className="hover:bg-indigo-50/30 transition-colors cursor-pointer group"
+                        className="hover:bg-amber-50/30 transition-colors cursor-pointer group"
                       >
                         <td className="px-6 py-4 font-mono text-[11px] text-slate-500 whitespace-nowrap">{formatTime(log.time)}</td>
                         <td className="px-6 py-4 font-bold text-slate-800">{log.user}</td>
@@ -314,7 +320,7 @@ export default function AuditLogsPage() {
                   {hasMore && (
                     <button
                       onClick={handleLoadMore}
-                      className="px-4 py-1.5 rounded-lg bg-white border border-slate-200 text-xs font-bold text-slate-500 hover:border-indigo-600 hover:text-indigo-600 transition-all"
+                      className="px-4 py-1.5 rounded-lg bg-white border border-slate-200 text-xs font-bold text-slate-500 hover:border-amber-600 hover:text-amber-600 transition-all"
                     >
                       Tải thêm kết quả ({filteredLogs.length - displayLimit} bản ghi)
                     </button>
@@ -380,7 +386,7 @@ export default function AuditLogsPage() {
                     // Could show a toast here
                   })
                 }}
-                className="text-[10px] font-bold text-indigo-600 hover:underline"
+                className="text-[10px] font-bold text-amber-600 hover:underline"
               >
                 Sao chép JSON
               </button>

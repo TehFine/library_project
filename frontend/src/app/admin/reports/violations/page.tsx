@@ -6,7 +6,9 @@ import Button from '@/components/ui/Button'
 import { cn } from '@/lib/utils'
 import { adminApi, borrowsApi, ViolationReportData } from '@/lib/api'
 import type { BorrowRecord } from '@/types'
+import { useRealtimeRefresh } from '@/hooks/useWebSocket'
 import toast from 'react-hot-toast'
+import { Send, CheckCircle, ClipboardList, Bell, Download, Megaphone } from 'lucide-react'
 
 type Tab = 'overdue' | 'frequent' | 'unpaid' | 'expiring'
 
@@ -37,6 +39,7 @@ export default function ViolationsReportPage() {
   }, [])
 
   useEffect(() => { fetchData() }, [fetchData])
+  useRealtimeRefresh('admin:dashboard-update', fetchData)
 
   const displayOverdue = reportData?.overdueReaders || []
   const displayExpiring = reportData?.expiringCards || []
@@ -107,10 +110,10 @@ export default function ViolationsReportPage() {
         />
         <div className="flex gap-2">
           <Button variant="secondary" size="sm" className="font-bold" onClick={handleSendReminderAll}>
-             📢 Gửi nhắc nhở tất cả
+            <Bell className="w-4 h-4" /> Gửi nhắc nhở tất cả
           </Button>
           <Button variant="ghost" size="sm" className="font-bold bg-white/50 border border-slate-200">
-             📥 Xuất danh sách
+            <Download className="w-4 h-4" /> Xuất danh sách
           </Button>
         </div>
       </div>
@@ -128,7 +131,7 @@ export default function ViolationsReportPage() {
             onClick={() => setActiveTab(t.id as Tab)}
             className={cn(
               'px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 flex items-center gap-2',
-              activeTab === t.id ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              activeTab === t.id ? 'bg-white text-amber-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
             )}
           >
             {t.label}
@@ -237,7 +240,7 @@ export default function ViolationsReportPage() {
                           {activeTab === 'expiring' ? (
                             <button
                               onClick={() => handleSendReminder(row.name, 'gia hạn thẻ')}
-                              className="text-xs font-bold text-indigo-600 hover:bg-indigo-50 px-3 py-1.5 rounded-lg transition-colors"
+                              className="text-xs font-bold text-amber-600 hover:bg-amber-50 px-3 py-1.5 rounded-lg transition-colors"
                             >
                               Gửi nhắc gia hạn
                             </button>
@@ -252,7 +255,7 @@ export default function ViolationsReportPage() {
                             <>
                               <button
                                 onClick={() => handleSendReminder(row.name, 'quá hạn')}
-                                className="text-xs font-bold text-indigo-600 hover:bg-indigo-50 px-3 py-1.5 rounded-lg transition-colors"
+                                className="text-xs font-bold text-amber-600 hover:bg-amber-50 px-3 py-1.5 rounded-lg transition-colors"
                               >
                                 Gửi nhắc nhở
                               </button>
@@ -280,7 +283,7 @@ export default function ViolationsReportPage() {
                 </p>
                 <div className="flex gap-1">
                   <button className="w-8 h-8 rounded-lg bg-white border border-slate-200 text-slate-400 flex items-center justify-center cursor-not-allowed">‹</button>
-                  <button className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold">1</button>
+                  <button className="w-8 h-8 rounded-lg bg-amber-600 text-white flex items-center justify-center font-bold">1</button>
                   <button className="w-8 h-8 rounded-lg bg-white border border-slate-200 text-slate-600 flex items-center justify-center hover:bg-slate-50 cursor-not-allowed">›</button>
                 </div>
               </div>
@@ -312,7 +315,7 @@ export default function ViolationsReportPage() {
       {/* Remind Modal */}
       <Modal open={showRemindModal} onClose={() => setShowRemindModal(false)} title="Gửi nhắc nhở" size="sm">
         <div className="space-y-4 text-center py-2">
-          <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center text-3xl mx-auto mb-2 animate-bounce">📢</div>
+          <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-2"><Megaphone className="w-8 h-8 text-amber-500 animate-bounce" /></div>
           <h3 className="text-sm font-bold text-slate-800">
             {remindTarget
               ? `Gửi nhắc nhở ${remindTarget.type} đến ${remindTarget.name}?`
@@ -324,7 +327,7 @@ export default function ViolationsReportPage() {
           </p>
           <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-left space-y-2">
             <div className="flex items-center gap-2">
-              <input type="checkbox" checked readOnly className="rounded border-indigo-300 text-indigo-600" />
+              <input type="checkbox" checked readOnly className="rounded border-amber-300 text-amber-600" />
               <span className="text-[10px] font-bold text-slate-600">Gửi qua Email (Khuyên dùng)</span>
             </div>
             <div className="flex items-center gap-2 opacity-50">
@@ -333,7 +336,7 @@ export default function ViolationsReportPage() {
             </div>
           </div>
           <div className="flex flex-col gap-2 pt-4">
-            <Button variant="primary" fullWidth onClick={confirmSend}>✅ Gửi ngay bây giờ</Button>
+            <Button variant="primary" fullWidth onClick={confirmSend}><Send className="w-4 h-4" /> Gửi ngay bây giờ</Button>
             <Button variant="ghost" fullWidth onClick={() => setShowRemindModal(false)}>Hủy</Button>
           </div>
         </div>
@@ -343,7 +346,7 @@ export default function ViolationsReportPage() {
       <Modal open={showHistoryModal} onClose={() => setShowHistoryModal(false)} title="Lịch sử mượn trả" size="md">
         <div className="space-y-4 py-2">
           <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
-            <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-lg">📋</div>
+            <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center"><ClipboardList className="w-5 h-5 text-amber-600" /></div>
             <div>
               <h3 className="text-sm font-bold text-slate-800">{historyTarget?.name}</h3>
               <p className="text-xs text-slate-500">Mã thẻ: <span className="font-mono font-bold text-slate-700">{historyTarget?.cardNumber}</span></p>
@@ -397,7 +400,7 @@ export default function ViolationsReportPage() {
       {/* Send Result Toast */}
       {showSendResult && (
         <div className="fixed bottom-6 right-6 bg-emerald-600 text-white px-6 py-3 rounded-xl shadow-lg flex items-center gap-3 text-sm font-bold z-50 animate-in slide-in-from-bottom-4">
-          <span>✅</span>
+          <CheckCircle className="w-5 h-5 text-emerald-500" />
           <span>Đã gửi nhắc nhở thành công!</span>
         </div>
       )}

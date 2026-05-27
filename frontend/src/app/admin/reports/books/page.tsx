@@ -7,7 +7,9 @@ import Select from '@/components/ui/Select'
 import { cn } from '@/lib/utils'
 import { adminApi, BookReportData } from '@/lib/api'
 import { exportToExcel, exportToPDF } from '@/lib/export'
+import { useRealtimeRefresh } from '@/hooks/useWebSocket'
 import toast from 'react-hot-toast'
+import { CheckCircle, XCircle } from 'lucide-react'
 
 type Tab = 'top' | 'stock' | 'replenish' | 'disposal'
 
@@ -35,6 +37,7 @@ export default function BookReportsPage() {
   }, [])
 
   useEffect(() => { fetchData() }, [fetchData])
+  useRealtimeRefresh('admin:dashboard-update', fetchData)
 
   const applyFilter = () => {
     if (!reportData) return
@@ -131,10 +134,10 @@ export default function BookReportsPage() {
         />
         <div className="flex gap-2">
           <Button variant="ghost" className="bg-white/50 border border-slate-200 text-xs font-bold" onClick={handleExportPDF}>
-            📄 Xuất PDF
+            Xuất PDF
           </Button>
           <Button variant="secondary" className="text-xs font-bold" onClick={handleExportExcel}>
-            📊 Xuất Excel
+            Xuất Excel
           </Button>
         </div>
       </div>
@@ -152,7 +155,7 @@ export default function BookReportsPage() {
             onClick={() => setActiveTab(t.id as Tab)}
             className={cn(
               'px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-200',
-              activeTab === t.id ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              activeTab === t.id ? 'bg-white text-amber-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
             )}
           >
             {t.label}
@@ -209,7 +212,7 @@ export default function BookReportsPage() {
                   ) : (
                     filteredBooks.map((b, i) => (
                       <tr key={b.rank} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="px-6 py-5 font-bold text-indigo-600">#{b.rank}</td>
+                        <td className="px-6 py-5 font-bold text-amber-600">#{b.rank}</td>
                         <td className="px-6 py-5">
                           <p className="text-sm font-bold text-slate-800">{b.title}</p>
                           <p className="text-xs text-slate-400">{b.author}</p>
@@ -230,7 +233,7 @@ export default function BookReportsPage() {
           {/* Content - Stock Status */}
           {activeTab === 'stock' && (
             <div className="space-y-6">
-              <Card padding="lg" className="bg-indigo-600 text-white border-none shadow-glow">
+              <Card padding="lg" className="bg-amber-600 text-white border-none shadow-glow">
                 <h3 className="text-xs font-bold uppercase tracking-widest opacity-60">Tổng quan kho sách</h3>
                 <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-8">
                   <div>
@@ -279,7 +282,7 @@ export default function BookReportsPage() {
                           <td className="px-6 py-4 text-center font-bold text-slate-600">{s.totalCopies}</td>
                           <td className="px-6 py-4 text-center font-black">
                             <span className={s.availableCopies === 0 ? 'text-red-600' : 'text-emerald-600'}>
-                              {s.availableCopies} {s.availableCopies === 0 ? '❌' : '✅'}
+                              {s.availableCopies} {s.availableCopies === 0 ? <XCircle className="w-3.5 h-3.5 inline text-red-500" /> : <CheckCircle className="w-3.5 h-3.5 inline text-emerald-500" />}
                             </span>
                           </td>
                           <td className="px-6 py-4 text-center text-slate-600 font-medium">{s.borrowedCopies}</td>
@@ -287,7 +290,7 @@ export default function BookReportsPage() {
                             {s.action && (
                               <button className={cn(
                                 "text-xs font-bold py-1 px-3 rounded-lg border",
-                                s.critical ? "border-indigo-100 bg-indigo-50 text-indigo-700 hover:bg-indigo-100" : "border-slate-100 bg-slate-50 text-slate-500"
+                                s.critical ? "border-amber-100 bg-amber-50 text-amber-700 hover:bg-amber-100" : "border-slate-100 bg-slate-50 text-slate-500"
                               )}>
                                 {s.action}
                               </button>
