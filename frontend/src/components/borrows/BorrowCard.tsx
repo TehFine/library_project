@@ -1,16 +1,18 @@
 import Image from 'next/image'
 import { BorrowRecord } from '@/types'
-import { formatDate, daysFromNow, borrowStatusMap, cn } from '@/lib/utils'
+import { formatDate, daysFromNow, borrowStatusMap, cn, getBookCoverUrl } from '@/lib/utils'
 import { Badge, Card } from '@/components/ui'
 import Button from '@/components/ui/Button'
 
 interface BorrowCardProps {
-  record: BorrowRecord
+  record: BorrowRecord & { returnRequested?: boolean }
   onRenew?: (id: string) => void
+  onRequestReturn?: (id: string) => void
   isRenewing?: boolean
+  isRequestingReturn?: boolean
 }
 
-export default function BorrowCard({ record, onRenew, isRenewing }: BorrowCardProps) {
+export default function BorrowCard({ record, onRenew, onRequestReturn, isRenewing, isRequestingReturn }: BorrowCardProps) {
   const daysLeft = daysFromNow(record.dueDate)
   const isActuallyOverdue = record.status === 'overdue' || (record.status === 'borrowing' && daysLeft <= 0)
   
@@ -18,6 +20,7 @@ export default function BorrowCard({ record, onRenew, isRenewing }: BorrowCardPr
   const canRenew = record.status === 'borrowing' && record.renewalCount === 0 && daysLeft > 0
   
   const book = record.book || record.bookCopy?.book
+  const coverSrc = book ? getBookCoverUrl(book) : null
 
   const urgency =
     isActuallyOverdue ? 'border-red-200 bg-red-50/30' :
@@ -29,8 +32,8 @@ export default function BorrowCard({ record, onRenew, isRenewing }: BorrowCardPr
       <div className="flex gap-4 p-4">
         {/* Cover Mini */}
         <div className="w-20 aspect-[2/3] rounded-lg overflow-hidden bg-gray-100 shrink-0 shadow-sm relative">
-          {book?.coverUrl ? (
-            <Image src={book.coverUrl} alt={book.title} fill className="object-cover" />
+          {coverSrc ? (
+            <Image src={coverSrc} alt={book!.title} fill sizes="80px" className="object-cover" />
           ) : (
             <div className="flex items-center justify-center h-full text-gray-300">
                <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>
@@ -94,6 +97,25 @@ export default function BorrowCard({ record, onRenew, isRenewing }: BorrowCardPr
             Gia hạn
           </Button>
         )}
+        {record.returnRequested ? (
+          <span className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg">
+            <svg className="w-3.5 h-3.5 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Đã yêu cầu trả
+          </span>
+        ) : onRequestReturn && record.status === 'borrowing' && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-blue-600 hover:bg-blue-50 h-8 px-3 rounded-lg border border-blue-200"
+            loading={isRequestingReturn}
+            onClick={() => onRequestReturn(record.id)}
+          >
+            Trả sách
+          </Button>
+        )}
+
       </div>
     </Card>
   )

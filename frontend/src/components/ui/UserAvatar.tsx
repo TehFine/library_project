@@ -86,7 +86,7 @@ export default function UserAvatar({ user, className }: UserAvatarProps) {
           </div>
 
           {/* Menu items */}
-          <div className="py-1">
+          <div className="p-2 space-y-1">
             <button
               onClick={() => { 
                 const path = user.role === 'reader' ? '/reader/profile' : 
@@ -94,21 +94,21 @@ export default function UserAvatar({ user, className }: UserAvatarProps) {
                 router.push(path); 
                 setOpen(false);
               }}
-              className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-amber-50 transition-colors"
+              className="flex items-center gap-3 w-full px-3 py-2.5 text-sm text-gray-500 hover:text-gray-800 bg-white border border-gray-100 hover:border-amber-200 hover:bg-amber-50 rounded-xl transition-all duration-200 group"
             >
-              <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <svg className="w-4 h-4 text-gray-400 group-hover:text-gray-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
               </svg>
-              Hồ sơ cá nhân
+              <span>Hồ sơ cá nhân</span>
             </button>
             <button
               onClick={handleLogout}
-              className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+              className="flex items-center gap-3 w-full px-3 py-2.5 text-sm text-gray-500 hover:text-gray-800 bg-white border border-gray-100 hover:border-amber-200 hover:bg-amber-50 rounded-xl transition-all duration-200 group"
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <svg className="w-4 h-4 text-gray-400 group-hover:text-gray-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
               </svg>
-              Đăng xuất
+              <span>Đăng xuất</span>
             </button>
           </div>
         </div>

@@ -117,6 +117,10 @@ export const borrowsApi = {
     }),
   renew: (id: string) =>
     request<import('@/types').BorrowRecord>(`/borrow-records/${id}/renew`, { method: 'POST' }),
+  requestReturn: (id: string) =>
+    request<any>(`/borrow-records/${id}/request-return`, { method: 'POST' }),
+  simulateReturn: (id: string) =>
+    request<any>(`/borrow-records/${id}/simulate-return`, { method: 'POST' }),
   findByCardNumber: (cardNumber: string) =>
     request<import('@/types').BorrowRecord[]>(`/borrow-records/by-card/${encodeURIComponent(cardNumber)}`),
 }
@@ -143,6 +147,8 @@ export const finesApi = {
     ),
   waive: (id: string, reason: string) =>
     request<any>(`/fines/${id}/waive`, { method: 'PATCH', body: JSON.stringify({ reason }) }),
+  simulatePayOnline: (id: string) =>
+    request<any>(`/fines/${id}/simulate-pay`, { method: 'POST' }),
   getAdminStats: (params?: { from?: string; to?: string; status?: string; fineType?: string }) =>
     request<{ summary: AdminFineSummary; transactions: AdminFineTransaction[] }>(
       `/fines/admin-stats${buildQueryString((params as any) ?? {})}`
@@ -199,7 +205,11 @@ export const librarianApi = {
   getCardDetails: (id: string) => request<any>(`/library-cards/${id}`),
   searchCopies: (q: string) => request<any[]>(`/books/copies/search?q=${encodeURIComponent(q)}`),
   findCopyByCode: (code: string) => request<any>(`/books/copies/${encodeURIComponent(code)}`),
+  getAvailableCopies: (bookId: string) => request<any>(`/books/${bookId}/available-copies`),
   findBorrowByCopyCode: (code: string) => request<any>(`/borrow-records/copy/${encodeURIComponent(code)}`),
+  searchBorrowByBookTitle: (q: string) => request<any[]>(`/borrow-records/search-by-book-title?q=${encodeURIComponent(q)}`),
+  getPendingReturns: () => request<any[]>('/borrow-records/pending-returns'),
+  approveReturn: (id: string, condition: string) => request<any>(`/borrow-records/${id}/approve-return`, { method: 'POST', body: JSON.stringify({ condition }) }),
   
   // Cards & Users
   searchUsers: (q: string) => request<User[]>(`/users/search?q=${encodeURIComponent(q)}`),
@@ -216,7 +226,7 @@ export const librarianApi = {
   renewCard: (id: string, duration: string) => request<any>(`/library-cards/${id}/renew`, { method: 'PATCH', body: JSON.stringify({ duration }) }),
   
   // Borrows
-  createBorrow: (dto: { cardId: string; copyId: string }) => request<any>('/borrow-records', { method: 'POST', body: JSON.stringify(dto) }),
+  createBorrow: (dto: { cardId: string; copyId: string; requestId?: string }) => request<any>('/borrow-records', { method: 'POST', body: JSON.stringify(dto) }),
   returnBook: (id: string, condition: string) => request<any>(`/borrow-records/${id}/return`, { method: 'PATCH', body: JSON.stringify({ condition }) }),
   
   // Borrow Requests
@@ -339,6 +349,60 @@ export const adminApi = {
   getAuditLogs: () => request<AuditLogEntry[]>('/admin/audit-logs'),
   getViolationReports: () => request<ViolationReportData>('/admin/reports/violations'),
   getAllUsers: () => request<User[]>('/admin/users'),
-  updateUserRole: (id: string, role: string) => request<User>(`/admin/users/${id}/role`, { method: 'PATCH', body: JSON.stringify({ role }) }),
-  toggleUserStatus: (id: string, isActive: boolean) => request<User>(`/admin/users/${id}/status`, { method: 'PATCH', body: JSON.stringify({ isActive }) }),
+  updateUserRole: (id: string, role: string) => request<User>(`/admin/users/${id}/role`, { method: 'PATCH', body: JSON.stringify({ role }) }),    toggleUserStatus: (id: string, isActive: boolean) => request<User>(`/admin/users/${id}/status`, { method: 'PATCH', body: JSON.stringify({ isActive }) }),
+}
+
+// ── Notifications ──────────────────────────────────────────────────────────────
+export interface NotificationTargetCounts {
+    all: number
+    overdue: number
+    expiring: number
+    debt: number
+}
+
+export interface AdminNotification {
+    id: string
+    type: string
+    title: string
+    content: string
+    targetGroup: string | null
+    customRecipients: string | null
+    recipientCount: number
+    sentCount: number
+    channel: string
+    status: 'draft' | 'sent'
+    variables: string[]
+    sentAt: string | null
+    createdById: string
+    createdAt: string
+}
+
+export const notificationApi = {
+    getTargetCounts: () => request<NotificationTargetCounts>('/admin/notifications/target-counts'),
+    list: () => request<AdminNotification[]>('/admin/notifications'),
+    getOne: (id: string) => request<AdminNotification>(`/admin/notifications/${id}`),
+    create: (data: {
+        title: string
+        content: string
+        targetGroup?: string
+        customRecipients?: string
+        variables?: string[]
+        status?: 'draft' | 'sent'
+    }) => request<AdminNotification>('/admin/notifications', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    }),
+    sendTest: (id: string) => request<{ message: string; id: string }>(`/admin/notifications/${id}/send-test`, {
+        method: 'POST',
+    }),
+    updateDraft: (id: string, data: Partial<{
+        title: string
+        content: string
+        targetGroup: string
+        customRecipients: string
+        variables: string[]
+    }>) => request<AdminNotification>(`/admin/notifications/${id}/draft`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+    }),
 }

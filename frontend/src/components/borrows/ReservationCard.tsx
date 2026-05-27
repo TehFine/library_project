@@ -1,6 +1,6 @@
 import Image from 'next/image'
 import { Reservation } from '@/types'
-import { formatDate, reservationStatusMap, cn } from '@/lib/utils'
+import { formatDate, reservationStatusMap, cn, getBookCoverUrl } from '@/lib/utils'
 import { Badge, Card } from '@/components/ui'
 import Button from '@/components/ui/Button'
 
@@ -13,6 +13,7 @@ interface ReservationCardProps {
 export default function ReservationCard({ reservation, onCancel, isCancelling }: ReservationCardProps) {
   const statusInfo = reservationStatusMap[reservation.status]
   const book = reservation.book
+  const coverSrc = book ? getBookCoverUrl(book) : null
   const canCancel = ['waiting', 'notified'].includes(reservation.status)
 
   const isNotified = reservation.status === 'notified'
@@ -23,8 +24,8 @@ export default function ReservationCard({ reservation, onCancel, isCancelling }:
       <div className="flex gap-4 p-4">
         {/* Cover Mini */}
         <div className="w-20 aspect-[2/3] rounded-lg overflow-hidden bg-gray-100 shrink-0 shadow-sm relative">
-          {book?.coverUrl ? (
-            <Image src={book.coverUrl} alt={book.title} fill className="object-cover" />
+          {coverSrc ? (
+            <Image src={coverSrc} alt={book!.title} fill sizes="80px" className="object-cover" />
           ) : (
             <div className="flex items-center justify-center h-full text-gray-300">
                <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>

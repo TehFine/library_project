@@ -75,6 +75,31 @@ export const cardStatusMap: Record<string, { label: string; color: string }> = {
   cancelled: { label: 'Đã hủy',       color: 'bg-gray-100 text-gray-500' },
 }
 
+// ── Book cover URL (only returns stored coverUrl from DB) ────────────────────
+export function getBookCoverUrl(book: { coverUrl?: string | null }): string | null {
+  return book.coverUrl ?? null
+}
+
+// ── Open Library cover URL (returns a direct image URL; ?default=false → 404 if missing) ──
+export function getOpenLibraryCoverUrl(isbn: string): string {
+  return `https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg?default=false`
+}
+
+// ── Google Books API cover (async; no API key needed for public data) ─────────
+export async function getGoogleBooksCover(isbn: string): Promise<string | null> {
+  try {
+    const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`)
+    const data = await res.json()
+    // Prefer large, fall back to thumbnail, upgrade http→https
+    const links = data?.items?.[0]?.volumeInfo?.imageLinks
+    const url = links?.large || links?.medium || links?.thumbnail
+    if (url) return url.replace('http://', 'https://')
+    return null
+  } catch {
+    return null
+  }
+}
+
 // ── Truncate text ─────────────────────────────────────────────────────────────
 export function truncate(str: string, maxLength: number): string {
   if (str.length <= maxLength) return str
