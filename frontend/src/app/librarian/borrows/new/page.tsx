@@ -5,9 +5,10 @@ import PageHeader from '@/components/layout/PageHeader'
 import { Card } from '@/components/ui'
 import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
-import { librarianApi } from '@/lib/api'
+import { librarianApi, booksApi } from '@/lib/api'
 import { toast } from 'react-hot-toast'
 import { cn, formatCurrency } from '@/lib/utils'
+import { Search, Barcode, Book, Check, TriangleAlert, XCircle, Home, BookOpen, Printer } from 'lucide-react'
 
 export default function NewBorrowPage() {
   const [step, setStep] = useState(1)
@@ -19,15 +20,80 @@ export default function NewBorrowPage() {
   const [searchResults, setSearchResults] = useState<any[]>([])
   
   // Step 2 State
+  const [searchMode, setSearchMode] = useState<'title' | 'code'>('title')
   const [searchBook, setSearchBook] = useState('')
   const [selectedBooks, setSelectedBooks] = useState<any[]>([])
   const [isSearchingBook, setIsSearchingBook] = useState(false)
+  const [bookSearchResults, setBookSearchResults] = useState<any[]>([])
+  const [isSearchingBookTitle, setIsSearchingBookTitle] = useState(false)
+  const [selectedBookForCopies, setSelectedBookForCopies] = useState<any>(null)
+  const [availableCopies, setAvailableCopies] = useState<any[]>([])
+  const [loadingCopies, setLoadingCopies] = useState(false)
 
   // Step 3 State
   const [borrowType, setBorrowType] = useState('home')
 
   // Step 4 State
   const [borrowResults, setBorrowResults] = useState<any[]>([])
+
+  // Request prefill: nếu đến từ trang duyệt yêu cầu
+  const [prefillRequestId, setPrefillRequestId] = useState<string | null>(null)
+
+  useEffect(() => {
+    const raw = sessionStorage.getItem('borrow_request_prefill')
+    if (!raw) return
+    sessionStorage.removeItem('borrow_request_prefill')
+
+    let cancelled = false
+
+    async function doPrefill() {
+      try {
+        const data = JSON.parse(raw as string)
+        if (data.requestId && !cancelled) setPrefillRequestId(data.requestId)
+
+        // 1. Lấy thông tin reader
+        const details = await librarianApi.getCardDetails(data.cardId)
+        if (cancelled) return
+
+        const borrowingCount = details.borrowRecords?.filter((r: any) => r.status === 'borrowing').length || 0
+        const overdueCount   = details.borrowRecords?.filter((r: any) => r.status === 'borrowing' && new Date(r.dueDate) < new Date()).length || 0
+
+        setSelectedReader({
+          ...details,
+          borrowingCount,
+          overdueCount,
+          status: details.status === 'active' && overdueCount === 0 ? 'valid' : 'invalid',
+          reason: details.status !== 'active'
+            ? 'Thẻ đang bị khóa hoặc hết hạn'
+            : overdueCount > 0
+              ? 'Độc giả đang có sách quá hạn'
+              : '',
+        })
+
+        // 2. Lấy available copies
+        const res = await librarianApi.getAvailableCopies(data.bookId)
+        if (cancelled) return
+        const copies = res.availableCopies ?? []
+
+        if (copies.length === 0) {
+          toast.error('Cuốn sách yêu cầu hiện không còn bản sao nào có sẵn')
+          return
+        }
+
+        // 3. Auto-chọn bản sao đầu tiên
+        const copy = copies[0]
+        setSelectedBooks(prev => [...prev, copy])
+
+        // 4. Chuyển tới bước xác nhận
+        if (!cancelled) setStep(3)
+      } catch (err) {
+        toast.error('Không thể tự động điền thông tin từ yêu cầu mượn')
+      }
+    }
+
+    doPrefill()
+    return () => { cancelled = true }
+  }, [])
 
   const handleSearchReader = async () => {
     if (!searchReader) return
@@ -65,6 +131,58 @@ export default function NewBorrowPage() {
     }
   }
 
+  const handleSearchBookTitle = async () => {
+    if (!searchBook) return
+    setIsSearchingBookTitle(true)
+    setBookSearchResults([])
+    setSelectedBookForCopies(null)
+    try {
+      const res = await booksApi.list({ search: searchBook })
+      const books = Array.isArray(res) ? res : res.data ?? []
+      setBookSearchResults(books)
+      if (books.length === 0) {
+        toast.error('Không tìm thấy sách nào')
+      }
+    } catch (err) {
+      toast.error('Lỗi khi tìm kiếm sách')
+    } finally {
+      setIsSearchingBookTitle(false)
+    }
+  }
+
+  const handleSelectBookForCopies = async (bookId: string) => {
+    setSelectedBookForCopies(bookId)
+    setLoadingCopies(true)
+    setAvailableCopies([])
+    try {
+      const res = await librarianApi.getAvailableCopies(bookId)
+      const copies = res.availableCopies ?? []
+      if (copies.length === 0) {
+        toast.error('Cuốn sách này hiện không còn bản sao nào có sẵn')
+        setSelectedBookForCopies(null)
+      }
+      setAvailableCopies(copies)
+    } catch (err) {
+      toast.error('Lỗi khi lấy danh sách bản sao')
+      setSelectedBookForCopies(null)
+    } finally {
+      setLoadingCopies(false)
+    }
+  }
+
+  const handleSelectCopy = (copy: any) => {
+    if (selectedBooks.find(b => b.id === copy.id)) {
+      toast.error('Sách đã có trong danh sách')
+      return
+    }
+    setSelectedBooks([...selectedBooks, copy])
+    setSearchBook('')
+    setBookSearchResults([])
+    setSelectedBookForCopies(null)
+    setAvailableCopies([])
+    toast.success(`Đã thêm: ${copy.book?.title || copy.bookTitle}`)
+  }
+
   const handleAddBook = async () => {
     if (!searchBook) return
     setIsSearchingBook(true)
@@ -94,10 +212,13 @@ export default function NewBorrowPage() {
   const handleSubmit = async () => {
     try {
       const results = []
-      for (const book of selectedBooks) {
+      for (let i = 0; i < selectedBooks.length; i++) {
+        const book = selectedBooks[i]
         const res = await librarianApi.createBorrow({
           cardId: selectedReader.id,
-          copyId: book.id
+          copyId: book.id,
+          // Chỉ gửi requestId cho sách đầu tiên (sách từ yêu cầu mượn)
+          ...(prefillRequestId && i === 0 ? { requestId: prefillRequestId } : {}),
         })
         results.push(res)
       }
@@ -174,14 +295,14 @@ export default function NewBorrowPage() {
                 <div className="flex items-start justify-between">
                   <div>
                     <h4 className={`text-lg font-bold flex items-center gap-2 ${selectedReader.status === 'valid' ? 'text-emerald-800' : 'text-red-800'}`}>
-                      {selectedReader.status === 'valid' ? '✅' : '⚠️'} 
+                      {selectedReader.status === 'valid' ? <Check className="w-5 h-5 text-emerald-600" /> : <TriangleAlert className="w-5 h-5 text-red-600" />} 
                       {(selectedReader.user?.fullName || selectedReader.user?.username).toUpperCase()} — Thẻ: {selectedReader.cardNumber}
                     </h4>
                     <p className={`mt-2 text-sm ${selectedReader.status === 'valid' ? 'text-emerald-600' : 'text-red-600'}`}>
                       Hạn dùng: {selectedReader.expiryDate} • Đang mượn: {selectedReader.borrowingCount}/{maxBooks} • {selectedReader.overdueCount > 0 ? `CÓ ${selectedReader.overdueCount} SÁCH QUÁ HẠN` : 'Không có sách quá hạn'}
                     </p>
                     {selectedReader.status === 'invalid' && (
-                      <p className="mt-1 font-bold text-red-700">❌ {selectedReader.reason}</p>
+                      <p className="mt-1 font-bold text-red-700 flex items-center gap-1"><XCircle className="w-4 h-4" /> {selectedReader.reason}</p>
                     )}
                   </div>
                 </div>
@@ -199,30 +320,146 @@ export default function NewBorrowPage() {
         {step === 2 && (
           <div className="space-y-6">
             <h3 className="text-lg font-bold">Thêm sách vào phiếu</h3>
-            <div className="flex gap-3">
-              <Input 
-                value={searchBook}
-                onChange={e => setSearchBook(e.target.value)}
-                placeholder="Quét mã vạch bản sao (VD: 3901-001)..." 
-                className="flex-1"
-                onKeyDown={e => e.key === 'Enter' && handleAddBook()}
-                autoFocus
-              />
-              <Button onClick={handleAddBook} loading={isSearchingBook}>Thêm sách</Button>
+
+            {/* Mode Switcher */}
+            <div className="flex gap-2 bg-gray-50 p-1.5 rounded-2xl w-fit">
+              <button
+                onClick={() => { setSearchMode('title'); setSearchBook(''); setBookSearchResults([]); setSelectedBookForCopies(null); setAvailableCopies([]) }}
+                className={cn(
+                  'px-5 py-2.5 text-sm font-semibold transition-all duration-200 rounded-xl',
+                  searchMode === 'title'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700',
+                )}
+              >
+                <Search className="w-4 h-4" /> Tìm theo tên sách
+              </button>
+              <button
+                onClick={() => { setSearchMode('code'); setSearchBook(''); setBookSearchResults([]); setSelectedBookForCopies(null); setAvailableCopies([]) }}
+                className={cn(
+                  'px-5 py-2.5 text-sm font-semibold transition-all duration-200 rounded-xl',
+                  searchMode === 'code'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700',
+                )}
+              >
+                <Barcode className="w-4 h-4" /> Quét mã vạch
+              </button>
             </div>
 
+            {/* Search / Input */}
+            {searchMode === 'code' ? (
+              <div className="flex gap-3">
+                <Input 
+                  value={searchBook}
+                  onChange={e => setSearchBook(e.target.value)}
+                  placeholder="Quét mã vạch bản sao (VD: 3333-001)..." 
+                  className="flex-1"
+                  onKeyDown={e => e.key === 'Enter' && handleAddBook()}
+                />
+                <Button onClick={handleAddBook} loading={isSearchingBook}>Thêm sách</Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex gap-3">
+                  <Input 
+                    value={searchBook}
+                    onChange={e => setSearchBook(e.target.value)}
+                    placeholder="Nhập tên sách (VD: Harry Potter)..." 
+                    className="flex-1"
+                    onKeyDown={e => e.key === 'Enter' && handleSearchBookTitle()}
+                  />
+                  <Button onClick={handleSearchBookTitle} loading={isSearchingBookTitle}>Tìm sách</Button>
+                </div>
+
+                {/* Book Search Results */}
+                {bookSearchResults.length > 0 && !selectedBookForCopies && (
+                  <div className="border border-gray-100 rounded-2xl overflow-hidden divide-y divide-gray-50">
+                    {bookSearchResults.map((book: any) => (
+                      <div
+                        key={book.id}
+                        className="p-4 hover:bg-gray-50 cursor-pointer flex items-center justify-between transition-colors"
+                        onClick={() => handleSelectBookForCopies(book.id)}
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className="w-10 h-12 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center text-lg font-bold shrink-0"><Book className="w-5 h-5" /></div>
+                          <div>
+                            <p className="font-bold text-gray-900">{book.title}</p>
+                            <p className="text-xs text-gray-500">{book.author}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm font-bold text-emerald-600">Còn {book.availableCopies} bản</span>
+                          <span className="text-gray-300">→</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Available Copies for Selected Book */}
+                {selectedBookForCopies && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-bold text-gray-700">
+                        Chọn bản sao có sẵn cho sách này:
+                      </p>
+                      <button
+                        onClick={() => { setSelectedBookForCopies(null); setAvailableCopies([]) }}
+                        className="text-xs text-gray-400 hover:text-gray-600"
+                      >
+                        ← Tìm lại
+                      </button>
+                    </div>
+                    {loadingCopies ? (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        {[...Array(3)].map((_, i) => (
+                          <div key={i} className="h-20 rounded-2xl bg-gray-100 animate-pulse" />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        {availableCopies.map((copy: any) => (
+                          <button
+                            key={copy.id}
+                            onClick={() => handleSelectCopy(copy)}
+                            disabled={!!selectedBooks.find(b => b.id === copy.id)}
+                            className={cn(
+                              'p-4 rounded-2xl border-2 text-left transition-all',
+                              selectedBooks.find(b => b.id === copy.id)
+                                ? 'border-gray-200 bg-gray-50 opacity-50 cursor-not-allowed'
+                                : 'border-emerald-100 bg-emerald-50/50 hover:border-emerald-400 hover:bg-emerald-50 hover:shadow-md cursor-pointer',
+                            )}
+                          >
+                            <p className="font-mono font-bold text-sm">{copy.copyCode}</p>
+                            <p className="text-[11px] text-gray-500 mt-1">
+                              Tình trạng: {copy.condition === 'new' ? 'Mới' : copy.condition === 'good' ? 'Tốt' : copy.condition}
+                            </p>
+                            <p className="text-[10px] text-emerald-600 font-semibold mt-1 flex items-center gap-1"><Check className="w-3 h-3" /> Có sẵn</p>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Selected Books List */}
             <div className="space-y-3 mt-6">
               <p className="font-medium text-gray-700">Sách đã thêm ({selectedBooks.length}/{maxBooks - selectedReader.borrowingCount})</p>
               {selectedBooks.length === 0 ? (
                 <div className="p-8 text-center text-gray-400 border-2 border-dashed border-gray-100 rounded-2xl bg-gray-50/50">
-                  Chưa có sách nào được chọn. Quét mã vạch để thêm sách.
+                  {searchMode === 'title'
+                    ? 'Chưa có sách nào. Tìm sách theo tên và chọn bản sao bên trên.'
+                    : 'Chưa có sách nào được chọn. Quét mã vạch để thêm sách.'}
                 </div>
               ) : (
                 <div className="space-y-2">
                   {selectedBooks.map(b => (
                     <div key={b.id} className="flex items-center justify-between p-4 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-12 bg-amber-50 text-amber-600 rounded-lg flex items-center justify-center text-xl font-bold">📖</div>
+                        <div className="w-10 h-12 bg-amber-50 text-amber-600 rounded-lg flex items-center justify-center text-xl font-bold"><Book className="w-5 h-5" /></div>
                         <div>
                           <p className="font-bold text-gray-900">{b.book?.title}</p>
                           <p className="text-xs text-gray-500">Mã BC: <span className="font-mono">{b.copyCode}</span> • Tình trạng: {b.condition}</p>
@@ -256,13 +493,11 @@ export default function NewBorrowPage() {
                   <label className="text-sm font-bold text-gray-700 uppercase tracking-wider">Loại mượn</label>
                   <div className="flex gap-4">
                     <label className={cn("flex-1 flex items-center gap-3 p-4 border rounded-2xl cursor-pointer transition-all", borrowType === 'home' ? "bg-primary/5 border-primary text-primary" : "border-gray-100 hover:bg-gray-50")}>
-                      <input type="radio" checked={borrowType === 'home'} onChange={() => setBorrowType('home')} className="hidden" />
-                      <span className="text-xl">🏠</span>
+                      <input type="radio" checked={borrowType === 'home'} onChange={() => setBorrowType('home')} className="hidden" />                        <Home className="w-5 h-5" />
                       <span className="font-bold">Mượn về nhà</span>
                     </label>
                     <label className={cn("flex-1 flex items-center gap-3 p-4 border rounded-2xl cursor-pointer transition-all", borrowType === 'library' ? "bg-primary/5 border-primary text-primary" : "border-gray-100 hover:bg-gray-50")}>
-                      <input type="radio" checked={borrowType === 'library'} onChange={() => setBorrowType('library')} className="hidden" />
-                      <span className="text-xl">📚</span>
+                      <input type="radio" checked={borrowType === 'library'} onChange={() => setBorrowType('library')} className="hidden" />                        <BookOpen className="w-5 h-5" />
                       <span className="font-bold">Đọc tại chỗ</span>
                     </label>
                   </div>
@@ -302,7 +537,7 @@ export default function NewBorrowPage() {
 
             <div className="flex justify-between pt-6 border-t border-gray-100 mt-6">
               <Button variant="ghost" onClick={() => setStep(2)}>← Quay lại</Button>
-              <Button variant="primary" onClick={handleSubmit}>✅ Xác nhận & Tạo phiếu</Button>
+              <Button variant="primary" onClick={handleSubmit}><Check className="w-4 h-4" /> Xác nhận & Tạo phiếu</Button>
             </div>
           </div>
         )}
@@ -327,7 +562,7 @@ export default function NewBorrowPage() {
             </div>
 
             <div className="flex justify-center gap-4 pt-8">
-              <Button variant="ghost" onClick={() => window.print()} className="rounded-full">🖨️ In phiếu mượn</Button>
+              <Button variant="ghost" onClick={() => window.print()} className="rounded-full"><Printer className="w-4 h-4" /> In phiếu mượn</Button>
               <Button variant="secondary" onClick={() => { setStep(1); setSelectedReader(null); setSelectedBooks([]); setSearchReader(''); setSearchBook('') }} className="rounded-full">Mượn tiếp</Button>
               <Link href="/librarian/dashboard">
                 <Button variant="primary" className="rounded-full px-8">Hoàn tất</Button>

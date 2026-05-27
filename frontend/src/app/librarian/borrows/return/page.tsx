@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import PageHeader from '@/components/layout/PageHeader'
 import { Card } from '@/components/ui'
@@ -7,16 +7,24 @@ import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
 import { librarianApi } from '@/lib/api'
 import { toast } from 'react-hot-toast'
-import { cn, formatCurrency } from '@/lib/utils'
+import { formatCurrency } from '@/lib/utils'
+import { Barcode, Search, Book, BookMarked, BookX, TriangleAlert, XCircle, Printer, Check } from 'lucide-react'
 
 export default function ReturnBorrowPage() {
   const [step, setStep] = useState(1)
-  
+
+  // Search mode: 'code' (quét mã vạch) or 'title' (tìm tên sách)
+  const [searchMode, setSearchMode] = useState<'code' | 'title'>('code')
+
   // Step 1 State
   const [searchRecord, setSearchRecord] = useState('')
   const [selectedRecord, setSelectedRecord] = useState<any | null>(null)
   const [isSearching, setIsSearching] = useState(false)
-  
+
+  // Book title search results
+  const [titleSearchResults, setTitleSearchResults] = useState<any[]>([])
+  const [isSearchingTitle, setIsSearchingTitle] = useState(false)
+
   // Step 2 State
   const [condition, setCondition] = useState('good')
   const [conditionNote, setConditionNote] = useState('')
@@ -26,7 +34,78 @@ export default function ReturnBorrowPage() {
   const [isSuccess, setIsSuccess] = useState(false)
   const [returnResult, setReturnResult] = useState<any>(null)
 
-  const handleSearchRecord = async () => {
+  // ── Prefill from requests page ──
+  useEffect(() => {
+    const raw = sessionStorage.getItem('return_request_prefill')
+    if (!raw) return
+    sessionStorage.removeItem('return_request_prefill')
+
+    let cancelled = false
+    async function doPrefill() {
+      try {
+        const data = JSON.parse(raw as string)
+        if (data.borrowRecordId) {
+          // Có borrowRecordId → tìm theo mã copy code
+          setSearchRecord(data.copyCode || '')
+          if (data.copyCode) {
+            const record = await librarianApi.findBorrowByCopyCode(data.copyCode)
+            if (cancelled) return
+            if (record) {
+              const today = new Date()
+              const dueDate = new Date(record.dueDate)
+              let fine = 0
+              let daysOverdue = 0
+              if (today > dueDate) {
+                const diffTime = today.getTime() - dueDate.getTime()
+                daysOverdue = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+                fine = daysOverdue * 1000
+              }
+              if (!cancelled) {
+                setSelectedRecord({ ...record, fine, daysOverdue })
+              }
+            } else {
+              toast.error('Không tìm thấy phiếu mượn')
+            }
+          }
+        } else {
+          // Không có borrowRecordId → search bằng copyCode
+          setSearchRecord(data.copyCode || '')
+          // Tự động tìm kiếm
+          if (data.copyCode) {
+            try {
+              const record = await librarianApi.findBorrowByCopyCode(data.copyCode)
+              if (cancelled) return
+              if (record) {
+                const today = new Date()
+                const dueDate = new Date(record.dueDate)
+                let fine = 0
+                let daysOverdue = 0
+                if (today > dueDate) {
+                  const diffTime = today.getTime() - dueDate.getTime()
+                  daysOverdue = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+                  fine = daysOverdue * 1000
+                }
+                if (!cancelled) {
+                  setSelectedRecord({ ...record, fine, daysOverdue })
+                }
+              } else {
+                toast.error('Không tìm thấy phiếu mượn')
+              }
+            } catch (err) {
+              toast.error('Lỗi khi tìm kiếm phiếu mượn')
+            }
+          }
+        }
+      } catch (err) {
+        toast.error('Lỗi xử lý dữ liệu từ yêu cầu trả')
+      }
+    }
+    doPrefill()
+    return () => { cancelled = true }
+  }, [])
+
+  // ── Search by copy code ──
+  const handleSearchByCode = async () => {
     if (!searchRecord) return
     setIsSearching(true)
     try {
@@ -35,30 +114,56 @@ export default function ReturnBorrowPage() {
         toast.error('Không tìm thấy phiếu mượn đang hoạt động cho mã sách này')
         return
       }
-      
-      // Tính phí phạt trễ hạn sơ bộ
+
       const today = new Date()
       const dueDate = new Date(record.dueDate)
       let fine = 0
       let daysOverdue = 0
-      
       if (today > dueDate) {
         const diffTime = today.getTime() - dueDate.getTime()
         daysOverdue = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-        // Quy định tạm thời: 1000đ/ngày
-        fine = daysOverdue * 1000 
+        fine = daysOverdue * 1000
       }
-      
-      setSelectedRecord({
-        ...record,
-        fine,
-        daysOverdue
-      })
+
+      setSelectedRecord({ ...record, fine, daysOverdue })
+      setTitleSearchResults([])
     } catch (err) {
       toast.error('Lỗi khi tìm kiếm phiếu mượn')
     } finally {
       setIsSearching(false)
     }
+  }
+
+  // ── Search by book title ──
+  const handleSearchByTitle = async () => {
+    if (!searchRecord) return
+    setIsSearchingTitle(true)
+    setTitleSearchResults([])
+    try {
+      const results = await librarianApi.searchBorrowByBookTitle(searchRecord)
+      setTitleSearchResults(Array.isArray(results) ? results : [])
+      if (!results || results.length === 0) {
+        toast.error('Không tìm thấy phiếu mượn nào phù hợp')
+      }
+    } catch (err) {
+      toast.error('Lỗi khi tìm kiếm sách')
+    } finally {
+      setIsSearchingTitle(false)
+    }
+  }
+
+  const selectBorrowRecord = (record: any) => {
+    const today = new Date()
+    const dueDate = new Date(record.dueDate)
+    let fine = 0
+    let daysOverdue = 0
+    if (today > dueDate) {
+      const diffTime = today.getTime() - dueDate.getTime()
+      daysOverdue = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+      fine = daysOverdue * 1000
+    }
+    setSelectedRecord({ ...record, fine, daysOverdue })
+    setTitleSearchResults([])
   }
 
   const damageFine = condition === 'damaged' ? 50000 : 0
@@ -68,10 +173,6 @@ export default function ReturnBorrowPage() {
     try {
       const res = await librarianApi.returnBook(selectedRecord.id, condition)
       setReturnResult(res)
-      
-      // Nếu có phí phạt, có thể gọi API tạo record phạt ở đây nếu backend chưa tự tạo
-      // ...
-      
       setIsSuccess(true)
       toast.success('Nhận trả sách thành công')
     } catch (err: any) {
@@ -97,10 +198,10 @@ export default function ReturnBorrowPage() {
                 </div>
               )}
             </div>
-            
+
             <div className="flex justify-center gap-4 pt-6">
-              {totalFine > 0 && <Button variant="ghost" onClick={() => window.print()}>🖨️ In biên lai</Button>}
-              <Button variant="secondary" onClick={() => { setStep(1); setIsSuccess(false); setSelectedRecord(null); setSearchRecord(''); setCondition('good'); setConditionNote('') }}>Nhận trả tiếp</Button>
+              {totalFine > 0 && <Button variant="ghost" onClick={() => window.print()}><Printer className="w-4 h-4" /> In biên lai</Button>}
+              <Button variant="secondary" onClick={() => { setStep(1); setIsSuccess(false); setSelectedRecord(null); setSearchRecord(''); setCondition('good'); setConditionNote(''); setTitleSearchResults([]) }}>Nhận trả tiếp</Button>
               <Link href="/librarian/dashboard">
                 <Button variant="primary">Về tổng quan</Button>
               </Link>
@@ -121,7 +222,7 @@ export default function ReturnBorrowPage() {
         }`} 
       />
 
-      {/* Tiến trình */}
+      {/* Progress */}
       <div className="flex items-center justify-between mb-8 relative px-12">
         <div className="absolute left-16 right-16 top-1/2 -translate-y-1/2 h-1 bg-gray-200 -z-10 rounded-full overflow-hidden">
           <div className="h-full bg-emerald-500 transition-all duration-300" style={{ width: `${((step - 1) / 2) * 100}%` }} />
@@ -141,25 +242,98 @@ export default function ReturnBorrowPage() {
         {step === 1 && (
           <div className="space-y-6">
             <h3 className="text-lg font-bold">Xác định phiếu mượn</h3>
+
             {!selectedRecord ? (
-              <div className="space-y-4">
-                <div className="flex gap-3">
-                  <Input 
-                    value={searchRecord}
-                    onChange={e => setSearchRecord(e.target.value)}
-                    placeholder="Quét mã vạch sách (VD: 3901-001)..." 
-                    className="flex-1"
-                    onKeyDown={e => e.key === 'Enter' && handleSearchRecord()}
-                    autoFocus
-                  />
-                  <Button onClick={handleSearchRecord} loading={isSearching}>Tìm kiếm</Button>
+              <div className="space-y-6">
+                {/* Search Mode Toggle */}
+                <div className="flex gap-2 bg-gray-50 p-1.5 rounded-2xl w-fit">
+                  <button
+                    onClick={() => { setSearchMode('code'); setSearchRecord(''); setTitleSearchResults([]) }}
+                    className={`px-5 py-2.5 text-sm font-semibold transition-all duration-200 rounded-xl ${
+                      searchMode === 'code'
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    <Barcode className="w-4 h-4" /> Quét mã vạch
+                  </button>
+                  <button
+                    onClick={() => { setSearchMode('title'); setSearchRecord(''); setTitleSearchResults([]) }}
+                    className={`px-5 py-2.5 text-sm font-semibold transition-all duration-200 rounded-xl ${
+                      searchMode === 'title'
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    <Search className="w-4 h-4" /> Tìm theo tên sách
+                  </button>
                 </div>
+
+                {/* Code Search */}
+                {searchMode === 'code' ? (
+                  <div className="flex gap-3">
+                    <Input 
+                      value={searchRecord}
+                      onChange={e => setSearchRecord(e.target.value)}
+                      placeholder="Quét mã vạch sách (VD: 3901-001)..."
+                      className="flex-1"
+                      onKeyDown={e => e.key === 'Enter' && handleSearchByCode()}
+                      autoFocus
+                    />
+                    <Button onClick={handleSearchByCode} loading={isSearching}>Tìm kiếm</Button>
+                  </div>
+                ) : (
+                  /* Book Title Search */
+                  <div className="space-y-4">
+                    <div className="flex gap-3">
+                      <Input 
+                        value={searchRecord}
+                        onChange={e => setSearchRecord(e.target.value)}
+                        placeholder="Nhập tên sách hoặc mã bản sao..."
+                        className="flex-1"
+                        onKeyDown={e => e.key === 'Enter' && handleSearchByTitle()}
+                      />
+                      <Button onClick={handleSearchByTitle} loading={isSearchingTitle}>Tìm kiếm</Button>
+                    </div>
+
+                    {/* Title Search Results */}
+                    {titleSearchResults.length > 0 && (
+                      <div className="border border-gray-100 rounded-2xl overflow-hidden divide-y divide-gray-50">
+                        {titleSearchResults.map((r: any) => (
+                          <div
+                            key={r.id}
+                            className="p-4 hover:bg-gray-50 cursor-pointer flex items-center justify-between transition-colors"
+                            onClick={() => selectBorrowRecord(r)}
+                          >
+                            <div className="flex items-center gap-4">
+                              <div className={`w-10 h-12 rounded flex items-center justify-center text-lg font-bold shrink-0 ${
+                                new Date(r.dueDate) < new Date() ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'
+                              }`}>
+                                {new Date(r.dueDate) < new Date() ? <BookX className="w-5 h-5" /> : <Book className="w-5 h-5" />}
+                              </div>
+                              <div>
+                                <p className="font-bold text-gray-900 text-sm">{r.bookCopy?.book?.title}</p>
+                                <p className="text-xs text-gray-500 mt-0.5">
+                                  Mã BC: <span className="font-mono">{r.bookCopy?.copyCode}</span>
+                                  {' • '}Độc giả: <span className="font-medium">{r.libraryCard?.user?.profile?.fullName || r.libraryCard?.user?.username}</span>
+                                </p>
+                              </div>
+                            </div>
+                            <span className="text-xs text-gray-400 shrink-0 ml-4">
+                              Hạn: {r.dueDate}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             ) : (
               <div className={`p-5 rounded-2xl border ${selectedRecord.daysOverdue <= 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}`}>
                 <div className="flex items-start gap-4">
                   <div className={`w-12 h-16 rounded flex items-center justify-center text-2xl ${selectedRecord.daysOverdue <= 0 ? 'bg-emerald-100' : 'bg-red-100'}`}>
-                    {selectedRecord.daysOverdue <= 0 ? '📗' : '📕'}
+                    {selectedRecord.daysOverdue <= 0 ? <BookMarked className="w-6 h-6" /> : <BookX className="w-6 h-6" />}
                   </div>
                   <div>
                     <h4 className="text-lg font-bold text-gray-900">
@@ -169,12 +343,12 @@ export default function ReturnBorrowPage() {
                       Mượn bởi: <span className="font-medium text-gray-900">{selectedRecord.libraryCard?.user?.fullName || selectedRecord.libraryCard?.user?.username}</span> • Ngày mượn: {selectedRecord.borrowDate}
                     </p>
                     <p className={`mt-2 text-sm font-bold ${selectedRecord.daysOverdue <= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
-                      Hạn trả: {selectedRecord.dueDate} → {selectedRecord.daysOverdue <= 0 ? `Còn hạn ✅` : `Quá hạn ${selectedRecord.daysOverdue} ngày ❌ (Phí dự kiến: ${formatCurrency(selectedRecord.fine)})`}
+                      Hạn trả: {selectedRecord.dueDate} → {selectedRecord.daysOverdue <= 0 ? <>Còn hạn <Check className="w-3.5 h-3.5 inline" /></> : <>Quá hạn {selectedRecord.daysOverdue} ngày <TriangleAlert className="w-3.5 h-3.5 inline" /> (Phí dự kiến: {formatCurrency(selectedRecord.fine)})</>}
                     </p>
                   </div>
                 </div>
                 <div className="mt-5 flex gap-3">
-                  <Button variant="ghost" onClick={() => setSelectedRecord(null)}>Tìm lại</Button>
+                  <Button variant="ghost" onClick={() => { setSelectedRecord(null); setSearchRecord(''); setTitleSearchResults([]) }}>Tìm lại</Button>
                   <Button variant="primary" onClick={() => setStep(2)}>Tiếp tục →</Button>
                 </div>
               </div>
@@ -185,7 +359,7 @@ export default function ReturnBorrowPage() {
         {step === 2 && (
           <div className="space-y-6">
             <h3 className="text-lg font-bold">Kiểm tra tình trạng sách</h3>
-            
+
             <div className="space-y-3">
               <label className="flex items-start gap-3 p-4 border border-gray-100 rounded-2xl cursor-pointer hover:bg-gray-50 transition-colors">
                 <input type="radio" checked={condition === 'good'} onChange={() => setCondition('good')} className="mt-1 text-emerald-500 focus:ring-emerald-500" />
@@ -230,7 +404,7 @@ export default function ReturnBorrowPage() {
         {step === 3 && (
           <div className="space-y-6">
             <h3 className="text-lg font-bold">Tổng kết & Thu phí</h3>
-            
+
             <div className="bg-white p-6 rounded-3xl border border-gray-100 space-y-4 shadow-sm">
               <div className="flex justify-between items-center pb-4 border-b border-gray-50">
                 <div>
@@ -274,7 +448,7 @@ export default function ReturnBorrowPage() {
 
             <div className="flex justify-between pt-6 border-t border-gray-100">
               <Button variant="ghost" onClick={() => setStep(2)}>← Quay lại</Button>
-              <Button variant="primary" onClick={handleSubmit}>✅ Xác nhận {totalFine > 0 ? 'Thu phí & Nhập kho' : 'Nhập kho'}</Button>
+              <Button variant="primary" onClick={handleSubmit}><Check className="w-4 h-4" /> Xác nhận {totalFine > 0 ? 'Thu phí & Nhập kho' : 'Nhập kho'}</Button>
             </div>
           </div>
         )}

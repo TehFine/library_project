@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import PageHeader from '@/components/layout/PageHeader'
 import { Card, Badge } from '@/components/ui'
 import Input from '@/components/ui/Input'
@@ -9,32 +10,74 @@ import Modal from '@/components/ui/Modal'
 import { librarianApi } from '@/lib/api'
 import { toast } from 'react-hot-toast'
 import { cn } from '@/lib/utils'
+import { useRealtimeRefresh } from '@/hooks/useWebSocket'
+import { Book, Upload } from 'lucide-react'
 
-export default function LibrarianBorrowRequestsPage() {
+export default function LibrarianRequestsPage() {
+  const router = useRouter()
   const [requests, setRequests] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('pending')
 
-  const [selectedRequest, setSelectedRequest] = useState<any | null>(null)
-  const [copyCode, setCopyCode] = useState('')
-  const [isProcessing, setIsProcessing] = useState(false)
+  // Reject modal state
+  const [rejectTarget, setRejectTarget] = useState<any | null>(null)
+  const [rejectReason, setRejectReason] = useState('')
+  const [isRejecting, setIsRejecting] = useState(false)
 
   const loadData = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await librarianApi.getAllRequests()
-      let filtered = res
+      // Load cả hai loại yêu cầu song song
+      const [borrowReqs, returnReqs] = await Promise.all([
+        librarianApi.getAllRequests(),
+        librarianApi.getPendingReturns(),
+      ])
+
+      // Chuẩn hóa dữ liệu: gắn thêm trường requestType
+      const borrowItems = (Array.isArray(borrowReqs) ? borrowReqs : []).map((r: any) => ({
+        ...r,
+        requestType: 'borrow' as const,
+        _date: r.requestedAt,
+        _readerName: r.libraryCard?.user?.fullName || r.libraryCard?.user?.username,
+        _cardNumber: r.libraryCard?.cardNumber,
+        _bookTitle: r.book?.title,
+      }))
+
+      const returnItems = (Array.isArray(returnReqs) ? returnReqs : []).map((r: any) => ({
+        ...r,
+        id: `return-${r.id}`, // prefix để tránh trùng ID
+        recordId: r.id,       // lưu lại recordId thật
+        requestType: 'return' as const,
+        status: r.returnRequested ? 'pending' : r.status,
+        _date: r.createdAt || r.updatedAt,
+        _readerName: r.libraryCard?.user?.profile?.fullName || r.libraryCard?.user?.username,
+        _cardNumber: r.libraryCard?.cardNumber,
+        _bookTitle: r.bookCopy?.book?.title,
+        book: r.bookCopy?.book, // đồng bộ cấu trúc
+        libraryCard: r.libraryCard,
+      }))
+
+      // Gộp và sắp xếp theo ngày
+      let combined = [...borrowItems, ...returnItems].sort(
+        (a, b) => new Date(b._date).getTime() - new Date(a._date).getTime()
+      )
+
+      // Lọc theo status
       if (status !== 'all') {
-        filtered = filtered.filter((r: any) => r.status === status)
+        combined = combined.filter(r => r.status === status)
       }
+
+      // Lọc theo search
       if (search) {
-        filtered = filtered.filter((r: any) => 
-          r.book?.title.toLowerCase().includes(search.toLowerCase()) || 
-          (r.libraryCard?.user?.fullName || r.libraryCard?.user?.username).toLowerCase().includes(search.toLowerCase())
+        const lower = search.toLowerCase()
+        combined = combined.filter(r =>
+          (r._bookTitle || '').toLowerCase().includes(lower) ||
+          (r._readerName || '').toLowerCase().includes(lower)
         )
       }
-      setRequests(filtered)
+
+      setRequests(combined)
     } catch (err) {
       toast.error('Lỗi khi tải danh sách yêu cầu')
     } finally {
@@ -46,56 +89,60 @@ export default function LibrarianBorrowRequestsPage() {
     loadData()
   }, [loadData])
 
-  const handleApprove = async () => {
-    if (!selectedRequest || !copyCode) {
-        toast.error('Vui lòng nhập mã bản sao')
-        return
-    }
-    setIsProcessing(true)
-    try {
-        // Tìm bản sao theo code để lấy ID
-        const trimmedCode = copyCode.trim()
-        const copy = await librarianApi.findCopyByCode(trimmedCode)
-        if (!copy || !copy.id) throw new Error('Không tìm thấy bản sao này')
-        if (copy.status !== 'available') throw new Error('Bản sao này không có sẵn')
+  useRealtimeRefresh('librarian:dashboard-update', loadData)
 
-        if (copy.book?.id !== selectedRequest.book?.id && copy.bookId !== selectedRequest.book?.id) {
-            throw new Error('Mã bản sao không thuộc cuốn sách mà độc giả yêu cầu!')
-        }
-
-        await librarianApi.approveRequest(selectedRequest.id, copy.id)
-        toast.success('Đã duyệt yêu cầu mượn thành công')
-        setSelectedRequest(null)
-        setCopyCode('')
-        loadData()
-    } catch (err: any) {
-        toast.error(err.message || 'Lỗi khi duyệt yêu cầu')
-    } finally {
-        setIsProcessing(false)
-    }
+  const handleApproveBorrow = (req: any) => {
+    sessionStorage.setItem('borrow_request_prefill', JSON.stringify({
+      requestId: req.id,
+      cardId: req.libraryCard?.id,
+      bookId: req.book?.id,
+      bookTitle: req._bookTitle,
+      readerName: req._readerName,
+      cardNumber: req._cardNumber,
+    }))
+    router.push('/librarian/borrows/new')
   }
 
-  const handleReject = async (id: string) => {
-    const reason = prompt('Lý do từ chối:')
-    if (!reason) return
+  const handleApproveReturn = (req: any) => {
+    // Lưu thông tin yêu cầu trả vào sessionStorage
+    sessionStorage.setItem('return_request_prefill', JSON.stringify({
+      borrowRecordId: req.recordId,
+      copyCode: req.bookCopy?.copyCode,
+      bookTitle: req._bookTitle,
+      readerName: req._readerName,
+      cardNumber: req._cardNumber,
+    }))
+    router.push('/librarian/borrows/return')
+  }
+
+  const handleReject = async () => {
+    if (!rejectTarget || !rejectReason.trim()) {
+      toast.error('Vui lòng nhập lý do từ chối')
+      return
+    }
+    setIsRejecting(true)
     try {
-        await librarianApi.rejectRequest(id, reason)
-        toast.success('Đã từ chối yêu cầu')
-        loadData()
+      await librarianApi.rejectRequest(rejectTarget.id, rejectReason.trim())
+      toast.success('Đã từ chối yêu cầu')
+      setRejectTarget(null)
+      setRejectReason('')
+      loadData()
     } catch (err) {
-        toast.error('Lỗi khi từ chối yêu cầu')
+      toast.error('Lỗi khi từ chối yêu cầu')
+    } finally {
+      setIsRejecting(false)
     }
   }
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Duyệt yêu cầu mượn" description="Phê duyệt các yêu cầu mượn sách từ độc giả online" />
+      <PageHeader title="Yêu cầu" description="Duyệt các yêu cầu mượn sách và yêu cầu trả sách từ độc giả" />
 
       {/* Toolbar */}
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-white p-5 rounded-3xl shadow-sm border border-gray-50">
         <div className="flex gap-3 flex-1 w-full sm:w-auto">
           <Input 
-            placeholder="🔍 Tìm theo tên sách, tên độc giả..." 
+            placeholder="Tìm theo tên sách, tên độc giả..." 
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="max-w-xs rounded-2xl"
@@ -106,8 +153,8 @@ export default function LibrarianBorrowRequestsPage() {
             className="rounded-2xl"
           >
             <option value="all">Tất cả trạng thái</option>
-            <option value="pending">Đang chờ (Pending)</option>
-            <option value="approved">Đã duyệt (Approved)</option>
+            <option value="pending">Đang chờ</option>
+            <option value="approved">Đã duyệt</option>
             <option value="rejected">Đã từ chối</option>
           </Select>
         </div>
@@ -119,6 +166,7 @@ export default function LibrarianBorrowRequestsPage() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-gray-50/50 border-b border-gray-100 text-[11px] font-bold text-gray-400 uppercase tracking-widest">
+                <th className="py-5 px-6">Loại</th>
                 <th className="py-5 px-6">Sách</th>
                 <th className="py-5 px-6">Độc giả</th>
                 <th className="py-5 px-6">Ngày gửi</th>
@@ -128,25 +176,35 @@ export default function LibrarianBorrowRequestsPage() {
             </thead>
             <tbody className="divide-y divide-gray-50 bg-white">
               {loading ? (
-                <tr><td colSpan={5} className="py-12 text-center text-gray-400 italic">Đang tải...</td></tr>
+                <tr><td colSpan={6} className="py-12 text-center text-gray-400 italic">Đang tải...</td></tr>
               ) : requests.length === 0 ? (
-                <tr><td colSpan={5} className="py-12 text-center text-gray-400 italic">Không có yêu cầu nào</td></tr>
+                <tr><td colSpan={6} className="py-12 text-center text-gray-400 italic">Không có yêu cầu nào</td></tr>
               ) : requests.map(req => (
                 <tr key={req.id} className="hover:bg-gray-50/30 transition-colors group">
                   <td className="py-4 px-6">
+                    <Badge className={cn(
+                      'border-none font-bold text-[10px]',
+                      req.requestType === 'borrow'
+                        ? 'bg-blue-50 text-blue-600'
+                        : 'bg-emerald-50 text-emerald-600'
+                    )}>
+                      {req.requestType === 'borrow' ? <><Book className="w-3 h-3 inline" /> Mượn</> : <><Upload className="w-3 h-3 inline" /> Trả</>}
+                    </Badge>
+                  </td>
+                  <td className="py-4 px-6">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-10 bg-blue-50 text-blue-600 rounded flex items-center justify-center font-bold">📖</div>
-                      <span className="font-bold text-gray-800 text-sm">{req.book?.title}</span>
+                      <div className="w-8 h-10 bg-blue-50 text-blue-600 rounded flex items-center justify-center font-bold"><Book className="w-4 h-4" /></div>
+                      <span className="font-bold text-gray-800 text-sm">{req._bookTitle}</span>
                     </div>
                   </td>
                   <td className="py-4 px-6">
                     <div className="flex flex-col">
-                      <span className="text-sm font-bold text-gray-800">{req.libraryCard?.user?.fullName || req.libraryCard?.user?.username}</span>
-                      <span className="text-[10px] text-gray-400 tracking-tighter">Thẻ: {req.libraryCard?.cardNumber}</span>
+                      <span className="text-sm font-bold text-gray-800">{req._readerName}</span>
+                      <span className="text-[10px] text-gray-400 tracking-tighter">Thẻ: {req._cardNumber}</span>
                     </div>
                   </td>
                   <td className="py-4 px-6 text-xs text-gray-500 font-medium">
-                    {new Date(req.requestedAt).toLocaleDateString('vi-VN')}
+                    {new Date(req._date).toLocaleDateString('vi-VN')}
                   </td>
                   <td className="py-4 px-6">
                     <Badge className={cn(
@@ -161,10 +219,16 @@ export default function LibrarianBorrowRequestsPage() {
                   </td>
                   <td className="py-4 px-6 text-right space-x-2">
                     {req.status === 'pending' ? (
-                      <>
-                        <Button variant="primary" size="sm" className="rounded-full px-4" onClick={() => setSelectedRequest(req)}>Duyệt</Button>
-                        <Button variant="ghost" size="sm" className="rounded-full text-red-500 hover:bg-red-50" onClick={() => handleReject(req.id)}>Từ chối</Button>
-                      </>
+                      req.requestType === 'borrow' ? (
+                        <>
+                          <Button variant="primary" size="sm" className="rounded-full px-4" onClick={() => handleApproveBorrow(req)}>Duyệt</Button>
+                          <Button variant="ghost" size="sm" className="rounded-full text-red-500 hover:bg-red-50" onClick={() => { setRejectTarget(req); setRejectReason('') }}>Từ chối</Button>
+                        </>
+                      ) : (
+                        <>
+                          <Button variant="primary" size="sm" className="rounded-full px-4 bg-emerald-500 hover:bg-emerald-600" onClick={() => handleApproveReturn(req)}>Nhận trả</Button>
+                        </>
+                      )
                     ) : (
                       <span className="text-xs text-gray-400 italic">Đã xử lý</span>
                     )}
@@ -176,33 +240,37 @@ export default function LibrarianBorrowRequestsPage() {
         </div>
       </Card>
 
-      {/* Modal Duyệt Yêu Cầu */}
-      <Modal open={!!selectedRequest} onClose={() => setSelectedRequest(null)} title="Phê duyệt yêu cầu mượn" size="md">
-        <div className="space-y-6">
-            <div className="bg-blue-50 p-5 rounded-3xl border border-blue-100 space-y-2">
-                <p className="text-xs font-bold text-blue-600 uppercase tracking-widest">Thông tin mượn</p>
-                <p className="text-lg font-black text-blue-900">{selectedRequest?.book?.title}</p>
-                <p className="text-sm text-blue-700">Độc giả: {selectedRequest?.libraryCard?.user?.fullName}</p>
-            </div>
+      {/* Modal Từ chối yêu cầu mượn */}
+      <Modal open={!!rejectTarget} onClose={() => { setRejectTarget(null); setRejectReason('') }} title="Từ chối yêu cầu mượn" size="sm">
+        <div className="space-y-5">
+          <div className="bg-red-50 p-4 rounded-2xl border border-red-100">
+            <p className="text-sm font-bold text-red-800">{rejectTarget?._bookTitle}</p>
+            <p className="text-xs text-red-600 mt-1">
+              Độc giả: {rejectTarget?._readerName}
+            </p>
+          </div>
 
-            <div className="space-y-3">
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Quét mã bản sao để cấp sách</label>
-                <Input 
-                    placeholder="Quét hoặc nhập mã bản sao (VD: 3901-001)..." 
-                    value={copyCode}
-                    onChange={e => setCopyCode(e.target.value)}
-                    className="rounded-2xl"
-                    autoFocus
-                />
-                <p className="text-[10px] text-gray-400 italic px-1">Lưu ý: Bạn cần giao đúng cuốn sách vật lý có mã này cho độc giả.</p>
-            </div>
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Lý do từ chối</label>
+            <textarea
+              value={rejectReason}
+              onChange={e => setRejectReason(e.target.value)}
+              placeholder="Nhập lý do từ chối yêu cầu mượn này..."
+              rows={4}
+              className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-red-300 focus:ring-2 focus:ring-red-100 resize-none transition-all"
+            />
+          </div>
 
-            <div className="flex flex-col gap-2 pt-4 border-t border-gray-50">
-                <Button variant="primary" className="rounded-2xl py-3 font-black uppercase tracking-widest" onClick={handleApprove} loading={isProcessing}>Xác nhận & Cấp sách</Button>
-                <Button variant="ghost" className="rounded-2xl" onClick={() => setSelectedRequest(null)}>Hủy bỏ</Button>
-            </div>
+          <div className="flex flex-col gap-2 pt-2 border-t border-gray-50">
+            <Button variant="primary" className="rounded-2xl py-3 bg-red-500 hover:bg-red-600" onClick={handleReject} loading={isRejecting}>
+              Xác nhận từ chối
+            </Button>
+            <Button variant="ghost" className="rounded-2xl" onClick={() => { setRejectTarget(null); setRejectReason('') }}>
+              Hủy bỏ
+            </Button>
+          </div>
         </div>
       </Modal>
     </div>
   )
-}
+}

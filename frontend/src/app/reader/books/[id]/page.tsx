@@ -7,6 +7,8 @@ import { Book, User, LibraryCard } from '@/types'
 import { Badge, Card, Skeleton } from '@/components/ui'
 import Button from '@/components/ui/Button'
 import Link from 'next/link'
+import useBookCover from '@/hooks/useBookCover'
+import { getBookCoverUrl } from '@/lib/utils'
 
 export default function BookDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -80,15 +82,10 @@ export default function BookDetailPage() {
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <Skeleton className="h-6 w-32" />
-        <div className="flex gap-8">
-          <Skeleton className="w-48 h-64 rounded-xl shrink-0" />
-          <div className="flex-1 space-y-4">
-            <Skeleton className="h-6 w-3/4" />
-            <Skeleton className="h-4 w-1/2" />
-            <Skeleton className="h-4 w-1/3" />
-          </div>
+      <div className="flex items-center justify-center py-32">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin w-10 h-10 border-4 border-amber-300 border-t-transparent rounded-full" />
+          <span className="text-amber-700 font-medium">Đang tải...</span>
         </div>
       </div>
     )
@@ -101,22 +98,42 @@ export default function BookDetailPage() {
   const available = book.availableCopies > 0
   const activeCard = cards.find(c => c.status === 'active')
   const expiredCard = cards.find(c => c.status === 'expired')
+  const cover = useBookCover(book.isbn, book.coverUrl)
+  const coverSrc = getBookCoverUrl(book) || cover
+  const [coverError, setCoverError] = useState(false)
+
+  // Reset error when coverSrc changes (e.g. Google Books resolves after Open Library 404)
+  useEffect(() => {
+    setCoverError(false)
+  }, [coverSrc])
 
   return (
     <div>
       <button
         onClick={() => router.back()}
-        className="flex items-center gap-1 text-sm text-gray-400 hover:text-gray-700 transition-colors mb-6"
+        className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 bg-white border border-gray-200 hover:bg-amber-50 hover:border-amber-200 rounded-xl px-4 py-2 transition-all duration-200 mb-6"
       >
-        ← Quay lại
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+        </svg>
+        Quay lại
       </button>
 
       <div className="flex flex-col gap-8 md:flex-row">
         {/* Cover */}
         <div className="w-full md:w-48 shrink-0">
           <div className="aspect-[2/3] rounded-xl overflow-hidden bg-gray-100 relative">
-            {book.coverUrl ? (
-              <Image src={book.coverUrl} alt={book.title} fill className="object-cover" />
+            {coverSrc && !coverError ? (
+              <Image
+                key={coverSrc}
+                src={coverSrc}
+                alt={book.title}
+                fill
+                sizes="(max-width: 768px) 100vw, 192px"
+                loading="eager"
+                className="object-cover"
+                onError={() => setCoverError(true)}
+              />
             ) : (
               <div className="flex items-center justify-center h-full text-gray-200">
                 <svg className="w-16 h-16" fill="none" viewBox="0 0 24 24" stroke="currentColor">

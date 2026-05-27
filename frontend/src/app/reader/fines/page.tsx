@@ -1,16 +1,20 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import PageHeader from '@/components/layout/PageHeader'
 import { Badge, Card, EmptyState, Pagination, Skeleton, StatCard } from '@/components/ui'
 import { finesApi } from '@/lib/api'
 import { Fine } from '@/types'
 import { formatCurrency, formatDate, fineStatusMap, fineTypeMap } from '@/lib/utils'
+import { useRealtimeRefresh } from '@/hooks/useWebSocket'
+import { useToast } from '@/hooks/useToast'
 
 export default function FinesPage() {
   const [fines, setFines]     = useState<Fine[]>([])
   const [total, setTotal]     = useState(0)
   const [page, setPage]       = useState(1)
   const [loading, setLoading] = useState(true)
+  const [payingId, setPayingId] = useState<string | null>(null)
+  const { toast } = useToast()
   const LIMIT = 10
 
   async function load(p: number) {
@@ -37,8 +41,26 @@ export default function FinesPage() {
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load(page) }, [page])
 
+  // Re-fetch khi có sự kiện realtime từ backend (ví dụ: librarian thu phí)
+  const refresh = useCallback(() => { load(page) }, [page])
+  useRealtimeRefresh('reader:dashboard-update', refresh)
+
   const pendingTotal = fines.filter(f => f.status === 'pending').reduce((s, f) => s + f.amount, 0)
   const paidTotal    = fines.filter(f => f.status === 'paid').reduce((s, f) => s + f.amount, 0)
+
+  async function handleSimulatePayOnline(id: string) {
+    setPayingId(id)
+    try {
+      await finesApi.simulatePayOnline(id)
+      setFines(prev => prev.map(f => f.id === id ? { ...f, status: 'paid' as const } : f))
+      toast('Thanh toán online thành công!', 'success')
+    } catch (e) {
+      console.error(e)
+      toast('Thanh toán thất bại, vui lòng thử lại', 'error')
+    } finally {
+      setPayingId(null)
+    }
+  }
 
   return (
     <div>
@@ -100,11 +122,30 @@ export default function FinesPage() {
                     <p className="text-xs text-gray-400 mt-1">Thanh toán {formatDate(f.paidAt)} · Biên lai {f.receiptNumber}</p>
                   )}
                 </div>
-                <div className="text-right shrink-0">
+                <div className="text-right shrink-0 flex flex-col items-end gap-2">
                   <p className={`text-sm font-semibold ${f.status === 'pending' ? 'text-red-600' : 'text-gray-500'}`}>
                     {formatCurrency(f.amount)}
                   </p>
                   <p className="text-xs text-gray-400 mt-0.5">{formatDate(f.createdAt)}</p>
+                  {f.status === 'pending' && !f.isVirtual && (
+                    <button
+                      onClick={() => handleSimulatePayOnline(f.id)}
+                      disabled={payingId === f.id}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors disabled:opacity-50"
+                    >
+                      {payingId === f.id ? (
+                        <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                      ) : (
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                        </svg>
+                      )}
+                      Thanh toán online
+                    </button>
+                  )}
                 </div>
               </div>
             )

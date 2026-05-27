@@ -1,10 +1,12 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 import { StatCard, Card, Badge, EmptyState, Skeleton } from '@/components/ui'
 import { borrowsApi, cardsApi, finesApi, reservationsApi } from '@/lib/api'
 import { BorrowRecord, Fine, LibraryCard, Reservation } from '@/types'
 import { formatDate, daysFromNow, formatCurrency, cardStatusMap, cn } from '@/lib/utils'
+import { useRealtimeRefresh } from '@/hooks/useWebSocket'
+import { BookOpen, Clock, Sparkles } from 'lucide-react'
 
 // ── Hero Banner ───────────────────────────────────────────────────────────────
 function HeroBanner({ card }: { card: LibraryCard | null }) {
@@ -17,7 +19,7 @@ function HeroBanner({ card }: { card: LibraryCard | null }) {
 
       <div className="relative z-10 px-8 py-7 flex items-center justify-between">
         <div>
-          <p className="text-white/80 text-sm font-medium mb-1">Chào mừng trở lại 👋</p>
+          <p className="text-white/80 text-sm font-medium mb-1">Chào mừng trở lại</p>
           <h2 className="text-white text-2xl font-bold mb-3">Thư viện của bạn</h2>
           <p className="text-white/70 text-sm max-w-xs">
             Khám phá hàng nghìn đầu sách. Chúng tôi đã chọn những cuốn sách phù hợp nhất cho bạn.
@@ -85,7 +87,7 @@ export default function DashboardPage() {
   const [pendingFines, setPendingFines]   = useState<Fine[]>([])
   const [loading, setLoading]             = useState(true)
 
-  useEffect(() => {
+  const loadData = useCallback(() => {
     Promise.all([
       cardsApi.mine(),
       borrowsApi.mine({ status: 'borrowing', limit: 5 }),
@@ -98,6 +100,13 @@ export default function DashboardPage() {
       setPendingFines(fs.data)
     }).finally(() => setLoading(false))
   }, [])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
+
+  // Re-fetch khi có sự kiện realtime từ backend (ví dụ: librarian thu phí)
+  useRealtimeRefresh('reader:dashboard-update', loadData)
 
   const overdueCount = borrows.filter(b => b.status === 'overdue').length
   const totalFine    = pendingFines.reduce((s, f) => s + f.amount, 0)
@@ -170,7 +179,7 @@ export default function DashboardPage() {
         {/* Sách đang mượn */}
         <Card padding="none" className="overflow-hidden">
           <div className="flex items-center justify-between px-6 py-4 border-b border-amber-50">
-            <p className="text-sm font-bold text-gray-800">📚 Sách đang mượn</p>
+            <p className="text-sm font-bold text-gray-800"><BookOpen className="w-4 h-4 inline mr-1" /> Sách đang mượn</p>
             <Link href="/reader/borrows" className="text-xs text-primary font-semibold hover:underline transition-all">
               Xem tất cả →
             </Link>
@@ -215,7 +224,7 @@ export default function DashboardPage() {
           {pendingFines.length > 0 && (
             <Card className="border-l-4 border-red-400 bg-red-50/60 shadow-soft-sm">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-sm font-bold text-gray-800">⚠️ Phí phạt chưa thanh toán</p>
+                <p className="text-sm font-bold text-gray-800">Phí phạt chưa thanh toán</p>
                 <Link href="/reader/fines" className="text-xs text-primary font-semibold hover:underline">Chi tiết →</Link>
               </div>
               <p className="text-2xl font-bold text-red-600">{formatCurrency(totalFine)}</p>
@@ -227,7 +236,7 @@ export default function DashboardPage() {
           {reservations.filter(r => r.status === 'waiting').length > 0 && (
             <Card padding="none" className="overflow-hidden">
               <div className="px-6 py-4 border-b border-amber-50">
-                <p className="text-sm font-bold text-gray-800">⏳ Đang chờ đặt trước</p>
+                <p className="text-sm font-bold text-gray-800"><Clock className="w-4 h-4 inline mr-1" /> Đang chờ đặt trước</p>
               </div>
               <ul className="py-2">
                 {reservations.filter(r => r.status === 'waiting').map(r => (
@@ -245,7 +254,7 @@ export default function DashboardPage() {
           {/* Empty right col fallback */}
           {reservations.length === 0 && pendingFines.length === 0 && (
             <Card className="text-center py-8">
-              <p className="text-3xl mb-2">✨</p>
+              <p className="text-3xl mb-2"><Sparkles className="w-8 h-8 mx-auto text-amber-400" /></p>
               <p className="text-sm font-semibold text-gray-700">Mọi thứ đều ổn!</p>
               <p className="text-xs text-gray-400 mt-1">Không có phí phạt hay sách đặt trước nào.</p>
             </Card>

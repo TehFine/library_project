@@ -12,7 +12,7 @@ type ViewMode = 'grid' | 'list'
 
 export default function BooksPage() {
   return (
-    <Suspense fallback={<Skeleton className="h-96 w-full rounded-3xl" />}>
+    <Suspense fallback={<div className="flex items-center justify-center py-32"><div className="animate-spin w-8 h-8 border-4 border-amber-300 border-t-transparent rounded-full" /><span className="ml-3 text-amber-700 font-medium">Đang tải...</span></div>}>
       <BooksContent />
     </Suspense>
   )
@@ -33,6 +33,8 @@ function BooksContent() {
   const [viewMode, setViewMode]     = useState<ViewMode>('grid')
 
   const searchTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const initialLoad = useRef(true)     // Ngăn debounce chạy ngay khi mount
+  const paginationRef = useRef(false)  // track khi user click phân trang (không phải filter)
   const LIMIT = 20
 
   const load = useCallback(async (p: number) => {
@@ -65,16 +67,33 @@ function BooksContent() {
     }
   }, [search, catId, onlyAvailable])
 
+  // Load categories once
   useEffect(() => { categoriesApi.list().then(setCategories) }, [])
 
+  // Effect 1: Load lần đầu + debounce filter changes
   useEffect(() => {
+    if (initialLoad.current) {
+      initialLoad.current = false
+      load(1)
+      return
+    }
+    // Khi search / catId / onlyAvailable thay đổi → debounce 350ms
     clearTimeout(searchTimer.current)
-    searchTimer.current = setTimeout(() => { setPage(1); load(1) }, 350)
+    searchTimer.current = setTimeout(() => {
+      load(1)
+      setPage(prev => prev !== 1 ? 1 : prev)
+    }, 350)
     return () => clearTimeout(searchTimer.current)
-  }, [search, catId, onlyAvailable, load])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, catId, onlyAvailable])
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { load(page) }, [page, load])
+  // Effect 2: Chỉ load khi user click phân trang, bỏ qua khi page bị set bởi filter debounce
+  useEffect(() => {
+    if (!paginationRef.current) return
+    paginationRef.current = false
+    load(page)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page])
 
   const totalPages = Math.ceil(total / LIMIT)
 
@@ -199,7 +218,7 @@ function BooksContent() {
         </div>
       )}
 
-      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+      <Pagination page={page} totalPages={totalPages} onPageChange={p => { paginationRef.current = true; setPage(p) }} />
     </div>
   )
 }

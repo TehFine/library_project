@@ -9,6 +9,7 @@ import Modal from '@/components/ui/Modal'
 import { booksApi, categoriesApi } from '@/lib/api'
 import { Book, Category } from '@/types'
 import { toast } from 'react-hot-toast'
+import { Check } from 'lucide-react'
 
 export default function LibrarianBooksPage() {
   const [books, setBooks] = useState<Book[]>([])
@@ -169,7 +170,7 @@ export default function LibrarianBooksPage() {
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-white p-5 rounded-3xl shadow-sm border border-gray-50">
         <div className="flex gap-3 flex-1 w-full sm:w-auto">
           <Input 
-            placeholder="🔍 Tìm sách theo tên, ISBN..." 
+            placeholder="Tìm sách theo tên, ISBN..." 
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="max-w-xs rounded-2xl"
@@ -273,7 +274,7 @@ export default function LibrarianBooksPage() {
                     <td className="py-4 px-6 font-mono font-bold text-gray-800">{copy.copyCode}</td>
                     <td className="py-4 px-6 text-gray-500 capitalize">{copy.condition}</td>
                     <td className="py-4 px-6">
-                      {copy.status === 'available' ? <Badge className="bg-emerald-50 text-emerald-600 border-none font-bold">✓ Có sẵn</Badge> : 
+                      {copy.status === 'available' ? <Badge className="bg-emerald-50 text-emerald-600 border-none font-bold"><Check className="w-3 h-3 inline mr-0.5" /> Có sẵn</Badge> : 
                        copy.status === 'borrowed' ? <Badge className="bg-blue-50 text-blue-600 border-none font-bold">● Đang mượn</Badge> :
                        <Badge className="bg-gray-100 text-gray-500 border-none">Mất/Thanh lý</Badge>}
                     </td>

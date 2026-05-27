@@ -25,7 +25,7 @@ const NAV = [
   },
   {
     href: '/librarian/borrows/requests',
-    label: 'Yêu cầu mượn',
+    label: 'Yêu cầu',
     icon: (
       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -92,7 +92,7 @@ export default function LibrarianSidebar() {
   const pathname = usePathname()
 
   return (
-    <aside className="w-52 shrink-0 flex flex-col" style={{ background: 'transparent' }}>
+    <aside className="w-52 shrink-0 flex flex-col rounded-3xl shadow-[2px_0_20px_-4px_rgba(0,0,0,0.05)]" style={{ background: '#FDF8F0' }}>
       {/* Logo */}
       <div className="h-16 flex items-center px-6">
         <Link href="/librarian/dashboard" className="flex items-center gap-3 group">

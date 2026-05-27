@@ -67,7 +67,7 @@ export default function ReaderSidebar({ isGuest }: { isGuest?: boolean }) {
   const filteredNav = isGuest ? NAV.filter(i => publicHrefs.includes(i.href)) : NAV
 
   return (
-    <aside className="w-52 shrink-0 flex flex-col" style={{ background: 'transparent' }}>
+    <aside className="w-52 shrink-0 flex flex-col rounded-3xl shadow-[2px_0_20px_-4px_rgba(0,0,0,0.05)]" style={{ background: '#FDF8F0' }}>
       {/* Logo */}
       <div className="h-16 flex items-center px-6">
         <Link href={isGuest ? "/reader/books" : "/reader/dashboard"} className="flex items-center gap-2.5 group">

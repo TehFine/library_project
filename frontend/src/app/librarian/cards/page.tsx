@@ -9,6 +9,7 @@ import Modal from '@/components/ui/Modal'
 import { librarianApi, authApi } from '@/lib/api'
 import { toast } from 'react-hot-toast'
 import { User } from '@/types'
+import { TriangleAlert, Check, CreditCard } from 'lucide-react'
 
 export default function LibrarianCardsPage() {
   const [cards, setCards] = useState<any[]>([])
@@ -96,7 +97,7 @@ export default function LibrarianCardsPage() {
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-white p-5 rounded-3xl shadow-sm border border-gray-50">
         <div className="flex gap-3 flex-1 w-full sm:w-auto">
           <Input 
-            placeholder="🔍 Tìm theo tên, mã thẻ, CCCD..." 
+            placeholder="Tìm theo tên, mã thẻ, CCCD..." 
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="max-w-xs rounded-2xl"
@@ -148,7 +149,7 @@ export default function LibrarianCardsPage() {
                   <td className="py-4 px-6 text-xs text-gray-500 font-medium">{card.user?.idCardNumber || '---'}</td>
                   <td className="py-4 px-6 text-xs font-bold text-gray-600">
                     {new Date(card.expiryDate) < new Date() ? (
-                      <span className="text-red-500 flex items-center gap-1">⚠️ {card.expiryDate}</span>
+                      <span className="text-red-500 flex items-center gap-1"><TriangleAlert className="w-3.5 h-3.5" /> {card.expiryDate}</span>
                     ) : (
                       card.expiryDate
                     )}
@@ -187,7 +188,7 @@ export default function LibrarianCardsPage() {
           
           {foundUser ? (
             <div className="bg-emerald-50/50 p-5 rounded-3xl border border-emerald-100 flex items-center gap-4">
-              <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-xl font-bold">✓</div>
+              <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-xl font-bold"><Check className="w-6 h-6" /></div>
               <div className="flex-1">
                 <p className="text-emerald-900 font-bold text-sm">Tài khoản hợp lệ</p>
                 <div className="text-xs text-emerald-700 mt-0.5 font-medium">
@@ -214,7 +215,7 @@ export default function LibrarianCardsPage() {
 
           <div className="flex justify-end gap-3 pt-6 border-t border-gray-50">
             <Button variant="ghost" onClick={() => setShowAddCardModal(false)}>Hủy bỏ</Button>
-            <Button variant="primary" className="rounded-2xl px-8" onClick={handleCreateCard} disabled={!foundUser}>✅ Cấp & In thẻ</Button>
+            <Button variant="primary" className="rounded-2xl px-8" onClick={handleCreateCard} disabled={!foundUser}><Check className="w-4 h-4" /> Cấp & In thẻ</Button>
           </div>
         </div>
       </Modal>
@@ -223,7 +224,7 @@ export default function LibrarianCardsPage() {
       <Modal open={!!selectedCard} onClose={() => setSelectedCard(null)} title="Chi tiết thẻ thư viện" size="md">
         <div className="space-y-6">
            <div className="bg-gray-50 p-6 rounded-3xl border border-gray-100 text-center space-y-2">
-              <div className="w-16 h-16 bg-white border border-gray-200 text-indigo-600 rounded-2xl mx-auto flex items-center justify-center text-2xl shadow-sm mb-4">🪪</div>
+              <div className="w-16 h-16 bg-white border border-gray-200 text-indigo-600 rounded-2xl mx-auto flex items-center justify-center text-2xl shadow-sm mb-4"><CreditCard className="w-8 h-8" /></div>
               <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Mã thẻ</p>
               <p className="text-2xl font-black text-gray-900 font-mono tracking-tighter">{selectedCard?.cardNumber}</p>
            </div>

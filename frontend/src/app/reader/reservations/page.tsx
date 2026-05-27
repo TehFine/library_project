@@ -6,6 +6,7 @@ import { reservationsApi } from '@/lib/api'
 import { Reservation } from '@/types'
 import { formatDate, reservationStatusMap, cn } from '@/lib/utils'
 import Button from '@/components/ui/Button'
+import { useToast } from '@/hooks/useToast'
 
 import ReservationCard from '@/components/borrows/ReservationCard'
 
@@ -45,15 +46,19 @@ export default function ReservationsPage() {
     load(page, statusTab) 
   }, [page, statusTab])
 
+  const { toast } = useToast()
+
   async function handleCancel(id: string) {
-    if (!confirm('Bạn có chắc muốn hủy đặt trước này?')) return
+    if (!confirm('Bạn có chắc muốn hủy đặt trước cuốn sách này?')) return
     setCancellingId(id)
     try {
       await reservationsApi.cancel(id)
       setList(prev => prev.filter(r => r.id !== id))
       setTotal(prev => prev - 1)
+      toast('Đã hủy đặt trước thành công', 'success')
     } catch (e) {
       console.error(e)
+      toast('Hủy đặt trước thất bại, vui lòng thử lại', 'error')
     } finally {
       setCancellingId(null)
     }

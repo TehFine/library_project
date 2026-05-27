@@ -8,6 +8,8 @@ import Button from '@/components/ui/Button'
 import { cn, formatCurrency } from '@/lib/utils'
 import { librarianApi, LibrarianStats, authApi } from '@/lib/api'
 import { User } from '@/types'
+import { useRealtimeRefresh } from '@/hooks/useWebSocket'
+import { BookOpen, RotateCcw, HelpCircle, AlertTriangle } from 'lucide-react'
 
 export default function LibrarianDashboard() {
   const [showEndShiftModal, setShowEndShiftModal] = useState(false)
@@ -33,6 +35,9 @@ export default function LibrarianDashboard() {
   useEffect(() => {
     loadData()
   }, [loadData])
+
+  // WebSocket realtime: auto-refresh when backend emits updates
+  useRealtimeRefresh('librarian:dashboard-update', loadData)
 
   const shiftInfo = {
     name: 'Ca Hiện Tại',
@@ -88,7 +93,7 @@ export default function LibrarianDashboard() {
           <div className="bg-gradient-to-br from-primary to-primary-dark text-white rounded-3xl p-6 shadow-glow hover:scale-[1.02] transition-transform cursor-pointer flex items-center justify-between">
             <div>
               <h3 className="text-xl font-bold flex items-center gap-2">
-                <span className="text-2xl">📖</span> CHO MƯỢN SÁCH
+                <span className="text-xl flex items-center"><BookOpen className="w-6 h-6" /></span> CHO MƯỢN SÁCH
               </h3>
               <p className="text-primary-100 mt-1 opacity-90">Quét thẻ để bắt đầu tạo phiếu mượn mới</p>
             </div>
@@ -103,7 +108,7 @@ export default function LibrarianDashboard() {
           <div className="bg-gradient-to-br from-emerald-500 to-emerald-700 text-white rounded-3xl p-6 shadow-lg hover:scale-[1.02] transition-transform cursor-pointer flex items-center justify-between">
             <div>
               <h3 className="text-xl font-bold flex items-center gap-2">
-                <span className="text-2xl">↩️</span> NHẬN TRẢ SÁCH
+                <span className="text-xl flex items-center"><RotateCcw className="w-6 h-6" /></span> NHẬN TRẢ SÁCH
               </h3>
               <p className="text-emerald-100 mt-1 opacity-90">Quét mã sách để tiến hành nhận trả sách</p>
             </div>
@@ -135,7 +140,7 @@ export default function LibrarianDashboard() {
               stats.pendingRequests.map(r => (
                 <div key={r.id} className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center text-xl font-bold">?</div>
+                    <div className="w-10 h-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center text-xl font-bold"><HelpCircle className="w-5 h-5" /></div>
                     <div>
                       <p className="font-bold text-gray-900 text-sm">{r.title}</p>
                       <p className="text-xs text-gray-500 mt-0.5">{r.user} • <span className="text-amber-600 font-bold">{new Date(r.date).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span></p>
@@ -163,7 +168,7 @@ export default function LibrarianDashboard() {
               stats.overdueBooks.map(b => (
                 <div key={b.id} className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-red-50 text-red-500 rounded-xl flex items-center justify-center text-xl font-bold">!</div>
+                    <div className="w-10 h-10 bg-red-50 text-red-500 rounded-xl flex items-center justify-center text-xl font-bold"><AlertTriangle className="w-5 h-5" /></div>
                     <div>
                       <p className="font-bold text-gray-900 text-sm">{b.title}</p>
                       <p className="text-xs text-gray-500 mt-0.5">{b.user} • <span className="text-red-600 font-bold">Trễ {b.days} ngày</span></p>

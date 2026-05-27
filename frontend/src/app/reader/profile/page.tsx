@@ -1,89 +1,17 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Skeleton } from '@/components/ui'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
-import { authApi, cardsApi, borrowsApi, finesApi } from '@/lib/api'
+import { authApi, cardsApi } from '@/lib/api'
 import { LibraryCard, User } from '@/types'
 import { formatDate, cardStatusMap, cn } from '@/lib/utils'
 import { useToast } from '@/hooks/useToast'
-import Link from 'next/link'
+import { useRealtimeRefresh } from '@/hooks/useWebSocket'
 
 import { AvatarCard, AccordionPersonalInfo, SecurityCard } from '@/components/profile/SharedProfile'
 
-// ── StatCardWithGraph ─────────────────────────────────────────────────────────
-function StatCardWithGraph({ label, value, sub, href }: { label: string; value: string | number; sub: string; href?: string }) {
-  return (
-    <div className="rounded-[2rem] bg-white shadow-sm border border-amber-100/60 p-5 flex flex-col h-full relative overflow-hidden">
-      <div className="flex justify-between items-start mb-2">
-        <p className="text-sm font-semibold text-gray-800">{label}</p>
-        {href ? (
-          <Link href={href} className="w-6 h-6 rounded-full border border-gray-100 flex items-center justify-center text-gray-400 hover:bg-gray-50 transition-colors cursor-pointer">
-             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25" /></svg>
-          </Link>
-        ) : (
-          <div className="w-6 h-6 rounded-full border border-gray-100 flex items-center justify-center text-gray-400 hover:bg-gray-50 transition-colors cursor-pointer">
-             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25" /></svg>
-          </div>
-        )}
-      </div>
-      <div className="flex items-baseline gap-2 mb-4">
-        <p className="text-3xl font-bold text-gray-900">{value}</p>
-        <p className="text-xs text-gray-500 max-w-[60px] leading-tight font-medium">{sub}</p>
-      </div>
-      
-      <div className="mt-auto flex items-end justify-between gap-1.5 h-16 pt-2">
-         {[40, 70, 30, 80, 50, 100, 60].map((h, i) => (
-           <div key={i} className="w-full flex flex-col items-center gap-1.5">
-             <div className="w-1.5 rounded-full bg-gray-100 flex-1 flex items-end overflow-hidden">
-               <div className={cn("w-full rounded-full transition-all duration-1000", i === 5 ? "bg-amber-400" : "bg-gray-800")} style={{ height: `${h}%` }} />
-             </div>
-             <span className="text-[9px] font-bold text-gray-400">{'SMTWTFS'[i]}</span>
-           </div>
-         ))}
-      </div>
-    </div>
-  )
-}
-
-// ── StatCardWithCircle ────────────────────────────────────────────────────────
-function StatCardWithCircle({ label, value, sub, href }: { label: string; value: string | number; sub: string; href?: string }) {
-  return (
-    <div className="rounded-[2rem] bg-[#fbf9f4] shadow-sm border border-amber-100/50 p-5 flex flex-col h-full">
-      <div className="flex justify-between items-start mb-2">
-        <p className="text-sm font-semibold text-gray-800">{label}</p>
-        {href ? (
-          <Link href={href} className="w-6 h-6 rounded-full border border-gray-200 bg-white flex items-center justify-center text-gray-400 cursor-pointer hover:bg-gray-50 transition-colors">
-             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25" /></svg>
-          </Link>
-        ) : (
-          <div className="w-6 h-6 rounded-full border border-gray-200 bg-white flex items-center justify-center text-gray-400 cursor-pointer">
-             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25" /></svg>
-          </div>
-        )}
-      </div>
-      
-      <div className="flex-1 flex items-center justify-center relative py-2">
-         <div className="w-28 h-28 relative flex items-center justify-center">
-            {/* Background dashed circle */}
-            <svg className="absolute inset-0 w-full h-full -rotate-90">
-               <circle cx="56" cy="56" r="50" stroke="#f0eade" strokeWidth="6" fill="none" strokeDasharray="4 6" strokeLinecap="round" />
-            </svg>
-            {/* Progress circle */}
-            <svg className="absolute inset-0 w-full h-full -rotate-90">
-               <circle cx="56" cy="56" r="50" stroke="#fbbf24" strokeWidth="6" fill="none" strokeDasharray="314" strokeDashoffset={value === 0 ? "314" : "150"} strokeLinecap="round" className="transition-all duration-1000 ease-out" />
-            </svg>
-            <div className="text-center">
-               <p className="text-xl font-bold text-gray-900">{value}</p>
-               <p className="text-[10px] text-gray-500 font-medium">{sub}</p>
-            </div>
-         </div>
-      </div>
-    </div>
-  )
-}
-
-// ── StatCardSmall ─────────────────────────────────────────────────────────────
+// ── StatCardSmall (replaced: đang mượn & phí phạt) ────────────────────────────
 function StatCardSmall({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-[2rem] bg-[#fbf9f4] border border-amber-100/80 p-5 flex flex-col shadow-sm">
@@ -175,9 +103,7 @@ export default function ProfilePage() {
   const [editing, setEditing] = useState(false)
   const [saving, setSaving]   = useState(false)
 
-  // Stats
-  const [borrowCount, setBorrowCount] = useState(0)
-  const [fineAmount, setFineAmount]   = useState(0)
+
 
   // Form
   const [fullName, setFullName] = useState('')
@@ -193,23 +119,26 @@ export default function ProfilePage() {
   const [pwLoading, setPwLoading]     = useState(false)
   const [pwError, setPwError]         = useState('')
 
-  useEffect(() => {
+  const loadData = useCallback(() => {
     Promise.all([
       authApi.me(),
       cardsApi.mine(),
-      borrowsApi.mine({ status: 'borrowing', limit: 1 }),
-      finesApi.mine({ status: 'pending', limit: 1 }),
-    ]).then(([me, cards, borrows, fines]) => {
+    ]).then(([me, cards]) => {
       setUser(me)
       setFullName(me.fullName ?? '')
       setPhone(me.phone ?? '')
       setAddress(me.address ?? '')
       setDateOfBirth(me.dateOfBirth ?? '')
       setCard(cards.find(c => c.status === 'active') ?? cards[0] ?? null)
-      setBorrowCount(borrows.total)
-      setFineAmount(fines.totalAmount ?? 0)
     }).finally(() => setLoading(false))
   }, [])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
+
+  // Re-fetch khi có sự kiện realtime (ví dụ: librarian thu phí, trả sách, gia hạn thẻ...)
+  useRealtimeRefresh('reader:dashboard-update', loadData)
 
   async function handleSaveProfile(e: React.FormEvent) {
     e.preventDefault()
@@ -252,10 +181,7 @@ export default function ProfilePage() {
           <Skeleton className="h-72 rounded-[2rem]" />
         </div>
         <div className="space-y-6">
-          <div className="grid grid-cols-2 gap-5">
-             <Skeleton className="h-48 rounded-[2rem]" />
-             <Skeleton className="h-48 rounded-[2rem]" />
-          </div>
+
           <Skeleton className="h-80 rounded-[2rem]" />
         </div>
         <div className="space-y-6">
@@ -286,15 +212,7 @@ export default function ProfilePage() {
 
       {/* ── Middle Column (Stats + Security) ── */}
       <div className="flex flex-col gap-6">
-        <div className="grid grid-cols-2 gap-6">
-          <StatCardWithGraph label="Đang mượn" value={borrowCount} sub="Sách hiện tại" href="/reader/borrows" />
-          <StatCardWithCircle 
-            label="Phí phạt" 
-            value={fineAmount >= 1000 ? `${(fineAmount / 1000).toFixed(0)}k` : fineAmount} 
-            sub="VNĐ cần đóng" 
-            href="/reader/fines"
-          />
-        </div>
+
         <SecurityCard 
           pwSection={pwSection} setPwSection={setPwSection}
           currentPw={currentPw} setCurrentPw={setCurrentPw}
@@ -307,7 +225,7 @@ export default function ProfilePage() {
 
       {/* ── Right Column (Activity + Tall Library Card) ── */}
       <div className="flex flex-col gap-6">
-        <StatCardSmall label="Hoạt động" value={user.lastLogin ? "Online" : "Offline"} />
+        <StatCardSmall label="Ngày tham gia" value={formatDate(user.createdAt)} />
         <div className="flex-1 min-h-[360px]">
           <TallLibraryCard card={card} />
         </div>

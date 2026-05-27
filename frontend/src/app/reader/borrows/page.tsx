@@ -7,6 +7,8 @@ import { Pagination, EmptyState, Skeleton } from '@/components/ui'
 import { borrowsApi, borrowRequestsApi } from '@/lib/api'
 import { BorrowRecord, BorrowStatus } from '@/types'
 import { cn } from '@/lib/utils'
+import { useRealtimeRefresh } from '@/hooks/useWebSocket'
+import { useToast } from '@/hooks/useToast'
 
 const TABS: { label: string; value: any }[] = [
   { label: 'Đang mượn',  value: 'borrowing' },
@@ -24,7 +26,13 @@ export default function BorrowsPage() {
   const [loading, setLoading]   = useState(true)
   const [tab, setTab]           = useState<any>('borrowing')
   const [renewingId, setRenewingId] = useState<string | null>(null)
+  const [requestingReturnId, setRequestingReturnId] = useState<string | null>(null)
   const LIMIT = 12
+
+  // WebSocket realtime: auto-refresh when librarian approves/rejects requests
+  useRealtimeRefresh('reader:request-update', () => load(page, tab))
+  // WebSocket realtime: auto-refresh when librarian approves returns, creates borrow records
+  useRealtimeRefresh('reader:dashboard-update', () => load(page, tab))
 
   async function load(p: number, t: any) {
     setLoading(true)
@@ -81,6 +89,22 @@ export default function BorrowsPage() {
     }
   }
 
+  const { toast } = useToast()
+
+  async function handleRequestReturn(id: string) {
+    setRequestingReturnId(id)
+    try {
+      await borrowsApi.requestReturn(id)
+      setRecords(prev => prev.map(r => r.id === id ? { ...r, returnRequested: true } : r))
+      toast('Đã gửi yêu cầu trả sách, vui lòng chờ thủ thư xác nhận!', 'success')
+    } catch (e) {
+      console.error(e)
+      toast('Gửi yêu cầu thất bại, vui lòng thử lại', 'error')
+    } finally {
+      setRequestingReturnId(null)
+    }
+  }
+
   const totalPages = Math.ceil(total / LIMIT)
 
   return (
@@ -118,23 +142,28 @@ export default function BorrowsPage() {
             </svg>
           }
         />
+      ) : tab === 'requests' ? (
+        <div className="space-y-3">
+          {requests.map(r => <BorrowRequestCard key={r.id} request={r} />)}
+        </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {tab === 'requests' 
-            ? requests.map(r => <BorrowRequestCard key={r.id} request={r} />)
-            : records.map(r => (
-                <BorrowCard
-                  key={r.id}
-                  record={r}
-                  onRenew={handleRenew}
-                  isRenewing={renewingId === r.id}
-                />
-              ))
-          }
+          {records.map(r => (
+            <BorrowCard
+              key={r.id}
+              record={r}
+              onRenew={handleRenew}
+              onRequestReturn={handleRequestReturn}
+              isRenewing={renewingId === r.id}
+              isRequestingReturn={requestingReturnId === r.id}
+            />
+          ))}
         </div>
       )}
 
-      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+      {tab !== 'requests' && (
+        <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+      )}
     </div>
   )
 }

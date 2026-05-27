@@ -10,6 +10,7 @@ import { librarianApi } from '@/lib/api'
 import { formatCurrency, cn } from '@/lib/utils'
 import { toast } from 'react-hot-toast'
 
+
 export default function LibrarianFinesPage() {
   const [fines, setFines] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -66,7 +67,7 @@ export default function LibrarianFinesPage() {
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-white p-5 rounded-3xl shadow-sm border border-gray-50">
         <div className="flex gap-3 flex-1 w-full sm:w-auto">
           <Input 
-            placeholder="🔍 Tìm theo tên độc giả, tên sách..." 
+            placeholder="Tìm theo tên độc giả, tên sách..." 
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="max-w-xs rounded-2xl"

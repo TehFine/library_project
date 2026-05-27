@@ -8,6 +8,7 @@ import Select from '@/components/ui/Select'
 import { librarianApi } from '@/lib/api'
 import { toast } from 'react-hot-toast'
 import { cn } from '@/lib/utils'
+import { Book } from 'lucide-react'
 
 export default function LibrarianReservationsPage() {
   const [reservations, setReservations] = useState<any[]>([])
@@ -62,7 +63,7 @@ export default function LibrarianReservationsPage() {
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-white p-5 rounded-3xl shadow-sm border border-gray-50">
         <div className="flex gap-3 flex-1 w-full sm:w-auto">
           <Input 
-            placeholder="🔍 Tìm theo tên sách, tên độc giả..." 
+            placeholder="Tìm theo tên sách, tên độc giả..." 
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="max-w-xs rounded-2xl"
@@ -104,7 +105,7 @@ export default function LibrarianReservationsPage() {
                 <tr key={res.id} className="hover:bg-gray-50/30 transition-colors group">
                   <td className="py-4 px-6">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-10 bg-amber-50 text-amber-600 rounded flex items-center justify-center font-bold">📖</div>
+                      <div className="w-8 h-10 bg-amber-50 text-amber-600 rounded flex items-center justify-center font-bold"><Book className="w-4 h-4" /></div>
                       <span className="font-bold text-gray-800 text-sm">{res.book?.title}</span>
                     </div>
                   </td>
@@ -151,7 +152,7 @@ export default function LibrarianReservationsPage() {
       <Modal open={!!selectedReservation} onClose={() => setSelectedReservation(null)} title="Chi tiết đặt trước" size="md">
         <div className="space-y-6">
            <div className="bg-blue-50 p-6 rounded-3xl border border-blue-100 text-center space-y-2">
-              <div className="w-16 h-16 bg-white border border-blue-200 text-blue-600 rounded-2xl mx-auto flex items-center justify-center text-2xl shadow-sm mb-4">📖</div>
+              <div className="w-16 h-16 bg-white border border-blue-200 text-blue-600 rounded-2xl mx-auto flex items-center justify-center text-2xl shadow-sm mb-4"><Book className="w-8 h-8" /></div>
               <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Sách đặt trước</p>
               <p className="text-xl font-black text-gray-900 leading-tight">{selectedReservation?.book?.title}</p>
            </div>
