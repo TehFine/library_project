@@ -26,6 +26,8 @@ Thumbs.db
 /.settings
 /.vscode
 
+nul
+
 # Environment variables
 .env
 .env.test
