@@ -1,12 +1,13 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository, DataSource, LessThan, MoreThanOrEqual } from 'typeorm'
+import { Repository, DataSource, LessThan } from 'typeorm'
 import { BorrowRecord } from './entities/borrow-record.entity'
 import { BookCopy } from '@/modules/books/entities/book-copy.entity'
 import { LibraryCard } from '@/modules/library-cards/entities/library-card.entity'
 import { Book } from '@/modules/books/entities/book.entity'
 import { Reservation } from '@/modules/reservations/entities/reservation.entity'
 import { BorrowRequest } from '@/modules/borrow-requests/entities/borrow-request.entity'
+import { Fine } from '@/modules/fines/entities/fine.entity'
 import { RealtimeGateway } from '@/common/websocket/realtime.gateway'
 
 @Injectable()
@@ -22,6 +23,8 @@ export class BorrowRecordsService {
         private bookRepo: Repository<Book>,
         @InjectRepository(Reservation)
         private resRepo: Repository<Reservation>,
+        @InjectRepository(Fine)
+        private fineRepo: Repository<Fine>,
         private dataSource: DataSource,
         private realtime: RealtimeGateway,
     ) { }
@@ -182,6 +185,39 @@ export class BorrowRecordsService {
             
             // Kiểm tra quá hạn để tính phạt
             const overdue = new Date(record.returnDate) > new Date(record.dueDate)
+            
+            // Tự động tạo/cập nhật phí phạt nếu quá hạn
+            if (overdue) {
+                const dueDate = new Date(record.dueDate)
+                const returnDate = new Date(record.returnDate)
+                const diffTime = returnDate.getTime() - dueDate.getTime()
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+                let amount: number
+                if (diffDays <= 5) {
+                    amount = diffDays * 1000
+                } else {
+                    amount = 5000 + (diffDays - 5) * 3000
+                }
+
+                const existingFine = await this.fineRepo.findOneBy({ borrowRecordId: record.id })
+                if (existingFine) {
+                    // Cập nhật số ngày & số tiền theo thời điểm trả thực tế
+                    existingFine.overdueDays = diffDays
+                    existingFine.amount = amount
+                    await this.fineRepo.save(existingFine)
+                } else {
+                    const fine = this.fineRepo.create({
+                        borrowRecordId: record.id,
+                        fineType: 'overdue',
+                        overdueDays: diffDays,
+                        amount,
+                        status: 'pending',
+                    })
+                    await this.fineRepo.save(fine)
+                }
+            }
+            
             return { record, overdue }
         } catch (err) {
             await queryRunner.rollbackTransaction()
@@ -239,8 +275,7 @@ export class BorrowRecordsService {
         } else if (status === 'borrowing') {
             where = { 
                 libraryCard: { userId }, 
-                status: 'borrowing', 
-                dueDate: MoreThanOrEqual(today) 
+                status: 'borrowing'
             }
         } else if (status && status !== 'all') {
             where = { libraryCard: { userId }, status }

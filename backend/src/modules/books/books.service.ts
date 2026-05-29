@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { Repository, ILike } from 'typeorm'
 import { Book } from './entities/book.entity'
 import { BookCopy } from './entities/book-copy.entity'
+import { RealtimeGateway } from '@/common/websocket/realtime.gateway'
 
 @Injectable()
 export class BooksService {
@@ -11,6 +12,7 @@ export class BooksService {
         private booksRepository: Repository<Book>,
         @InjectRepository(BookCopy)
         private bookCopiesRepository: Repository<BookCopy>,
+        private realtime: RealtimeGateway,
     ) { }
 
     async findAll(params?: {
@@ -78,6 +80,7 @@ export class BooksService {
             createdBy: { id: userId }
         })
         const saved = await this.booksRepository.save(book)
+        this.realtime.emit('admin:dashboard-update')
         return saved as unknown as Book
     }
 
@@ -97,6 +100,7 @@ export class BooksService {
 
         Object.assign(book, updateData)
         const saved = await this.booksRepository.save(book)
+        this.realtime.emit('admin:dashboard-update')
         return saved as unknown as Book
     }
 
@@ -107,7 +111,9 @@ export class BooksService {
             book
         })
         // BookCopySubscriber tự động cập nhật totalCopies và availableCopies
-        return this.bookCopiesRepository.save(copy) as unknown as BookCopy
+        const saved = await this.bookCopiesRepository.save(copy)
+        this.realtime.emit('admin:dashboard-update')
+        return saved as unknown as BookCopy
     }
 
     async updateCopy(copyId: string, dto: any): Promise<BookCopy> {
@@ -122,7 +128,9 @@ export class BooksService {
 
         Object.assign(copy, dto)
         // BookCopySubscriber tự động cập nhật totalCopies và availableCopies
-        return this.bookCopiesRepository.save(copy) as unknown as BookCopy
+        const saved = await this.bookCopiesRepository.save(copy)
+        this.realtime.emit('admin:dashboard-update')
+        return saved as unknown as BookCopy
     }
 
     async removeCopy(copyId: string): Promise<{ success: boolean }> {
@@ -137,6 +145,7 @@ export class BooksService {
 
         // BookCopySubscriber tự động cập nhật totalCopies và availableCopies
         await this.bookCopiesRepository.remove(copy)
+        this.realtime.emit('admin:dashboard-update')
         return { success: true }
     }
 
