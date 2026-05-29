@@ -6,6 +6,7 @@ import { Book } from '@/modules/books/entities/book.entity'
 import { BookCopy } from '@/modules/books/entities/book-copy.entity'
 import { LibraryCardsService } from '@/modules/library-cards/library-cards.service'
 import { BorrowRecordsService } from '@/modules/borrow-records/borrow-records.service'
+import { RealtimeGateway } from '@/common/websocket/realtime.gateway'
 
 @Injectable()
 export class ReservationsService {
@@ -18,6 +19,7 @@ export class ReservationsService {
         private copyRepo: Repository<BookCopy>,
         private cardService: LibraryCardsService,
         private borrowService: BorrowRecordsService,
+        private realtime: RealtimeGateway,
     ) { }
 
     async create(userId: string, bookId: string) {
@@ -57,7 +59,13 @@ export class ReservationsService {
             status: 'waiting'
         })
 
-        return this.resRepo.save(reservation)
+        const saved = await this.resRepo.save(reservation)
+
+        this.realtime.emit('librarian:dashboard-update')
+        this.realtime.emit('admin:dashboard-update')
+        this.realtime.emit('reader:dashboard-update')
+
+        return saved
     }
 
     private async syncReservationsStatus() {
@@ -130,7 +138,13 @@ export class ReservationsService {
         if (!res) throw new BadRequestException('Không tìm thấy yêu cầu đặt trước')
         
         res.status = 'cancelled'
-        return this.resRepo.save(res)
+        const saved = await this.resRepo.save(res)
+
+        this.realtime.emit('librarian:dashboard-update')
+        this.realtime.emit('admin:dashboard-update')
+        this.realtime.emit('reader:dashboard-update')
+
+        return saved
     }
 
     async notify(id: string) {
@@ -139,7 +153,13 @@ export class ReservationsService {
         
         res.status = 'notified'
         res.notifiedAt = new Date()
-        return this.resRepo.save(res)
+        const saved = await this.resRepo.save(res)
+
+        this.realtime.emit('librarian:dashboard-update')
+        this.realtime.emit('admin:dashboard-update')
+        this.realtime.emit('reader:dashboard-update')
+
+        return saved
     }
 
     async fulfill(id: string, librarianId: string) {
@@ -156,7 +176,15 @@ export class ReservationsService {
 
         // Cập nhật trạng thái
         res.status = 'completed'
-        return this.resRepo.save(res)
+        const saved = await this.resRepo.save(res)
+
+        // `borrowService.borrow()` ở trên đã emit dashboard-update cho borrow,
+        // nhưng emit thêm để đảm bảo dashboard cập nhật trạng thái reservation
+        this.realtime.emit('librarian:dashboard-update')
+        this.realtime.emit('admin:dashboard-update')
+        this.realtime.emit('reader:dashboard-update')
+
+        return saved
     }
 
     async findMine(userId: string, query: any) {

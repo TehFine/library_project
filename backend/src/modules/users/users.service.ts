@@ -4,6 +4,7 @@ import { Repository } from 'typeorm'
 import { User } from './entities/user.entity'
 import { UserProfile } from './entities/user-profile.entity'
 import { Role, RoleName } from './entities/role.entity'
+import { RealtimeGateway } from '@/common/websocket/realtime.gateway'
 
 @Injectable()
 export class UsersService {
@@ -14,6 +15,7 @@ export class UsersService {
         private profilesRepository: Repository<UserProfile>,
         @InjectRepository(Role)
         private rolesRepository: Repository<Role>,
+        private realtime: RealtimeGateway,
     ) { }
 
     async findOne(id: string): Promise<User> {
@@ -118,6 +120,9 @@ export class UsersService {
 
     async updateProfile(userId: string, profileData: Partial<UserProfile>): Promise<User> {
         await this.profilesRepository.update({ userId }, profileData)
+        this.realtime.emit('admin:dashboard-update')
+        this.realtime.emit('admin:user-update')
+        this.realtime.emit('reader:dashboard-update')
         return this.findOne(userId)
     }
 
