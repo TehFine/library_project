@@ -91,6 +91,208 @@ export class NotificationsService {
         return notif
     }
 
+    /** Resolve target user IDs with personalization data per target group */
+    private async resolveTargetUsers(
+        targetGroup?: string,
+        customRecipients?: string,
+    ): Promise<Array<{ userId: string; replacements: Record<string, string> }>> {
+        const readerRole = await this.roleRepo.findOneBy({ name: RoleName.READER })
+        if (!readerRole) return []
+
+        // Helper: get user's full name
+        const getName = async (uid: string): Promise<string> => {
+            const user = await this.userRepo.findOne({
+                where: { id: uid },
+                relations: { profile: true },
+            })
+            return user?.profile?.fullName || user?.username || 'Bạn'
+        }
+
+        // ── Custom recipients ──
+        if (customRecipients) {
+            const identifiers = customRecipients.split(',').map(s => s.trim()).filter(Boolean)
+            if (identifiers.length === 0) return []
+
+            const byEmail = await this.userRepo.find({
+                where: identifiers.map(email => ({ email })),
+                relations: { profile: true },
+            })
+            const result: Array<{ userId: string; replacements: Record<string, string> }> = []
+            for (const user of byEmail) {
+                result.push({
+                    userId: user.id,
+                    replacements: {
+                        '{{tên_độc_giả}}': user.profile?.fullName || user.username,
+                    },
+                })
+            }
+            // Match by card number for remaining
+            const foundIds = new Set(byEmail.map(u => u.id))
+            const cardMatches = await this.cardRepo
+                .createQueryBuilder('c')
+                .leftJoinAndSelect('c.user', 'u')
+                .leftJoin('u.profile', 'p')
+                .select(['c.userId', 'c.cardNumber', 'u.username', 'p.fullName'])
+                .where('c.cardNumber IN (:...numbers)', { numbers: identifiers })
+                .getRawMany()
+            for (const row of cardMatches) {
+                if (row.c_userId && !foundIds.has(row.c_userId)) {
+                    foundIds.add(row.c_userId)
+                    result.push({
+                        userId: row.c_userId,
+                        replacements: {
+                            '{{tên_độc_giả}}': row.p_fullName || row.u_username || 'Bạn',
+                        },
+                    })
+                }
+            }
+            return result
+        }
+
+        if (!targetGroup) return []
+
+        // ── All readers ──
+        if (targetGroup === 'all') {
+            const users = await this.userRepo.find({
+                where: { roleId: readerRole.id, isActive: true },
+                relations: { profile: true },
+            })
+            return users.map(u => ({
+                userId: u.id,
+                replacements: {
+                    '{{tên_độc_giả}}': u.profile?.fullName || u.username,
+                },
+            }))
+        }
+
+        // ── Overdue readers ──
+        if (targetGroup === 'overdue') {
+            const today = new Date().toISOString().split('T')[0]
+            const rows = await this.borrowRepo
+                .createQueryBuilder('b')
+                .leftJoin('b.libraryCard', 'lc')
+                .leftJoin('b.bookCopy', 'bc')
+                .leftJoin('bc.book', 'bk')
+                .where('b.status IN (:...statuses)', { statuses: ['borrowing', 'overdue'] })
+                .andWhere('b.dueDate < :today', { today })
+                .select([
+                    'lc.userId',
+                    'bk.title',
+                    'b.dueDate',
+                ])
+                .orderBy('b.dueDate', 'ASC')
+                .getRawMany()
+
+            // Group by user, pick the most overdue book for each
+            const userMap = new Map<string, { title: string; days: number }>()
+            for (const row of rows) {
+                const uid = row.lc_userId
+                if (!uid) continue
+                if (!userMap.has(uid)) {
+                    const due = new Date(row.b_dueDate)
+                    const days = Math.ceil((Date.now() - due.getTime()) / 86400000)
+                    userMap.set(uid, {
+                        title: row.bk_title || 'sách',
+                        days: Math.max(1, days),
+                    })
+                }
+            }
+
+            const result: Array<{ userId: string; replacements: Record<string, string> }> = []
+            for (const [uid, data] of userMap) {
+                const name = await getName(uid)
+                result.push({
+                    userId: uid,
+                    replacements: {
+                        '{{tên_độc_giả}}': name,
+                        '{{số_ngày}}': String(data.days),
+                        '{{tên_sách}}': data.title,
+                    },
+                })
+            }
+            return result
+        }
+
+        // ── Expiring cards ──
+        if (targetGroup === 'expiring') {
+            const thirtyDaysLater = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0]
+            const cards = await this.cardRepo.find({
+                where: { status: 'active' },
+                relations: { user: { profile: true } },
+            })
+            const result: Array<{ userId: string; replacements: Record<string, string> }> = []
+            const seen = new Set<string>()
+            for (const card of cards) {
+                if (card.expiryDate && card.expiryDate <= thirtyDaysLater && !seen.has(card.userId)) {
+                    seen.add(card.userId)
+                    const user = card.user
+                    const expiry = new Date(card.expiryDate)
+                    const formatted = `${expiry.getDate()}/${expiry.getMonth() + 1}/${expiry.getFullYear()}`
+                    result.push({
+                        userId: card.userId,
+                        replacements: {
+                            '{{tên_độc_giả}}': user?.profile?.fullName || user?.username || 'Bạn',
+                            '{{mã_thẻ}}': card.cardNumber,
+                            '{{ngày_hết_hạn}}': formatted,
+                        },
+                    })
+                }
+            }
+            return result
+        }
+
+        // ── Debt (unpaid fines) ──
+        if (targetGroup === 'debt') {
+            const rows = await this.fineRepo
+                .createQueryBuilder('f')
+                .leftJoin('f.borrowRecord', 'br')
+                .leftJoin('br.libraryCard', 'lc')
+                .where('f.status = :status', { status: 'pending' })
+                .select(['lc.userId', 'f.amount'])
+                .getRawMany()
+
+            // Aggregate total per user
+            const userTotals = new Map<string, number>()
+            for (const row of rows) {
+                const uid = row.lc_userId
+                if (!uid) continue
+                userTotals.set(uid, (userTotals.get(uid) || 0) + Number(row.f_amount))
+            }
+
+            const result: Array<{ userId: string; replacements: Record<string, string> }> = []
+            for (const [uid, total] of userTotals) {
+                const name = await getName(uid)
+                result.push({
+                    userId: uid,
+                    replacements: {
+                        '{{tên_độc_giả}}': name,
+                        '{{số_tiền}}': total.toLocaleString('vi-VN'),
+                    },
+                })
+            }
+            return result
+        }
+
+        return []
+    }
+
+    /** Get notifications for a reader */
+    async getMyNotifications(userId: string) {
+        return this.notifRepo.find({
+            where: { userId },
+            order: { createdAt: 'DESC' as any },
+            take: 50,
+        })
+    }
+
+    /** Mark a notification as read */
+    async markAsRead(notifId: string, userId: string) {
+        const notif = await this.notifRepo.findOneBy({ id: notifId, userId })
+        if (!notif) throw new NotFoundException('Notification not found')
+        await this.notifRepo.update(notifId, { read: true })
+        return { success: true }
+    }
+
     /** Create and optionally send a notification */
     async create(dto: {
         title: string
@@ -125,9 +327,49 @@ export class NotificationsService {
 
         const saved = await this.notifRepo.save(notif)
 
-        // If sending, emit realtime event
+        // If sending, create individual notification records per reader + emit realtime
         if (dto.status === 'sent') {
+            const targetUsers = await this.resolveTargetUsers(dto.targetGroup, dto.customRecipients)
+
+            // Create individual notification records for each target reader (with personalized content)
+            if (targetUsers.length > 0) {
+                const individualNotifs = targetUsers.map(({ userId, replacements }) => {
+                    // Apply personalization replacements to content
+                    let personalizedContent = saved.content
+                    let personalizedTitle = saved.title
+                    for (const [key, value] of Object.entries(replacements)) {
+                        personalizedContent = personalizedContent.split(key).join(value)
+                        personalizedTitle = personalizedTitle.split(key).join(value)
+                    }
+
+                    const n = new Notification()
+                    n.notificationType = 'individual'
+                    n.title = personalizedTitle
+                    n.content = personalizedContent
+                    n.userId = userId
+                    n.read = false
+                    n.status = 'sent'
+                    n.createdById = dto.createdById
+                    n.sentAt = new Date()
+                    return n
+                })
+                // Batch insert in chunks to avoid memory issues
+                const chunkSize = 100
+                for (let i = 0; i < individualNotifs.length; i += chunkSize) {
+                    await this.notifRepo.save(individualNotifs.slice(i, i + chunkSize))
+                }
+                saved.sentCount = targetUsers.length
+                await this.notifRepo.save(saved)
+            }
+
+            // Emit realtime — send generic content to avoid showing raw placeholders in toast
             this.realtime.emit('admin:notification-update')
+            this.realtime.emit('reader:notification', {
+                id: saved.id,
+                title: saved.title,
+                content: '📬 Bạn có thông báo mới từ thư viện. Vui lòng xem chi tiết trong trang Thông báo.',
+                createdAt: saved.createdAt,
+            })
         }
 
         return this.findOne(saved.id)

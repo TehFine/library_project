@@ -3,27 +3,29 @@ import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard'
 import { NotificationsService } from './notifications.service'
 import { Notification } from './entities/notification.entity'
 
-@Controller('admin/notifications')
+@Controller()
 @UseGuards(JwtAuthGuard)
 export class NotificationsController {
     constructor(private readonly notifService: NotificationsService) {}
 
-    @Get('target-counts')
+    // ── Admin endpoints ──
+
+    @Get('admin/notifications/target-counts')
     getTargetCounts() {
         return this.notifService.getTargetCounts()
     }
 
-    @Get()
+    @Get('admin/notifications')
     list() {
         return this.notifService.list()
     }
 
-    @Get(':id')
+    @Get('admin/notifications/:id')
     findOne(@Param('id') id: string) {
         return this.notifService.findOne(id)
     }
 
-    @Post()
+    @Post('admin/notifications')
     create(@Body() dto: {
         title: string
         content: string
@@ -38,12 +40,12 @@ export class NotificationsController {
         })
     }
 
-    @Post(':id/send-test')
+    @Post('admin/notifications/:id/send-test')
     sendTest(@Param('id') id: string) {
         return this.notifService.sendTest(id)
     }
 
-    @Patch(':id/draft')
+    @Patch('admin/notifications/:id/draft')
     updateDraft(@Param('id') id: string, @Body() dto: Partial<{
         title: string
         content: string
@@ -52,5 +54,17 @@ export class NotificationsController {
         variables: string[]
     }>) {
         return this.notifService.updateDraft(id, dto)
+    }
+
+    // ── Reader-facing endpoints ──
+
+    @Get('notifications/mine')
+    getMyNotifications(@Req() req: any) {
+        return this.notifService.getMyNotifications(req.user.userId)
+    }
+
+    @Patch('notifications/:id/read')
+    markAsRead(@Param('id') id: string, @Req() req: any) {
+        return this.notifService.markAsRead(id, req.user.userId)
     }
 }

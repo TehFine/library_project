@@ -33,6 +33,12 @@ export class Notification {
     @Column({ default: 'draft' })
     status: string  // 'draft' | 'sent'
 
+    @Column({ nullable: true })
+    userId: string  // reader this notification belongs to (null = bulk record)
+
+    @Column({ default: false })
+    read: boolean
+
     @Column('simple-json', { nullable: true })
     variables: string[]  // e.g. ['{{tên_độc_giả}}', '{{số_ngày}}']
 
