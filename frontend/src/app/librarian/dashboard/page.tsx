@@ -64,31 +64,30 @@ export default function LibrarianDashboard() {
       <PageHeader title="Tổng quan ca làm việc" description="Theo dõi và quản lý hoạt động thư viện trong ca của bạn" />
 
       {/* Khu vực 1 — Thanh trạng thái ca */}
-      <div className="flex items-center justify-between bg-white border border-gray-100 rounded-2xl p-4 shadow-sm">
-        <div className="flex items-center gap-4">
-          <Badge className="bg-primary-100 text-primary-800 text-sm px-3 py-1 font-bold">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white border border-gray-100 rounded-2xl p-3 sm:p-4 shadow-sm gap-2 sm:gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+          <Badge className="bg-primary-100 text-primary-800 text-xs sm:text-sm px-2 sm:px-3 py-1 font-bold shrink-0">
             {shiftInfo.name} ({shiftInfo.time})
           </Badge>
-          <span className="text-gray-700 font-semibold">Thủ thư: {shiftInfo.librarian}</span>
+          <span className="text-gray-700 font-semibold text-xs sm:text-sm">Thủ thư: {shiftInfo.librarian}</span>
         </div>
-        <Button variant="ghost" size="sm" onClick={() => setShowEndShiftModal(true)}>
-          Kết thúc ca ▼
+        <Button variant="ghost" size="sm" className="text-xs px-3 py-1.5 self-end sm:self-auto" onClick={() => setShowEndShiftModal(true)}>
+          Kết thúc ca
         </Button>
       </div>
 
       {/* Khu vực 2 — Stat cards (4 ô) */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {statCards.map((s, i) => (
-          <div key={i} className={cn('rounded-2xl p-5 ring-1 shadow-sm flex flex-col items-center justify-center text-center transition-all hover:scale-105', s.color)}>
-            <p className="text-sm font-bold opacity-80 mb-1 uppercase tracking-wider">{s.label}</p>
-            <p className="text-3xl font-black mb-1">{s.value}</p>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {statCards.map((s, i) => (            <div key={i} className={cn('rounded-2xl p-4 sm:p-5 ring-1 shadow-sm flex flex-col items-center justify-center text-center transition-all hover:scale-105', s.color)}>
+            <p className="text-[11px] sm:text-sm font-bold opacity-80 mb-1 uppercase tracking-wider">{s.label}</p>
+            <p className="text-2xl sm:text-3xl font-black mb-1">{s.value}</p>
             <p className="text-xs opacity-70 font-medium">{s.subtext}</p>
           </div>
         ))}
       </div>
 
       {/* Khu vực 3 — Thao tác nhanh */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Link href="/librarian/borrows/new" className="block">
           <div className="bg-gradient-to-br from-primary to-primary-dark text-white rounded-3xl p-6 shadow-glow hover:scale-[1.02] transition-transform cursor-pointer flex items-center justify-between">
             <div>
@@ -130,7 +129,7 @@ export default function LibrarianDashboard() {
                Yêu cầu mượn mới
             </h3>
             <Link href="/librarian/borrows/requests">
-               <Button variant="ghost" size="sm" className="text-primary">Xem tất cả</Button>
+               <Button variant="ghost" size="sm" className="text-primary text-xs px-2">Xem tất cả</Button>
             </Link>
           </div>
           <div className="divide-y divide-gray-50 bg-white min-h-[200px]">
@@ -147,7 +146,7 @@ export default function LibrarianDashboard() {
                     </div>
                   </div>
                   <Link href="/librarian/borrows/requests">
-                    <Button variant="ghost" size="sm" className="rounded-full">Xử lý</Button>
+                    <Button variant="ghost" size="sm" className="rounded-full text-xs px-3">Xử lý</Button>
                   </Link>
                 </div>
               ))
@@ -159,7 +158,7 @@ export default function LibrarianDashboard() {
         <Card padding="none" className="rounded-3xl overflow-hidden border-none shadow-sm">
           <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-white">
             <h3 className="font-bold text-gray-900">Sách quá hạn cần xử lý</h3>
-            <Button variant="ghost" size="sm" className="text-primary">Gửi nhắc nhở</Button>
+            <Button variant="ghost" size="sm" className="text-primary text-xs px-2">Gửi nhắc nhở</Button>
           </div>
           <div className="divide-y divide-gray-50 bg-white min-h-[200px]">
             {!stats || stats.overdueBooks.length === 0 ? (
@@ -174,7 +173,7 @@ export default function LibrarianDashboard() {
                       <p className="text-xs text-gray-500 mt-0.5">{b.user} • <span className="text-red-600 font-bold">Trễ {b.days} ngày</span></p>
                     </div>
                   </div>
-                  <Button variant="ghost" size="sm" className="rounded-full">Nhắc nhở</Button>
+                  <Button variant="ghost" size="sm" className="rounded-full text-xs px-3">Nhắc nhở</Button>
                 </div>
               ))
             )}
@@ -201,9 +200,9 @@ export default function LibrarianDashboard() {
             </div>
           </div>
           <p className="text-xs text-amber-600 font-bold italic bg-amber-50 p-3 rounded-xl border border-amber-100">Lưu ý: Hệ thống sẽ in biên bản tổng kết và đăng xuất tài khoản.</p>
-          <div className="flex justify-end gap-3 mt-6">
-            <Button variant="ghost" onClick={() => setShowEndShiftModal(false)}>Hủy</Button>
-            <Button variant="primary" onClick={handleEndShift}>In & Kết thúc</Button>
+          <div className="flex justify-end gap-2 mt-6">
+            <Button variant="ghost" size="sm" onClick={() => setShowEndShiftModal(false)}>Hủy</Button>
+            <Button variant="primary" size="sm" onClick={handleEndShift}>In & Kết thúc</Button>
           </div>
         </div>
       </Modal>

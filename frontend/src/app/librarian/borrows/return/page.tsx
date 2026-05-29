@@ -246,26 +246,26 @@ export default function ReturnBorrowPage() {
             {!selectedRecord ? (
               <div className="space-y-6">
                 {/* Search Mode Toggle */}
-                <div className="flex gap-2 bg-gray-50 p-1.5 rounded-2xl w-fit">
+                <div className="flex gap-1 sm:gap-2 bg-gray-50 p-1 sm:p-1.5 rounded-xl sm:rounded-2xl w-fit overflow-x-auto scrollbar-hide max-w-full pt-1">
                   <button
                     onClick={() => { setSearchMode('code'); setSearchRecord(''); setTitleSearchResults([]) }}
-                    className={`px-5 py-2.5 text-sm font-semibold transition-all duration-200 rounded-xl ${
+                    className={`px-3 sm:px-5 py-2 sm:py-2.5 text-[11px] sm:text-sm font-semibold transition-all duration-200 rounded-lg sm:rounded-xl whitespace-nowrap shrink-0 ${
                       searchMode === 'code'
                         ? 'bg-white text-gray-900 shadow-sm'
                         : 'text-gray-500 hover:text-gray-700'
                     }`}
                   >
-                    <Barcode className="w-4 h-4" /> Quét mã vạch
+                    <Barcode className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Quét mã
                   </button>
                   <button
                     onClick={() => { setSearchMode('title'); setSearchRecord(''); setTitleSearchResults([]) }}
-                    className={`px-5 py-2.5 text-sm font-semibold transition-all duration-200 rounded-xl ${
+                    className={`px-3 sm:px-5 py-2 sm:py-2.5 text-[11px] sm:text-sm font-semibold transition-all duration-200 rounded-lg sm:rounded-xl whitespace-nowrap shrink-0 ${
                       searchMode === 'title'
                         ? 'bg-white text-gray-900 shadow-sm'
                         : 'text-gray-500 hover:text-gray-700'
                     }`}
                   >
-                    <Search className="w-4 h-4" /> Tìm theo tên sách
+                    <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Tìm tên sách
                   </button>
                 </div>
 

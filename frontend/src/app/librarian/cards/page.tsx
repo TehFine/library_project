@@ -94,26 +94,26 @@ export default function LibrarianCardsPage() {
       <PageHeader title="Quản lý thẻ độc giả" description="Cấp mới, gia hạn, và khóa thẻ thư viện" />
 
       {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-white p-5 rounded-3xl shadow-sm border border-gray-50">
-        <div className="flex gap-3 flex-1 w-full sm:w-auto">
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-between items-center bg-white p-3 sm:p-5 rounded-2xl sm:rounded-3xl shadow-sm border border-gray-50">
+        <div className="flex gap-2 sm:gap-3 flex-1 w-full sm:w-auto overflow-x-auto scrollbar-hide px-1 pb-2 pt-1">
           <Input 
-            placeholder="Tìm theo tên, mã thẻ, CCCD..." 
+            placeholder="Tìm thẻ..." 
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="max-w-xs rounded-2xl"
+            className="max-w-[150px] sm:max-w-xs rounded-xl sm:rounded-2xl text-xs sm:text-sm"
           />
           <Select 
             value={filterStatus}
             onChange={e => setFilterStatus(e.target.value)}
-            className="rounded-2xl"
+            className="rounded-xl sm:rounded-2xl text-xs sm:text-sm shrink-0"
           >
-            <option value="all">Tất cả trạng thái</option>
-            <option value="active">Đang hoạt động</option>
+            <option value="all">Tất cả</option>
+            <option value="active">Hoạt động</option>
             <option value="expired">Hết hạn</option>
             <option value="suspended">Bị khóa</option>
           </Select>
         </div>
-        <Button variant="primary" onClick={() => setShowAddCardModal(true)} className="rounded-2xl px-6">
+        <Button variant="primary" onClick={() => setShowAddCardModal(true)} className="rounded-xl sm:rounded-2xl px-4 sm:px-6 text-xs sm:text-sm whitespace-nowrap shrink-0">
           + Cấp thẻ mới
         </Button>
       </div>

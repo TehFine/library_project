@@ -65,20 +65,20 @@ export default function LibrarianFinesPage() {
       <PageHeader title="Quản lý phí phạt" description="Thu phí trễ hạn, làm mất hoặc hư hỏng sách" />
 
       {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-white p-5 rounded-3xl shadow-sm border border-gray-50">
-        <div className="flex gap-3 flex-1 w-full sm:w-auto">
+      <div className="flex flex-col sm:flex-row gap-3 justify-between items-center bg-white p-4 rounded-3xl shadow-sm border border-gray-50">
+        <div className="flex gap-2 flex-1 w-full overflow-x-auto px-1 pb-2 pt-1">
           <Input 
-            placeholder="Tìm theo tên độc giả, tên sách..." 
+            placeholder="Tìm sách, độc giả..." 
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="max-w-xs rounded-2xl"
+            className="max-w-[180px] sm:max-w-xs rounded-2xl text-sm"
           />
           <Select 
             value={status}
             onChange={e => setStatus(e.target.value)}
-            className="rounded-2xl"
+            className="rounded-2xl text-sm"
           >
-            <option value="all">Tất cả trạng thái</option>
+            <option value="all">Tất cả</option>
             <option value="pending">Chưa thanh toán</option>
             <option value="paid">Đã thanh toán</option>
           </Select>
@@ -122,9 +122,9 @@ export default function LibrarianFinesPage() {
                   </td>
                   <td className="py-4 px-6 text-right">
                     {fine.status === 'pending' ? (
-                      <Button variant="primary" size="sm" className="rounded-full px-6" onClick={() => setSelectedFine(fine)}>Thu phí</Button>
+                      <Button variant="primary" size="sm" className="rounded-full px-4 text-xs" onClick={() => setSelectedFine(fine)}>Thu phí</Button>
                     ) : (
-                      <Button variant="ghost" size="sm" className="rounded-full" onClick={() => setReceiptFine(fine)}>Biên lai</Button>
+                      <Button variant="ghost" size="sm" className="rounded-full text-xs px-3" onClick={() => setReceiptFine(fine)}>Biên lai</Button>
                     )}
                   </td>
                 </tr>

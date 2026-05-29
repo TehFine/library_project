@@ -167,18 +167,18 @@ export default function LibrarianBooksPage() {
       <PageHeader title="Quản lý sách & Kho" description="Quản lý các đầu sách và bản sao vật lý trong thư viện" />
 
       {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-white p-5 rounded-3xl shadow-sm border border-gray-50">
-        <div className="flex gap-3 flex-1 w-full sm:w-auto">
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-between items-center bg-white p-3 sm:p-5 rounded-2xl sm:rounded-3xl shadow-sm border border-gray-50">
+        <div className="flex gap-2 sm:gap-3 flex-1 w-full sm:w-auto overflow-x-auto scrollbar-hide px-1 pb-2 pt-1">
           <Input 
-            placeholder="Tìm sách theo tên, ISBN..." 
+            placeholder="Tìm sách..." 
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="max-w-xs rounded-2xl"
+            className="max-w-[160px] sm:max-w-xs rounded-xl sm:rounded-2xl text-xs sm:text-sm"
           />
           <Select 
             value={categoryId}
             onChange={e => setCategoryId(e.target.value)}
-            className="rounded-2xl"
+            className="rounded-xl sm:rounded-2xl text-xs sm:text-sm shrink-0"
           >
             <option value="all">Tất cả thể loại</option>
             {categories.map(c => (
@@ -186,8 +186,8 @@ export default function LibrarianBooksPage() {
             ))}
           </Select>
         </div>
-        <Button variant="primary" onClick={() => setShowAddBookModal(true)} className="rounded-2xl px-6">
-          + Thêm sách mới
+        <Button variant="primary" onClick={() => setShowAddBookModal(true)} className="rounded-xl sm:rounded-2xl px-4 sm:px-6 text-xs sm:text-sm whitespace-nowrap shrink-0">
+          + Thêm sách
         </Button>
       </div>
 

@@ -60,22 +60,22 @@ export default function LibrarianReservationsPage() {
       <PageHeader title="Quản lý đặt trước" description="Theo dõi và thông báo cho độc giả khi sách có sẵn" />
 
       {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-white p-5 rounded-3xl shadow-sm border border-gray-50">
-        <div className="flex gap-3 flex-1 w-full sm:w-auto">
+      <div className="flex flex-col sm:flex-row gap-3 justify-between items-center bg-white p-4 rounded-3xl shadow-sm border border-gray-50">
+        <div className="flex gap-2 flex-1 w-full overflow-x-auto px-1 pb-2 pt-1">
           <Input 
-            placeholder="Tìm theo tên sách, tên độc giả..." 
+            placeholder="Tìm sách, độc giả..." 
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="max-w-xs rounded-2xl"
+            className="max-w-[180px] sm:max-w-xs rounded-2xl text-sm"
           />
           <Select 
             value={status}
             onChange={e => setStatus(e.target.value)}
-            className="rounded-2xl"
+            className="rounded-2xl text-sm"
           >
-            <option value="all">Tất cả trạng thái</option>
-            <option value="waiting">Chờ có sách (Waiting)</option>
-            <option value="notified">Chờ đến nhận (Ready)</option>
+            <option value="all">Tất cả</option>
+            <option value="waiting">Chờ có sách</option>
+            <option value="notified">Chờ đến nhận</option>
             <option value="completed">Đã hoàn tất</option>
             <option value="cancelled">Đã hủy</option>
           </Select>
@@ -137,9 +137,9 @@ export default function LibrarianReservationsPage() {
                   </td>
                   <td className="py-4 px-6 text-right space-x-2">
                     {res.status === 'notified' && (
-                      <Button variant="primary" size="sm" className="rounded-full px-4" onClick={() => handleFulfill(res.id)}>Cấp Sách</Button>
+                      <Button variant="primary" size="sm" className="rounded-full px-3 text-xs" onClick={() => handleFulfill(res.id)}>Cấp Sách</Button>
                     )}
-                    <Button variant="ghost" size="sm" className="rounded-full" onClick={() => setSelectedReservation(res)}>Chi tiết</Button>
+                    <Button variant="ghost" size="sm" className="rounded-full text-xs px-3" onClick={() => setSelectedReservation(res)}>Chi tiết</Button>
                   </td>
                 </tr>
               ))}

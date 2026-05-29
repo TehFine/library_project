@@ -322,28 +322,28 @@ export default function NewBorrowPage() {
             <h3 className="text-lg font-bold">Thêm sách vào phiếu</h3>
 
             {/* Mode Switcher */}
-            <div className="flex gap-2 bg-gray-50 p-1.5 rounded-2xl w-fit">
+            <div className="flex gap-1 sm:gap-2 bg-gray-50 p-1 sm:p-1.5 rounded-xl sm:rounded-2xl w-fit overflow-x-auto scrollbar-hide max-w-full pt-1">
               <button
                 onClick={() => { setSearchMode('title'); setSearchBook(''); setBookSearchResults([]); setSelectedBookForCopies(null); setAvailableCopies([]) }}
                 className={cn(
-                  'px-5 py-2.5 text-sm font-semibold transition-all duration-200 rounded-xl',
+                  'px-3 sm:px-5 py-2 sm:py-2.5 text-[11px] sm:text-sm font-semibold transition-all duration-200 rounded-lg sm:rounded-xl whitespace-nowrap shrink-0',
                   searchMode === 'title'
                     ? 'bg-white text-gray-900 shadow-sm'
                     : 'text-gray-500 hover:text-gray-700',
                 )}
               >
-                <Search className="w-4 h-4" /> Tìm theo tên sách
+                <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Tìm theo tên
               </button>
               <button
                 onClick={() => { setSearchMode('code'); setSearchBook(''); setBookSearchResults([]); setSelectedBookForCopies(null); setAvailableCopies([]) }}
                 className={cn(
-                  'px-5 py-2.5 text-sm font-semibold transition-all duration-200 rounded-xl',
+                  'px-3 sm:px-5 py-2 sm:py-2.5 text-[11px] sm:text-sm font-semibold transition-all duration-200 rounded-lg sm:rounded-xl whitespace-nowrap shrink-0',
                   searchMode === 'code'
                     ? 'bg-white text-gray-900 shadow-sm'
                     : 'text-gray-500 hover:text-gray-700',
                 )}
               >
-                <Barcode className="w-4 h-4" /> Quét mã vạch
+                <Barcode className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Quét mã vạch
               </button>
             </div>
 
