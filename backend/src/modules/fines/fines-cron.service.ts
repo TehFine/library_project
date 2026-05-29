@@ -4,6 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { Repository, LessThan } from 'typeorm'
 import { Fine } from './entities/fine.entity'
 import { BorrowRecord } from '@/modules/borrow-records/entities/borrow-record.entity'
+import { RealtimeGateway } from '@/common/websocket/realtime.gateway'
 
 @Injectable()
 export class FinesCronService {
@@ -14,6 +15,7 @@ export class FinesCronService {
         private fineRepo: Repository<Fine>,
         @InjectRepository(BorrowRecord)
         private borrowRepo: Repository<BorrowRecord>,
+        private realtime: RealtimeGateway,
     ) { }
 
     /**
@@ -51,9 +53,11 @@ export class FinesCronService {
                 if (existingFineIds.has(record.id)) continue
 
                 const dueDate = new Date(record.dueDate)
+                dueDate.setHours(0, 0, 0, 0)
                 const todayDate = new Date(todayStr)
+                todayDate.setHours(0, 0, 0, 0)
                 const diffTime = todayDate.getTime() - dueDate.getTime()
-                const diffDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)))
+                const diffDays = Math.max(1, Math.floor(diffTime / (1000 * 60 * 60 * 24)))
 
                 let amount: number
                 if (diffDays <= 5) {
@@ -77,6 +81,9 @@ export class FinesCronService {
             if (newFines.length > 0) {
                 await this.fineRepo.save(newFines)
                 this.logger.log(`Đã tự động tạo ${newFines.length} khoản phí phạt cho sách quá hạn`)
+                this.realtime.emit('librarian:dashboard-update')
+                this.realtime.emit('admin:dashboard-update')
+                this.realtime.emit('reader:dashboard-update')
             }
         } catch (error) {
             this.logger.error('Lỗi khi xử lý phí phạt tự động:', error)

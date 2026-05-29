@@ -93,8 +93,11 @@ export class LibrarianService {
             pendingRequestsCount,
             overdueBooks: overdueList.map(b => {
                 const due = new Date(b.dueDate)
-                const diffTime = today.getTime() - due.getTime()
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+                due.setHours(0, 0, 0, 0)
+                const todayMidnight = new Date()
+                todayMidnight.setHours(0, 0, 0, 0)
+                const diffTime = todayMidnight.getTime() - due.getTime()
+                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
                 return {
                     id: b.id,
                     title: b.bookCopy?.book?.title,

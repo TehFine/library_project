@@ -135,7 +135,7 @@ export class FinesService {
     }
 
     async findMine(userId: string, query: any) {
-        const { page = 1, limit = 10, status } = query
+        const { page = 1, limit = 12, status } = query
         const skip = (page - 1) * limit
 
         // 1. Lấy phí phạt thật trong DB
@@ -147,41 +147,66 @@ export class FinesService {
             order: { createdAt: 'DESC' },
         })
 
-        // 2. Tìm các phiếu mượn đang quá hạn nhưng chưa có record phạt
+        // 2. Tìm các phiếu mượn đang quá hạn (cả status 'borrowing' và 'overdue')
         const today = new Date()
         const todayStr = today.toISOString().split('T')[0]
         
         const overdueBorrows = await this.borrowRepo.find({
-            where: {
-                libraryCard: { userId },
-                status: 'borrowing',
-                dueDate: LessThan(todayStr)
-            },
+            where: [
+                {
+                    libraryCard: { userId },
+                    status: 'borrowing',
+                    dueDate: LessThan(todayStr)
+                },
+                {
+                    libraryCard: { userId },
+                    status: 'overdue',
+                }
+            ],
             relations: { bookCopy: { book: true } }
         })
 
         const virtualFines = overdueBorrows
-            .filter(b => !realFines.some(f => f.borrowRecordId === b.id))
+            .filter(b => {
+                // Chỉ skip nếu có phí 'pending' (chưa thanh toán) — vẫn tính virtual nếu đã paid/waived
+                const pendingFine = realFines.find(f => f.borrowRecordId === b.id && f.status === 'pending')
+                return !pendingFine
+            })
             .map(b => {
                 const dueDate = new Date(b.dueDate)
-                // Reset hours to compare dates only
-                const d1 = new Date(todayStr)
-                const d2 = new Date(b.dueDate)
-                const diffTime = d1.getTime() - d2.getTime()
-                const diffDays = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)))
+                dueDate.setHours(0, 0, 0, 0)
+                const todayMidnight = new Date()
+                todayMidnight.setHours(0, 0, 0, 0)
+                const diffTime = todayMidnight.getTime() - dueDate.getTime()
+                const totalDiffDays = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)))
                 
+                // Kiểm tra nếu đã có phí đã thanh toán — trừ đi số ngày đã đóng
+                const existingFine = realFines.find(f => f.borrowRecordId === b.id)
+                let remainingDays = totalDiffDays
+                let remainingAmount = this.calculateOverdueFine(totalDiffDays)
+
+                if (existingFine) {
+                    const paidDays = existingFine.overdueDays || 0
+                    const paidAmount = Number(existingFine.amount)
+                    remainingDays = totalDiffDays - paidDays
+                    remainingAmount = Math.max(0, this.calculateOverdueFine(totalDiffDays) - paidAmount)
+                }
+
+                if (remainingDays <= 0) return null // Không còn gì để đóng
+
                 return {
                     id: `virtual-${b.id}`,
                     borrowRecord: b,
                     borrowRecordId: b.id,
                     fineType: 'overdue',
-                    overdueDays: diffDays,
-                    amount: this.calculateOverdueFine(diffDays),
+                    overdueDays: remainingDays,
+                    amount: remainingAmount,
                     status: 'pending',
                     createdAt: new Date(),
                     isVirtual: true // Đánh dấu để frontend biết đây là phí tạm tính
                 }
             })
+            .filter((x): x is any => x != null) // Loại bỏ null (trường hợp remainingDays <= 0)
 
         const allFines = [...virtualFines, ...realFines]
             .filter(f => {

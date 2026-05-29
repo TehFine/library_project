@@ -283,8 +283,13 @@ export class AdminService {
             color: colors[index % colors.length]
         }));
 
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        // ── Borrow Stats: fill missing dates with 0 ──────────────────────
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const thirtyDaysAgo = new Date(today);
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29); // 30 days including today
+
         const borrowStatsRaw = await this.borrowRepo
             .createQueryBuilder('borrow')
             .select('borrow.borrowDate', 'date')
@@ -294,10 +299,21 @@ export class AdminService {
             .orderBy('borrow.borrowDate', 'ASC')
             .getRawMany();
 
-        const borrowStats = borrowStatsRaw.map(b => ({
-            date: b.date,
-            count: Number(b.count)
-        }));
+        const borrowMap = new Map<string, number>();
+        for (const b of borrowStatsRaw) {
+            borrowMap.set(b.date, Number(b.count));
+        }
+
+        const borrowStats: { date: string; count: number }[] = [];
+        for (let i = 0; i < 30; i++) {
+            const date = new Date(thirtyDaysAgo);
+            date.setDate(date.getDate() + i);
+            const dateStr = date.toISOString().split('T')[0];
+            borrowStats.push({
+                date: dateStr,
+                count: borrowMap.get(dateStr) || 0
+            });
+        }
 
         return {
             totalUsers,
@@ -640,8 +656,11 @@ export class AdminService {
 
         const overdueReaders = overdueList.map(b => {
             const due = new Date(b.dueDate);
-            const diffTime = today.getTime() - due.getTime();
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            due.setHours(0, 0, 0, 0);
+            const todayMidnight = new Date();
+            todayMidnight.setHours(0, 0, 0, 0);
+            const diffTime = todayMidnight.getTime() - due.getTime();
+            const diffDays = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
             return {
                 id: b.id,
                 name: b.libraryCard?.user?.profile?.fullName || b.libraryCard?.user?.username || '—',
