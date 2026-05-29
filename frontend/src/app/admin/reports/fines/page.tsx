@@ -168,17 +168,17 @@ export default function FinancialReportsPage() {
           title="Báo cáo tài chính"
           description="Quản lý các khoản thu phí phạt và tình trạng thanh toán."
         />
-        <div className="flex gap-2">
-          <Button variant="ghost" className="bg-white/50 border border-slate-200 font-bold text-xs" onClick={handlePDFExport}>Xuất PDF</Button>
-          <Button variant="secondary" className="font-bold text-xs" onClick={handleExcelExport}>Xuất Excel</Button>
+        <div className="flex gap-1 sm:gap-2">
+          <Button variant="ghost" className="bg-white/50 border border-slate-200 font-bold text-[10px] sm:text-xs px-2 sm:px-4 py-1.5 sm:py-2" onClick={handlePDFExport}>Xuất PDF</Button>
+          <Button variant="secondary" className="font-bold text-[10px] sm:text-xs px-2 sm:px-4 py-1.5 sm:py-2" onClick={handleExcelExport}>Xuất Excel</Button>
         </div>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {loading ? (
           Array.from({ length: 4 }).map((_, i) => (
-            <Card key={i} padding="lg" className="animate-pulse h-24 bg-slate-100 border-none"><div /></Card>
+            <Card key={i} padding="lg" className="animate-pulse h-20 sm:h-24 bg-slate-100 border-none"><div /></Card>
           ))
         ) : (
           SUMMARY_CARDS.map((f, idx) => (
@@ -202,7 +202,7 @@ export default function FinancialReportsPage() {
       </div>
 
       {/* Filters */}
-      <Card padding="lg" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end bg-amber-900 border-none text-white shadow-glow">
+      <Card padding="lg" className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-4 items-end bg-amber-900 border-none text-white shadow-glow">
         <div className="space-y-1.5">
           <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Loại phạt</label>
           <Select className="bg-white/10 border-white/20 text-white" value={filterType} onChange={e => setFilterType(e.target.value)}>
@@ -265,20 +265,20 @@ export default function FinancialReportsPage() {
                     <Badge className={statusBadgeClass(tx.status)}>{statusLabel(tx.status)}</Badge>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <div className="flex justify-end gap-1">
-                      {tx.status === 'paid' && (<button onClick={() => handlePrintReceipt(tx)} className="text-xs font-bold text-amber-600 hover:bg-amber-50 px-3 py-1.5 rounded-lg inline-flex items-center gap-1.5"><Printer className="w-3.5 h-3.5" /> In biên lai</button>
+                    <div className="flex justify-end gap-1 flex-wrap">
+                      {tx.status === 'paid' && (<button onClick={() => handlePrintReceipt(tx)} className="text-[10px] sm:text-xs font-bold text-amber-600 hover:bg-amber-50 px-2 sm:px-3 py-1.5 rounded-lg inline-flex items-center gap-1.5 whitespace-nowrap"><Printer className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> In biên lai</button>
                       )}
                       {tx.status === 'pending' && (
                         <>
-                          <button onClick={() => { setShowPayModal(tx); setPayMethod('cash') }} className="text-xs font-bold text-emerald-700 border border-emerald-100 hover:bg-emerald-50 px-3 py-1.5 rounded-lg">
+                          <button onClick={() => { setShowPayModal(tx); setPayMethod('cash') }} className="text-[10px] sm:text-xs font-bold text-emerald-700 border border-emerald-100 hover:bg-emerald-50 px-2 sm:px-3 py-1.5 rounded-lg whitespace-nowrap">
                             Thu tiền
                           </button>
-                          <button onClick={() => { setShowWaiveModal(tx); setWaiveReason('') }} className="text-xs font-bold text-amber-700 border border-amber-100 hover:bg-amber-50 px-3 py-1.5 rounded-lg">
+                          <button onClick={() => { setShowWaiveModal(tx); setWaiveReason('') }} className="text-[10px] sm:text-xs font-bold text-amber-700 border border-amber-100 hover:bg-amber-50 px-2 sm:px-3 py-1.5 rounded-lg whitespace-nowrap">
                             Miễn giảm
                           </button>
                         </>
                       )}
-                      <button onClick={() => setShowDetailModal(tx)} className="text-xs font-bold text-slate-500 hover:bg-slate-100 px-3 py-1.5 rounded-lg">Chi tiết</button>
+                      <button onClick={() => setShowDetailModal(tx)} className="text-[10px] sm:text-xs font-bold text-slate-500 hover:bg-slate-100 px-2 sm:px-3 py-1.5 rounded-lg whitespace-nowrap">Chi tiết</button>
                     </div>
                   </td>
                 </tr>

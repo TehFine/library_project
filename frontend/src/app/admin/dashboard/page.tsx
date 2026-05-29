@@ -51,7 +51,7 @@ export default function AdminDashboard() {
       />
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {KPI_CARDS.map((kpi, idx) => (
           <Card key={idx} padding="lg" className="relative overflow-hidden group hover:shadow-glow transition-all">
             <div className={`absolute top-0 right-0 w-24 h-24 -mr-8 -mt-8 rounded-full blur-2xl transition-colors ${
@@ -61,21 +61,20 @@ export default function AdminDashboard() {
               'bg-sky-500/10 group-hover:bg-sky-500/20'
             }`} />
             <div className="flex items-center gap-4">
-              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner ${
+              <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center shadow-inner ${
                 kpi.color === 'amber' ? 'bg-amber-50 text-amber-600' :
                 kpi.color === 'emerald' ? 'bg-emerald-50 text-emerald-600' :
                 kpi.color === 'emerald' ? 'bg-emerald-50 text-emerald-600' :
                 'bg-sky-50 text-sky-600'
               }`}>
-                <kpi.icon className="w-6 h-6" />
+                <kpi.icon className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
-              <div className="flex-1">
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{kpi.label}</p>
-                <h3 className="text-2xl font-black text-slate-800 mt-0.5">{kpi.value}</h3>
+              <div className="flex-1">                    <p className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider max-sm:truncate max-sm:max-w-[80px]">{kpi.label}</p>
+                <h3 className="text-xl sm:text-2xl font-black text-slate-800 mt-0.5">{kpi.value}</h3>
               </div>
             </div>
             <div className="mt-4 flex items-center justify-between">
-              <span className={`text-xs font-bold ${kpi.trend.includes('quá hạn') || kpi.trend.includes('chưa thu') || kpi.trend === 'Chờ xử lý' ? 'text-red-500' : 'text-emerald-500'}`}>
+              <span className={`text-[10px] sm:text-xs font-bold ${kpi.trend.includes('quá hạn') || kpi.trend.includes('chưa thu') || kpi.trend === 'Chờ xử lý' ? 'text-red-500' : 'text-emerald-500'}`}>
                 {kpi.trend}
               </span>
               <Link href={kpi.href} className="text-xs font-bold text-amber-600 hover:underline">
@@ -90,9 +89,9 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Bar Chart - Borrows */}
         <Card className="lg:col-span-2" padding="lg">
-          <div className="flex items-left justify-between mb-6">
-            <h3 className="font-bold text-slate-800">Lượt mượn sách 30 ngày qua</h3>
-            <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 mb-6">
+            <h3 className="font-bold text-slate-800 text-sm sm:text-base">Lượt mượn sách 30 ngày qua</h3>
+            <div className="flex gap-2 self-end sm:self-auto">
               <button 
                 onClick={async () => {
                   if (stats?.borrowStats && stats.borrowStats.length > 0) {
@@ -101,7 +100,7 @@ export default function AdminDashboard() {
                     exportToExcel(data, 'Luot_Muon_Sach_30_Ngay', 'ThongKe')
                   }
                 }}
-                className="text-xs font-bold text-white bg-amber-600 px-3 py-1.5 rounded-lg shadow-sm hover:bg-amber-700"
+                className="text-[11px] sm:text-xs font-bold text-white bg-amber-600 px-2 sm:px-3 py-1.5 rounded-lg shadow-sm hover:bg-amber-700"
               >
                 Xuất Excel
               </button>
@@ -136,9 +135,8 @@ export default function AdminDashboard() {
         </Card>
 
         {/* Pie Chart - Categories */}
-        <Card padding="lg">
-          <h3 className="font-bold text-slate-800 mb-6">Phân bổ theo thể loại</h3>
-          <div className="relative aspect-square max-w-[200px] mx-auto mb-6">
+        <Card padding="lg">            <h3 className="font-bold text-slate-800 mb-4 sm:mb-6 text-sm sm:text-base">Phân bổ theo thể loại</h3>
+          <div className="relative aspect-square max-w-[160px] sm:max-w-[200px] mx-auto mb-4 sm:mb-6">
              <svg viewBox="0 0 36 36" className="w-full h-full transform -rotate-90">
                 <circle cx="18" cy="18" r="16" fill="transparent" stroke="#E2E8F0" strokeWidth="4" />
                 {stats.categoryStats.map((cat, idx) => {
@@ -174,7 +172,7 @@ export default function AdminDashboard() {
         {/* Top Books */}
         <Card padding="lg">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold text-slate-800">Top sách mượn nhiều nhất</h3>
+            <h3 className="font-bold text-slate-800 text-sm sm:text-base">Top sách mượn nhiều nhất</h3>
             <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
             </svg>
@@ -204,7 +202,7 @@ export default function AdminDashboard() {
 
         {/* Recent Activities */}
         <Card padding="lg">
-          <h3 className="font-bold text-slate-800 mb-4">Hoạt động gần đây</h3>
+          <h3 className="font-bold text-slate-800 mb-3 sm:mb-4 text-sm sm:text-base">Hoạt động gần đây</h3>
           <div className="space-y-4">
             {stats.recentActivities.map(act => (
               <div key={act.id} className="flex gap-3">
@@ -224,34 +222,36 @@ export default function AdminDashboard() {
         </Card>
 
         {/* System Alerts */}
-        <Card padding="lg" className="bg-slate-900 border-none">
-          <h3 className="font-bold text-white mb-4 flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-amber-400 animate-pulse" /> Cần xử lý
+        <Card padding="lg" className="relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-48 h-48 -mr-16 -mt-16 rounded-full bg-gradient-to-br from-amber-500/8 to-amber-300/5 blur-3xl pointer-events-none" />
+          <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2 text-sm sm:text-base">
+            <span className="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center">
+              <AlertTriangle className="w-4 h-4 text-amber-600" />
+            </span>
+            Cần xử lý
           </h3>
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             {stats.systemAlerts.map((alert, idx) => (
-              <div key={idx} className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className={`w-1.5 h-1.5 rounded-full ${
-                    alert.type === 'critical' ? 'bg-red-500' : 
-                    alert.type === 'warning' ? 'bg-amber-500' : 'bg-emerald-500'
+              <div key={idx} className="flex items-center justify-between gap-3 p-3 rounded-xl bg-white/70 border border-amber-100/60 hover:bg-white hover:border-amber-200/80 hover:shadow-sm transition-all">
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className={`w-2 h-2 rounded-full shrink-0 ${
+                    alert.type === 'critical' ? 'bg-red-500 ring-2 ring-red-500/20' : 
+                    alert.type === 'warning' ? 'bg-amber-500 ring-2 ring-amber-500/20' : 'bg-emerald-500 ring-2 ring-emerald-500/20'
                   }`} />
-                  <span className="text-xs font-medium text-slate-300">{alert.label}</span>
+                  <span className="text-xs font-medium text-slate-600">{alert.label}</span>
                 </div>
-                <Link href={alert.href || '/admin/audit-logs'} className={`text-[10px] font-bold px-2 py-1 rounded-md ${
-                  alert.action === 'Backup' || alert.action === 'Chi tiết' || alert.action === 'Xem chi tiết' ? 'bg-amber-500 text-white' : 'text-amber-400 hover:bg-amber-500/20'
-                }`}>
+                <Link href={alert.href || '/admin/audit-logs'} className="text-[10px] font-bold text-amber-600 hover:text-amber-700 hover:bg-amber-50 px-2.5 py-1 rounded-lg transition-colors shrink-0">
                   [{alert.action}]
                 </Link>
               </div>
             ))}
           </div>
-          <div className="mt-6 p-4 rounded-2xl bg-gradient-to-br from-primary to-primary-dark text-white">
+          <div className="mt-6 p-4 rounded-2xl bg-gradient-to-br from-primary to-primary-dark text-white shadow-glow">
              <p className="text-[10px] font-bold uppercase tracking-wider opacity-60">Sức khỏe hệ thống</p>
              <div className="flex items-center gap-4 mt-2">
                 <div className="text-2xl font-black italic">Excellent</div>
                 <div className="flex-1 h-1 bg-white/20 rounded-full overflow-hidden">
-                   <div className="h-full bg-emerald-400 w-[94%]" />
+                   <div className="h-full bg-emerald-400 w-[94%] shadow-[0_0_8px_rgba(52,211,153,0.6)]" />
                 </div>
                 <span className="text-xs font-bold">94%</span>
              </div>

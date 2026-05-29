@@ -82,29 +82,31 @@ export default function UsersManagementPage() {
       />
 
       {/* Toolbar */}
-      <Card padding="md" className="flex flex-wrap items-center gap-4">
-        <div className="flex-1 min-w-[300px]">
+      <Card padding="md" className="flex flex-wrap items-center gap-2 sm:gap-4">
+        <div className="flex-1 min-w-[200px] sm:min-w-[300px] w-full sm:w-auto">
           <Input 
             placeholder="Tìm theo tên, email, username..." 
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            className="w-full"
+            className="w-full text-sm"
           />
         </div>
-        <div className="w-40">
-          <Select value={filterRole} onChange={e => setFilterRole(e.target.value)}>
-            <option value="all">Tất cả vai trò</option>
-            <option value="reader">Độc giả</option>
-            <option value="librarian">Thủ thư</option>
-            <option value="library_admin">Quản trị viên</option>
-          </Select>
-        </div>
-        <div className="w-40">
-          <Select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-            <option value="all">Tất cả trạng thái</option>
-            <option value="active">Hoạt động</option>
-            <option value="locked">Bị khóa</option>
-          </Select>
+        <div className="flex gap-2 overflow-x-auto scrollbar-hide w-full sm:w-auto px-1 pb-2 pt-1">
+          <div className="w-36 sm:w-40 shrink-0">
+            <Select value={filterRole} onChange={e => setFilterRole(e.target.value)} className="text-xs sm:text-sm">
+              <option value="all">Tất cả vai trò</option>
+              <option value="reader">Độc giả</option>
+              <option value="librarian">Thủ thư</option>
+              <option value="library_admin">Quản trị viên</option>
+            </Select>
+          </div>
+          <div className="w-36 sm:w-40 shrink-0">
+            <Select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="text-xs sm:text-sm">
+              <option value="all">Tất cả trạng thái</option>
+              <option value="active">Hoạt động</option>
+              <option value="locked">Bị khóa</option>
+            </Select>
+          </div>
         </div>
       </Card>
 

@@ -83,13 +83,12 @@ export default function AdminProfilePage() {
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <h1 className="text-3xl font-black text-slate-800 tracking-tight">Hồ sơ cá nhân</h1>
+      <div className="space-y-6">          <h1 className="text-3xl font-black text-gray-800 tracking-tight">Hồ sơ cá nhân</h1>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Skeleton className="h-[260px] rounded-[2rem]" />
+          <Skeleton className="h-[260px] rounded-3xl" />
           <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Skeleton className="h-[320px] rounded-[2rem]" />
-            <Skeleton className="h-[320px] rounded-[2rem]" />
+            <Skeleton className="h-[320px] rounded-3xl" />
+            <Skeleton className="h-[320px] rounded-3xl" />
           </div>
         </div>
       </div>
@@ -102,8 +101,8 @@ export default function AdminProfilePage() {
     <div className="space-y-6 pb-20">
       <div className="flex justify-between items-end">
         <div>
-          <h1 className="text-3xl font-black text-slate-800 tracking-tight">Hồ sơ cá nhân</h1>
-          <p className="text-sm text-slate-500 mt-1 font-medium">Quản lý thông tin và bảo mật tài khoản</p>
+          <h1 className="text-3xl font-black text-gray-800 tracking-tight">Hồ sơ cá nhân</h1>
+          <p className="text-sm text-gray-500 mt-1 font-medium">Quản lý thông tin và bảo mật tài khoản</p>
         </div>
       </div>
 

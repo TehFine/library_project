@@ -132,18 +132,18 @@ export default function BookReportsPage() {
           title="Báo cáo & Thống kê sách" 
           description="Theo dõi hiệu suất mượn sách và tình trạng kho sách thực tế."
         />
-        <div className="flex gap-2">
-          <Button variant="ghost" className="bg-white/50 border border-slate-200 text-xs font-bold" onClick={handleExportPDF}>
+        <div className="flex gap-1 sm:gap-2">
+          <Button variant="ghost" className="bg-white/50 border border-slate-200 text-[10px] sm:text-xs font-bold px-2 sm:px-4 py-1.5 sm:py-2" onClick={handleExportPDF}>
             Xuất PDF
           </Button>
-          <Button variant="secondary" className="text-xs font-bold" onClick={handleExportExcel}>
+          <Button variant="secondary" className="text-[10px] sm:text-xs font-bold px-2 sm:px-4 py-1.5 sm:py-2" onClick={handleExportExcel}>
             Xuất Excel
           </Button>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-slate-100 p-1 rounded-2xl w-fit">
+      <div className="flex gap-1 bg-slate-100 p-1 rounded-2xl w-fit overflow-x-auto scrollbar-hide max-w-full pt-1">
         {[
           { id: 'top', label: 'Mượn nhiều nhất' },
           { id: 'stock', label: 'Tình trạng kho' },
@@ -154,7 +154,7 @@ export default function BookReportsPage() {
             key={t.id}
             onClick={() => setActiveTab(t.id as Tab)}
             className={cn(
-              'px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-200',
+              'px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl text-[11px] sm:text-sm font-bold transition-all duration-200 whitespace-nowrap shrink-0',
               activeTab === t.id ? 'bg-white text-amber-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
             )}
           >
@@ -165,21 +165,21 @@ export default function BookReportsPage() {
 
       {/* Filters (only for top tab) */}
       {activeTab === 'top' && (
-        <Card padding="md" className="flex items-center gap-4 bg-white/80 backdrop-blur">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-slate-400 uppercase ml-2">Khoảng thời gian:</span>
-            <input type="date" className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-medium outline-none" value={fromDate} onChange={e => setFromDate(e.target.value)} />
-            <span className="text-slate-300">→</span>
-            <input type="date" className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-medium outline-none" value={toDate} onChange={e => setToDate(e.target.value)} />
+        <Card padding="md" className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 bg-white/80 backdrop-blur">
+          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap w-full sm:w-auto">
+            <span className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase ml-2 shrink-0">Khoảng thời gian:</span>
+            <input type="date" className="bg-slate-50 border border-slate-200 rounded-lg px-2 sm:px-3 py-1.5 text-[11px] sm:text-xs font-medium outline-none flex-1 sm:flex-none min-w-0" value={fromDate} onChange={e => setFromDate(e.target.value)} />
+            <span className="text-slate-300 text-xs">→</span>
+            <input type="date" className="bg-slate-50 border border-slate-200 rounded-lg px-2 sm:px-3 py-1.5 text-[11px] sm:text-xs font-medium outline-none flex-1 sm:flex-none min-w-0" value={toDate} onChange={e => setToDate(e.target.value)} />
           </div>
-          <div className="w-48">
+          <div className="w-full sm:w-48">
             <Select placeholder="Tất cả thể loại" value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)}>
               <option value="1">Kỹ năng</option>
               <option value="2">Tiểu thuyết</option>
               <option value="3">Lịch sử</option>
             </Select>
           </div>
-          <Button variant="primary" size="sm" className="px-6 font-bold" onClick={applyFilter}>Áp dụng</Button>
+          <Button variant="primary" size="sm" className="px-6 font-bold w-full sm:w-auto" onClick={applyFilter}>Áp dụng</Button>
         </Card>
       )}
 

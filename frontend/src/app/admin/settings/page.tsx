@@ -256,7 +256,7 @@ export default function SystemSettingsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-slate-100 p-1 rounded-2xl w-fit">
+      <div className="flex gap-1 bg-slate-100 p-1 rounded-2xl overflow-x-auto scrollbar-hide max-w-full w-fit">
         {[
           { id: 'rules', label: 'Quy định mượn trả' },
           { id: 'email', label: 'Cấu hình Email' },
@@ -403,15 +403,14 @@ export default function SystemSettingsPage() {
           </div>
         )}
 
-        {activeTab === 'email' && (
-          <Card padding="lg" className="space-y-6">
-             <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+        {activeTab === 'email' && (            <Card padding="lg" className="space-y-6">
+             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-100 pb-4 gap-2">
                 <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">CẤU HÌNH SMTP EMAIL</h3>
                 <div className="flex gap-2">
-                   <Button variant="ghost" className="text-xs font-bold text-amber-600">Kiểm tra kết nối (Test)</Button>
+                   <Button variant="ghost" className="text-[10px] sm:text-xs font-bold text-amber-600">Kiểm tra kết nối (Test)</Button>
                 </div>
              </div>
-             <div className="grid grid-cols-2 gap-6">
+             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 <div className="col-span-2">
                    <Input
                      label="SMTP Host"

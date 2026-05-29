@@ -4,11 +4,11 @@ import PageHeader from '@/components/layout/PageHeader'
 import { Card, Badge, Modal } from '@/components/ui'
 import Button from '@/components/ui/Button'
 import { cn } from '@/lib/utils'
-import { adminApi, borrowsApi, ViolationReportData } from '@/lib/api'
+import { adminApi, borrowsApi, notificationApi, ViolationReportData } from '@/lib/api'
 import type { BorrowRecord } from '@/types'
 import { useRealtimeRefresh } from '@/hooks/useWebSocket'
 import toast from 'react-hot-toast'
-import { Send, CheckCircle, ClipboardList, Bell, Download, Megaphone } from 'lucide-react'
+import { Send, CheckCircle, ClipboardList, Bell, Download, Megaphone, FileSpreadsheet, FileText } from 'lucide-react'
 
 type Tab = 'overdue' | 'frequent' | 'unpaid' | 'expiring'
 
@@ -19,7 +19,7 @@ export default function ViolationsReportPage() {
   const [loading, setLoading] = useState(true)
   const [reportData, setReportData] = useState<ViolationReportData | null>(null)
   const [showRemindModal, setShowRemindModal] = useState(false)
-  const [remindTarget, setRemindTarget] = useState<{ name: string; type: string } | null>(null)
+  const [remindTarget, setRemindTarget] = useState<{ name: string; cardNumber?: string; type: string } | null>(null)
   const [showHistoryModal, setShowHistoryModal] = useState(false)
   const [historyTarget, setHistoryTarget] = useState<{ name: string; cardNumber: string } | null>(null)
   const [historyData, setHistoryData] = useState<BorrowRecord[] | null>(null)
@@ -53,8 +53,8 @@ export default function ViolationsReportPage() {
     expiring: reportData?.totals?.expiringCount ?? 0,
   }
 
-  const handleSendReminder = (name: string, type: string) => {
-    setRemindTarget({ name, type })
+  const handleSendReminder = (name: string, cardNumber: string, type: string) => {
+    setRemindTarget({ name, cardNumber, type })
     setShowRemindModal(true)
   }
 
@@ -63,10 +63,37 @@ export default function ViolationsReportPage() {
     setShowRemindModal(true)
   }
 
-  const confirmSend = () => {
+  const confirmSend = async () => {
     setShowRemindModal(false)
-    setShowSendResult(true)
-    setTimeout(() => setShowSendResult(false), 3000)
+    try {
+      if (remindTarget) {
+        // Gửi nhắc nhở cá nhân
+        await notificationApi.create({
+          title: `Nhắc nhở ${remindTarget.type}`,
+          content: `Thân gửi {{tên_độc_giả}},\n\nThư viện xin nhắc nhở bạn đang có sách ${remindTarget.type}. Vui lòng đến thư viện để xử lý kịp thời.\n\nTrân trọng,
+Thư viện`,
+          targetGroup: remindTarget.type === 'gia hạn thẻ' ? 'expiring' :
+                       remindTarget.type === 'quá hạn' ? 'overdue' : undefined,
+          customRecipients: remindTarget.cardNumber,
+          variables: ['{{tên_độc_giả}}'],
+          status: 'sent',
+        })
+      } else {
+        // Gửi nhắc nhở tất cả độc giả quá hạn
+        await notificationApi.create({
+          title: 'Nhắc nhở sách quá hạn',
+          content: `Thân gửi {{tên_độc_giả}},\n\nThư viện xin nhắc nhở bạn đang có sách quá hạn. Vui lòng trả sách và thanh toán phí phạt (nếu có) để tránh bị xử lý theo quy định.\n\nTrân trọng,
+Thư viện`,
+          targetGroup: 'overdue',
+          variables: ['{{tên_độc_giả}}', '{{số_ngày}}', '{{tên_sách}}'],
+          status: 'sent',
+        })
+      }
+      setShowSendResult(true)
+      setTimeout(() => setShowSendResult(false), 3000)
+    } catch (err) {
+      toast.error('Gửi nhắc nhở thất bại')
+    }
   }
 
   const handleViewHistory = async (name: string, cardNumber: string) => {
@@ -82,6 +109,78 @@ export default function ViolationsReportPage() {
     } finally {
       setHistoryLoading(false)
     }
+  }
+
+  const handleExportExcel = async () => {
+    const { exportToExcel } = await import('@/lib/export')
+    const list = getCurrentList()
+    if (list.length === 0) { toast.error('Không có dữ liệu để xuất'); return }
+
+    const excelData = list.map((row: any) => {
+      const base: Record<string, any> = {
+        'Độc giả': row.name,
+        'Mã thẻ': row.cardNumber,
+      }
+      if (activeTab === 'overdue') {
+        base['Sách'] = row.bookTitle
+        base['Quá hạn'] = `${row.overdueDays} ngày`
+        base['Hạn trả'] = formatDate(row.dueDate)
+      } else if (activeTab === 'frequent') {
+        base['Số lần quá hạn'] = row.violationCount
+        base['Lần cuối'] = formatDate(row.lastViolation)
+      } else if (activeTab === 'unpaid') {
+        base['Số khoản nợ'] = row.fineCount
+        base['Tổng nợ'] = `${row.totalAmount.toLocaleString('vi-VN')}₫`
+      } else if (activeTab === 'expiring') {
+        base['Ngày hết hạn'] = formatDate(row.expiryDate)
+      }
+      return base
+    })
+
+    const tabNames: Record<string, string> = {
+      overdue: 'Dang_Qua_Han',
+      frequent: 'Qua_Han_Nhieu_Lan',
+      unpaid: 'Con_No_Phi',
+      expiring: 'The_Sap_Het_Han',
+    }
+    exportToExcel(excelData, `Bao_Cao_Vi_Pham_${tabNames[activeTab]}`, 'ViPham')
+  }
+
+  const handleExportPDF = async () => {
+    const { exportToPDF } = await import('@/lib/export')
+    const list = getCurrentList()
+    if (list.length === 0) { toast.error('Không có dữ liệu để xuất'); return }
+
+    let headers: string[]
+    let rows: (string | number)[][]
+
+    if (activeTab === 'overdue') {
+      headers = ['Độc giả', 'Mã thẻ', 'Sách', 'Quá hạn', 'Hạn trả']
+      rows = list.map((r: any) => [r.name, r.cardNumber, r.bookTitle, `${r.overdueDays} ngày`, formatDate(r.dueDate)])
+    } else if (activeTab === 'frequent') {
+      headers = ['Độc giả', 'Mã thẻ', 'Số lần quá hạn', 'Lần cuối']
+      rows = list.map((r: any) => [r.name, r.cardNumber, r.violationCount, formatDate(r.lastViolation)])
+    } else if (activeTab === 'unpaid') {
+      headers = ['Độc giả', 'Mã thẻ', 'Số khoản nợ', 'Tổng nợ']
+      rows = list.map((r: any) => [r.name, r.cardNumber, r.fineCount, `${r.totalAmount.toLocaleString('vi-VN')}₫`])
+    } else {
+      headers = ['Độc giả', 'Mã thẻ', 'Ngày hết hạn']
+      rows = list.map((r: any) => [r.name, r.cardNumber, formatDate(r.expiryDate)])
+    }
+
+    const titles: Record<string, string> = {
+      overdue: 'Báo cáo độc giả quá hạn',
+      frequent: 'Báo cáo độc giả quá hạn nhiều lần',
+      unpaid: 'Báo cáo độc giả còn nợ phí',
+      expiring: 'Báo cáo thẻ sắp hết hạn',
+    }
+    const filenames: Record<string, string> = {
+      overdue: 'Bao_Cao_Qua_Han',
+      frequent: 'Bao_Cao_Qua_Han_Nhieu_Lan',
+      unpaid: 'Bao_Cao_Con_No_Phi',
+      expiring: 'Bao_Cao_The_Sap_Het_Han',
+    }
+    await exportToPDF(headers, rows, titles[activeTab], filenames[activeTab])
   }
 
   const formatDate = (dateStr: string) => {
@@ -108,18 +207,23 @@ export default function ViolationsReportPage() {
           title="Báo cáo vi phạm" 
           description="Quản lý độc giả quá hạn, nợ phí và thẻ sắp hết hạn."
         />
-        <div className="flex gap-2">
-          <Button variant="secondary" size="sm" className="font-bold" onClick={handleSendReminderAll}>
-            <Bell className="w-4 h-4" /> Gửi nhắc nhở tất cả
+        <div className="flex gap-1 sm:gap-2">
+          <Button variant="secondary" size="sm" className="font-bold text-[10px] sm:text-xs px-2 sm:px-4 py-1.5 sm:py-2" onClick={handleSendReminderAll}>
+            <Bell className="w-3 h-3 sm:w-4 sm:h-4" /> Gửi nhắc nhở
           </Button>
-          <Button variant="ghost" size="sm" className="font-bold bg-white/50 border border-slate-200">
-            <Download className="w-4 h-4" /> Xuất danh sách
-          </Button>
+          <div className="flex gap-1">
+            <Button variant="ghost" size="sm" className="font-bold bg-white/50 border border-slate-200 text-[10px] sm:text-xs px-2 sm:px-4 py-1.5 sm:py-2" onClick={handleExportExcel}>
+              <FileSpreadsheet className="w-3 h-3 sm:w-4 sm:h-4" /> Excel
+            </Button>
+            <Button variant="secondary" size="sm" className="font-bold text-[10px] sm:text-xs px-2 sm:px-4 py-1.5 sm:py-2" onClick={handleExportPDF}>
+              <FileText className="w-3 h-3 sm:w-4 sm:h-4" /> PDF
+            </Button>
+          </div>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-slate-100 p-1 rounded-2xl w-fit flex-wrap">
+      <div className="flex gap-1 bg-slate-100 p-1 rounded-2xl overflow-x-auto scrollbar-hide max-w-full pt-1">
         {[
           { id: 'overdue', label: `Đang quá hạn (${totals.overdue})`, color: 'text-red-600' },
           { id: 'frequent', label: `Quá hạn nhiều lần (${totals.frequent})` },
@@ -130,7 +234,7 @@ export default function ViolationsReportPage() {
             key={t.id}
             onClick={() => setActiveTab(t.id as Tab)}
             className={cn(
-              'px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 flex items-center gap-2',
+              'px-3 sm:px-6 py-2 sm:py-2.5 rounded-xl text-[11px] sm:text-sm font-bold transition-all duration-200 flex items-center gap-1 sm:gap-2 whitespace-nowrap shrink-0',
               activeTab === t.id ? 'bg-white text-amber-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
             )}
           >
@@ -236,32 +340,32 @@ export default function ViolationsReportPage() {
                       )}
 
                       <td className="px-6 py-4 text-right">
-                        <div className="flex justify-end gap-2">
+                        <div className="flex justify-end gap-1 sm:gap-2 flex-wrap">
                           {activeTab === 'expiring' ? (
                             <button
-                              onClick={() => handleSendReminder(row.name, 'gia hạn thẻ')}
-                              className="text-xs font-bold text-amber-600 hover:bg-amber-50 px-3 py-1.5 rounded-lg transition-colors"
+                              onClick={() => handleSendReminder(row.name, row.cardNumber, 'gia hạn thẻ')}
+                              className="text-[10px] sm:text-xs font-bold text-amber-600 hover:bg-amber-50 px-2 sm:px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap"
                             >
                               Gửi nhắc gia hạn
                             </button>
                           ) : activeTab === 'unpaid' ? (
                             <button
                               onClick={() => handleViewHistory(row.name, row.cardNumber)}
-                              className="text-xs font-bold text-slate-500 hover:bg-slate-100 px-3 py-1.5 rounded-lg transition-colors"
+                              className="text-[10px] sm:text-xs font-bold text-slate-500 hover:bg-slate-100 px-2 sm:px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap"
                             >
                               Xem chi tiết
                             </button>
                           ) : (
                             <>
                               <button
-                                onClick={() => handleSendReminder(row.name, 'quá hạn')}
-                                className="text-xs font-bold text-amber-600 hover:bg-amber-50 px-3 py-1.5 rounded-lg transition-colors"
+                                onClick={() => handleSendReminder(row.name, row.cardNumber, 'quá hạn')}
+                                className="text-[10px] sm:text-xs font-bold text-amber-600 hover:bg-amber-50 px-2 sm:px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap"
                               >
                                 Gửi nhắc nhở
                               </button>
                               <button
                                 onClick={() => handleViewHistory(row.name, row.cardNumber)}
-                                className="text-xs font-bold text-slate-500 hover:bg-slate-100 px-3 py-1.5 rounded-lg transition-colors"
+                                className="text-[10px] sm:text-xs font-bold text-slate-500 hover:bg-slate-100 px-2 sm:px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap"
                               >
                                 Xem lịch sử
                               </button>

@@ -241,22 +241,22 @@ export default function BulkNotificationsPage() {
           title="Gửi thông báo hàng loạt" 
           description="Gửi thông báo Email đến nhóm độc giả được chỉ định."
         />
-        <div className="flex gap-1 bg-slate-100 rounded-2xl p-1 shrink-0 self-start sm:self-auto">
+        <div className="flex gap-1 bg-slate-100 rounded-2xl p-1 shrink-0 self-start sm:self-auto overflow-x-auto scrollbar-hide max-w-full pt-1">
           <button
             onClick={() => setActiveTab('compose')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+            className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap ${
               activeTab === 'compose' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
             }`}
           >
-            <Rocket className="w-3.5 h-3.5 inline mr-1" /> Soạn thảo
+            <Rocket className="w-3 h-3 sm:w-3.5 sm:h-3.5 inline mr-1" /> Soạn thảo
           </button>
           <button
             onClick={() => setActiveTab('history')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+            className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap ${
               activeTab === 'history' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
             }`}
           >
-            <History className="w-3.5 h-3.5 inline mr-1" /> Lịch sử gửi
+            <History className="w-3 h-3 sm:w-3.5 sm:h-3.5 inline mr-1" /> Lịch sử gửi
           </button>
         </div>
       </div>
@@ -269,14 +269,14 @@ export default function BulkNotificationsPage() {
               <span className="w-6 h-6 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-xs">1</span>
               Đối tượng nhận tin
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 px-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 px-2 sm:px-8">
               {loadingCounts ? (
                 Array.from({ length: 4 }).map((_, i) => (
                   <div key={i} className="h-14 rounded-2xl bg-slate-100 animate-pulse" />
                 ))
               ) : (
                 targetOptions.map(opt => (
-                  <label key={opt.id} className={`flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer ${
+                  <label key={opt.id} className={`flex items-center justify-between p-3 sm:p-4 rounded-xl sm:rounded-2xl border-2 transition-all cursor-pointer ${
                     target === opt.id ? 'border-amber-600 bg-amber-50/50' : 'border-slate-100 hover:border-slate-200 bg-slate-50'
                   }`}>
                     <div className="flex items-center gap-3">
@@ -289,14 +289,14 @@ export default function BulkNotificationsPage() {
                       />
                       <span className="text-sm font-bold text-slate-700">{opt.label}</span>
                     </div>
-                    <span className={`text-[10px] font-black tracking-widest uppercase ${opt.color}`}>
+                    <span className={`text-[9px] sm:text-[10px] font-black tracking-widest uppercase ${opt.color} whitespace-nowrap`}>
                       {targetCounts ? targetCounts[opt.id].toLocaleString('vi-VN') + ' người' : '...'}
                     </span>
                   </label>
                 ))
               )}
             </div>
-            <div className="px-8 space-y-2">
+            <div className="px-2 sm:px-8 space-y-2">
               <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
                 Tùy chọn — Thêm độc giả cụ thể:
               </label>
@@ -375,7 +375,7 @@ export default function BulkNotificationsPage() {
                   <span className="w-6 h-6 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-xs">2</span>
                   Kênh gửi & Mẫu tin
                 </h3>
-                <div className="px-8 space-y-4">
+                <div className="px-2 sm:px-8 space-y-4">
                    <div className="flex gap-6">
                       <label className="flex items-center gap-2 cursor-pointer group">
                          <input type="checkbox" checked readOnly className="rounded border-slate-300 text-amber-600 focus:ring-amber-500" />
@@ -416,7 +416,7 @@ export default function BulkNotificationsPage() {
                   <span className="w-6 h-6 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-xs">3</span>
                   Tiêu đề thông báo
                 </h3>
-                <div className="px-8">
+                <div className="px-2 sm:px-8">
                    <Input
                      placeholder="Ví dụ: [Bookly] Nhắc nhở trả sách quá hạn"
                      value={subject}
@@ -432,7 +432,7 @@ export default function BulkNotificationsPage() {
               <span className="w-6 h-6 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-xs">4</span>
               Nội dung thông báo
             </h3>
-            <div className="px-8 space-y-3">
+            <div className="px-2 sm:px-8 space-y-3">
                <div className="relative group">
                   <textarea
                     className="w-full h-48 rounded-2xl bg-slate-50 border border-slate-200 p-6 text-sm text-slate-700 outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 transition-all font-sans leading-relaxed resize-none"
@@ -444,8 +444,8 @@ export default function BulkNotificationsPage() {
                      <div className="px-2 py-1 bg-white border border-slate-200 rounded text-[10px] font-bold text-slate-400">Characters: {charCount}</div>
                   </div>
                </div>
-               <div className="flex flex-wrap gap-2 items-center">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mr-2">Biến động:</span>
+               <div className="flex flex-wrap gap-1.5 sm:gap-2 items-center">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mr-1 sm:mr-2 w-full sm:w-auto">Biến động:</span>
                   {['{{tên_độc_giả}}', '{{số_ngày}}', '{{tên_sách}}', '{{mã_thẻ}}', '{{số_tiền}}', '{{ngày_hết_hạn}}'].map(v => (
                     <button
                       key={v}

@@ -173,67 +173,71 @@ export default function AuditLogsPage() {
       />
 
       {/* Filters Toolbar */}
-      <Card padding="md" className="flex flex-wrap items-center gap-3 bg-white/80 backdrop-blur sticky top-2 z-10">
-        <div className="flex-1 min-w-[200px]">
+      <Card padding="md" className="flex flex-wrap items-center gap-2 sm:gap-3 bg-white/80 backdrop-blur sticky top-2 z-10">
+        <div className="flex-1 min-w-[160px] sm:min-w-[200px] w-full sm:w-auto">
           <Input
             placeholder="Tìm kiếm nội dung..."
             value={search}
             onChange={e => setSearch(e.target.value)}
             onKeyDown={handleKeyDown}
+            className="text-sm"
           />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2 overflow-x-auto scrollbar-hide -mx-2 sm:mx-0 px-2 sm:px-0 w-full sm:w-auto pb-2 pt-1">
           <input
             type="date"
-            className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium outline-none"
+            className="bg-slate-50 border border-slate-200 rounded-xl px-2 sm:px-3 py-1.5 sm:py-2 text-[11px] sm:text-xs font-medium outline-none shrink-0"
             value={fromDate}
             onChange={e => setFromDate(e.target.value)}
           />
-          <span className="text-slate-300">→</span>
+          <span className="text-slate-300 text-xs shrink-0">→</span>
           <input
             type="date"
-            className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium outline-none"
+            className="bg-slate-50 border border-slate-200 rounded-xl px-2 sm:px-3 py-1.5 sm:py-2 text-[11px] sm:text-xs font-medium outline-none shrink-0"
             value={toDate}
             onChange={e => setToDate(e.target.value)}
           />
+          <div className="w-28 sm:w-32 shrink-0">
+            <Select
+              placeholder="Người dùng"
+              value={selectedUser}
+              onChange={e => setSelectedUser(e.target.value)}
+              className="text-[11px] sm:text-xs"
+            >
+              <option value="">Tất cả</option>
+              {allUsers.map(u => (
+                <option key={u} value={u}>{u}</option>
+              ))}
+            </Select>
+          </div>
+          <div className="w-24 sm:w-32 shrink-0">
+            <Select
+              placeholder="Thao tác"
+              value={selectedAction}
+              onChange={e => setSelectedAction(e.target.value)}
+              className="text-[11px] sm:text-xs"
+            >
+              <option value="">Tất cả</option>
+              {ALL_ACTIONS.map(a => (
+                <option key={a} value={a}>{a}</option>
+              ))}
+            </Select>
+          </div>
+          <div className="w-28 sm:w-32 shrink-0">
+            <Select
+              placeholder="Bảng dữ liệu"
+              value={selectedTable}
+              onChange={e => setSelectedTable(e.target.value)}
+              className="text-[11px] sm:text-xs"
+            >
+              <option value="">Tất cả</option>
+              {ALL_TABLES.map(t => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </Select>
+          </div>
         </div>
-        <div className="w-32">
-          <Select
-            placeholder="Người dùng"
-            value={selectedUser}
-            onChange={e => setSelectedUser(e.target.value)}
-          >
-            <option value="">Tất cả</option>
-            {allUsers.map(u => (
-              <option key={u} value={u}>{u}</option>
-            ))}
-          </Select>
-        </div>
-        <div className="w-32">
-          <Select
-            placeholder="Thao tác"
-            value={selectedAction}
-            onChange={e => setSelectedAction(e.target.value)}
-          >
-            <option value="">Tất cả</option>
-            {ALL_ACTIONS.map(a => (
-              <option key={a} value={a}>{a}</option>
-            ))}
-          </Select>
-        </div>
-        <div className="w-32">
-          <Select
-            placeholder="Bảng dữ liệu"
-            value={selectedTable}
-            onChange={e => setSelectedTable(e.target.value)}
-          >
-            <option value="">Tất cả</option>
-            {ALL_TABLES.map(t => (
-              <option key={t} value={t}>{t}</option>
-            ))}
-          </Select>
-        </div>
-        <Button variant="primary" size="sm" className="px-6 font-bold" onClick={handleSearch}>
+        <Button variant="primary" size="sm" className="px-4 sm:px-6 font-bold text-xs sm:text-sm shrink-0" onClick={handleSearch}>
           Tìm kiếm
         </Button>
       </Card>
