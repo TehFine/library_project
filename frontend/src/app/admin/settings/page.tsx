@@ -1,17 +1,136 @@
 'use client'
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import PageHeader from '@/components/layout/PageHeader'
-import { Card, Badge, Modal } from '@/components/ui'
+import { Card, Badge } from '@/components/ui'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import Select from '@/components/ui/Select'
 import { cn } from '@/lib/utils'
-import { Mail } from 'lucide-react'
+import { Mail, AlertTriangle, CheckCircle } from 'lucide-react'
 
 type Tab = 'rules' | 'email' | 'tasks'
 
+interface RuleSettings {
+  maxBooksPerBorrow: number
+  maxBorrowDays: number
+  maxRenewals: number
+  renewalDays: number
+  fineFirst5Days: number
+  fineFromDay6: number
+  newCardFee: number
+  defaultCardDuration: string
+  autoDeactivateMonths: number
+  autoLockDays: number
+}
+
+interface EmailSettings {
+  smtpHost: string
+  smtpPort: number
+  smtpSecurity: string
+  smtpUsername: string
+  smtpPassword: string
+  displayName: string
+  senderEmail: string
+}
+
+interface RuleErrors {
+  [key: string]: string | undefined
+}
+
+const toast = (message: string, type: 'success' | 'error') => {
+  const el = document.createElement('div')
+  el.className = `fixed top-4 right-4 z-50 px-5 py-3 rounded-2xl text-sm font-bold shadow-xl transition-all duration-300 ${
+    type === 'success'
+      ? 'bg-emerald-600 text-white'
+      : 'bg-red-600 text-white'
+  }`
+  el.textContent = message
+  document.body.appendChild(el)
+  setTimeout(() => {
+    el.style.opacity = '0'
+    el.style.transform = 'translateX(100px)'
+    setTimeout(() => el.remove(), 300)
+  }, 3000)
+}
+
+// ── Validation helpers ────────────────────────────────────────────────
+function validateRuleSettings(s: RuleSettings): RuleErrors {
+  const e: RuleErrors = {}
+
+  if (!Number.isInteger(s.maxBooksPerBorrow) || s.maxBooksPerBorrow < 1) e.maxBooksPerBorrow = 'Tối thiểu 1'
+  if (s.maxBooksPerBorrow > 20) e.maxBooksPerBorrow = 'Tối đa 20 cuốn/lần'
+
+  if (!Number.isInteger(s.maxBorrowDays) || s.maxBorrowDays < 1) e.maxBorrowDays = 'Tối thiểu 1 ngày'
+  if (s.maxBorrowDays > 365) e.maxBorrowDays = 'Tối đa 365 ngày'
+
+  if (!Number.isInteger(s.maxRenewals) || s.maxRenewals < 0) e.maxRenewals = 'Không được âm'
+  if (s.maxRenewals > 10) e.maxRenewals = 'Tối đa 10 lần'
+
+  if (!Number.isInteger(s.renewalDays) || s.renewalDays < 1) e.renewalDays = 'Tối thiểu 1 ngày'
+  if (s.renewalDays > 90) e.renewalDays = 'Tối đa 90 ngày'
+
+  if (!Number.isFinite(s.fineFirst5Days) || s.fineFirst5Days < 0) e.fineFirst5Days = 'Không được âm'
+  if (s.fineFirst5Days > 100000) e.fineFirst5Days = 'Tối đa 100,000đ/ngày'
+
+  if (!Number.isFinite(s.fineFromDay6) || s.fineFromDay6 < 0) e.fineFromDay6 = 'Không được âm'
+  if (s.fineFromDay6 > 100000) e.fineFromDay6 = 'Tối đa 100,000đ/ngày'
+
+  if (!Number.isFinite(s.newCardFee) || s.newCardFee < 0) e.newCardFee = 'Không được âm'
+  if (s.newCardFee > 1000000) e.newCardFee = 'Tối đa 1,000,000đ'
+
+  if (!Number.isInteger(s.autoDeactivateMonths) || s.autoDeactivateMonths < 1) e.autoDeactivateMonths = 'Tối thiểu 1 tháng'
+  if (s.autoDeactivateMonths > 12) e.autoDeactivateMonths = 'Tối đa 12 tháng'
+
+  if (!Number.isInteger(s.autoLockDays) || s.autoLockDays < 1) e.autoLockDays = 'Tối thiểu 1 ngày'
+  if (s.autoLockDays > 365) e.autoLockDays = 'Tối đa 365 ngày'
+
+  return e
+}
+
+// ── Filter non-numeric keys (chặn nhập chữ vào ô số) ──────────────────
+function preventNonNumeric(e: React.KeyboardEvent<HTMLInputElement>) {
+  const allowed = ['Backspace', 'Delete', 'Tab', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End']
+  if (allowed.includes(e.key)) return
+
+  if ((e.ctrlKey || e.metaKey) && ['a', 'c', 'v', 'x'].includes(e.key.toLowerCase())) return
+
+  if (!/^[0-9]$/.test(e.key)) {
+    e.preventDefault()
+  }
+}
+
 export default function SystemSettingsPage() {
   const [activeTab, setActiveTab] = useState<Tab>('rules')
+  const [saving, setSaving] = useState(false)
+  const [saveResult, setSaveResult] = useState<{ ok: boolean; message: string } | null>(null)
+
+  // ── Rule settings state ─────────────────────────────────────────────
+  const [rules, setRules] = useState<RuleSettings>({
+    maxBooksPerBorrow: 3,
+    maxBorrowDays: 14,
+    maxRenewals: 1,
+    renewalDays: 14,
+    fineFirst5Days: 1000,
+    fineFromDay6: 3000,
+    newCardFee: 5000,
+    defaultCardDuration: '1y',
+    autoDeactivateMonths: 3,
+    autoLockDays: 30,
+  })
+  const [ruleErrors, setRuleErrors] = useState<RuleErrors>({})
+
+  // ── Email settings state ────────────────────────────────────────────
+  const [email, setEmail] = useState<EmailSettings>({
+    smtpHost: 'smtp.gmail.com',
+    smtpPort: 587,
+    smtpSecurity: 'tls',
+    smtpUsername: 'library@gmail.com',
+    smtpPassword: '••••••••••••',
+    displayName: 'Thư Viện Bookly',
+    senderEmail: 'no-reply@library.vn',
+  })
+
+  // ── Tasks state ─────────────────────────────────────────────────────
   const [tasks, setTasks] = useState([
     { id: 1, name: 'Cập nhật trạng thái quá hạn', schedule: '00:00 hàng ngày', enabled: true },
     { id: 2, name: 'Gửi nhắc sắp đến hạn (3 ngày)', schedule: '08:00 hàng ngày', enabled: true },
@@ -20,6 +139,91 @@ export default function SystemSettingsPage() {
     { id: 5, name: 'Backup dữ liệu', schedule: '02:00 hàng ngày', enabled: true },
   ])
 
+  // ── Cập nhật rules với validation inline ────────────────────────────
+  const updateRule = useCallback(<K extends keyof RuleSettings>(
+    key: K,
+    rawValue: string,
+  ) => {
+    const num = rawValue === '' ? 0 : Number(rawValue)
+    setRules(prev => ({ ...prev, [key]: num }))
+    setRuleErrors(prev => {
+      const next = { ...prev }
+      delete next[key]
+      return next
+    })
+  }, [])
+
+  // ── Lưu thay đổi ────────────────────────────────────────────────────
+  const handleSave = useCallback(() => {
+    setSaving(true)
+    setSaveResult(null)
+
+    const errors = validateRuleSettings(rules)
+    setRuleErrors(errors)
+
+    if (Object.keys(errors).length > 0) {
+      setSaveResult({ ok: false, message: 'Vui lòng sửa các lỗi trước khi lưu' })
+      setSaving(false)
+      return
+    }
+
+    setTimeout(() => {
+      setSaveResult({ ok: true, message: 'Đã lưu cấu hình thành công' })
+      setSaving(false)
+      toast('Đã lưu cấu hình thành công', 'success')
+    }, 600)
+  }, [rules])
+
+  // ── Helper: Input số với validation tích hợp ────────────────────────
+  function NumberField({
+    label,
+    value,
+    unit,
+    min,
+    max,
+    step = 1,
+    onChange,
+    error,
+    className = 'w-24 text-center',
+  }: {
+    label: string
+    value: number
+    unit?: string
+    min?: number
+    max?: number
+    step?: number
+    onChange: (val: string) => void
+    error?: string
+    className?: string
+  }) {
+    return (
+      <div className="flex items-center justify-between">
+        <label className="text-sm font-medium text-slate-600">{label}</label>
+        <div className={unit ? 'flex items-center gap-2' : ''}>
+          <div className={className}>
+            <Input
+              type="number"
+              value={value}
+              onChange={e => onChange(e.target.value)}
+              onKeyDown={preventNonNumeric}
+              min={min}
+              max={max}
+              step={step}
+              inputMode="numeric"
+              className="text-center"
+              error={error}
+            />
+          </div>
+          {unit && (
+            <span className="text-[10px] font-bold text-slate-400 whitespace-nowrap shrink-0">
+              {unit}
+            </span>
+          )}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
@@ -27,9 +231,28 @@ export default function SystemSettingsPage() {
           title="Cấu hình hệ thống" 
           description="Thiết lập các quy định nghiệp vụ và thông số kỹ thuật."
         />
-        <Button variant="primary" className="px-8 shadow-glow shadow-amber-500/30">
-           Lưu thay đổi
-        </Button>
+        <div className="flex items-center gap-3">
+          {saveResult && (
+            <div className={cn(
+              'flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-lg',
+              saveResult.ok ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700',
+            )}>
+              {saveResult.ok
+                ? <CheckCircle className="w-3.5 h-3.5" />
+                : <AlertTriangle className="w-3.5 h-3.5" />
+              }
+              {saveResult.message}
+            </div>
+          )}
+          <Button
+            variant="primary"
+            className="px-8 shadow-glow shadow-amber-500/30"
+            onClick={handleSave}
+            loading={saving}
+          >
+            Lưu thay đổi
+          </Button>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -41,7 +264,7 @@ export default function SystemSettingsPage() {
         ].map(t => (
           <button
             key={t.id}
-            onClick={() => setActiveTab(t.id as Tab)}
+            onClick={() => { setActiveTab(t.id as Tab); setSaveResult(null) }}
             className={cn(
               'px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-200',
               activeTab === t.id ? 'bg-white text-amber-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
@@ -59,54 +282,70 @@ export default function SystemSettingsPage() {
             <Card padding="lg">
                <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest border-b border-slate-100 pb-3 mb-6">QUY ĐỊNH MƯỢN SÁCH</h3>
                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                     <div className="flex items-center justify-between">
-                        <label className="text-sm font-medium text-slate-600">Số sách tối đa / lần mượn</label>
-                        <div className="w-24">
-                           <Input type="number" defaultValue={3} className="text-center" />
-                        </div>
-                     </div>
-                     <div className="flex items-center justify-between">
-                        <label className="text-sm font-medium text-slate-600">Số ngày mượn tối đa</label>
-                        <div className="w-24">
-                           <Input type="number" defaultValue={14} className="text-center" />
-                        </div>
-                     </div>
-                  </div>
-                  <div className="space-y-4">
-                     <div className="flex items-center justify-between">
-                        <label className="text-sm font-medium text-slate-600">Số lần gia hạn tối đa</label>
-                        <div className="w-24">
-                           <Input type="number" defaultValue={1} className="text-center" />
-                        </div>
-                     </div>
-                     <div className="flex items-center justify-between">
-                        <label className="text-sm font-medium text-slate-600">Số ngày gia hạn thêm</label>
-                        <div className="w-24">
-                           <Input type="number" defaultValue={14} className="text-center" />
-                        </div>
-                     </div>
-                  </div>
+                  <NumberField
+                    label="Số sách tối đa / lần mượn"
+                    value={rules.maxBooksPerBorrow}
+                    unit="cuốn"
+                    min={1}
+                    max={20}
+                    onChange={v => updateRule('maxBooksPerBorrow', v)}
+                    error={ruleErrors.maxBooksPerBorrow}
+                  />
+                  <NumberField
+                    label="Số ngày mượn tối đa"
+                    value={rules.maxBorrowDays}
+                    unit="ngày"
+                    min={1}
+                    max={365}
+                    onChange={v => updateRule('maxBorrowDays', v)}
+                    error={ruleErrors.maxBorrowDays}
+                  />
+                  <NumberField
+                    label="Số lần gia hạn tối đa"
+                    value={rules.maxRenewals}
+                    unit="lần"
+                    min={0}
+                    max={10}
+                    onChange={v => updateRule('maxRenewals', v)}
+                    error={ruleErrors.maxRenewals}
+                  />
+                  <NumberField
+                    label="Số ngày gia hạn thêm"
+                    value={rules.renewalDays}
+                    unit="ngày"
+                    min={1}
+                    max={90}
+                    onChange={v => updateRule('renewalDays', v)}
+                    error={ruleErrors.renewalDays}
+                  />
                </div>
             </Card>
 
             <Card padding="lg">
                <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest border-b border-slate-100 pb-3 mb-6">QUY ĐỊNH PHÍ PHẠT</h3>
                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="flex items-center justify-between">
-                     <label className="text-sm font-medium text-slate-600">Phí phạt ngày 1 – 5</label>
-                     <div className="w-32 flex items-center gap-2">
-                        <Input type="number" defaultValue={1000} className="text-right" />
-                        <span className="text-[10px] font-bold text-slate-400 whitespace-nowrap">đ / ngày</span>
-                     </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                     <label className="text-sm font-medium text-slate-600">Phí phạt từ ngày 6 trở đi</label>
-                     <div className="w-32 flex items-center gap-2">
-                        <Input type="number" defaultValue={3000} className="text-right" />
-                        <span className="text-[10px] font-bold text-slate-400 whitespace-nowrap">đ / ngày</span>
-                     </div>
-                  </div>
+                  <NumberField
+                    label="Phí phạt ngày 1 – 5"
+                    value={rules.fineFirst5Days}
+                    unit="đ / ngày"
+                    min={0}
+                    max={100000}
+                    step={500}
+                    onChange={v => updateRule('fineFirst5Days', v)}
+                    error={ruleErrors.fineFirst5Days}
+                    className="w-32"
+                  />
+                  <NumberField
+                    label="Phí phạt từ ngày 6 trở đi"
+                    value={rules.fineFromDay6}
+                    unit="đ / ngày"
+                    min={0}
+                    max={100000}
+                    step={500}
+                    onChange={v => updateRule('fineFromDay6', v)}
+                    error={ruleErrors.fineFromDay6}
+                    className="w-32"
+                  />
                </div>
             </Card>
 
@@ -114,39 +353,50 @@ export default function SystemSettingsPage() {
                <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest border-b border-slate-100 pb-3 mb-6">QUY ĐỊNH THẺ ĐỘC GIẢ</h3>
                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium text-slate-600">Lệ phí làm thẻ mới</label>
-                      <div className="w-32 flex items-center gap-2">
-                         <Input type="number" defaultValue={5000} className="text-right" />
-                         <span className="text-[10px] font-bold text-slate-400">đ</span>
-                      </div>
-                    </div>
+                    <NumberField
+                      label="Lệ phí làm thẻ mới"
+                      value={rules.newCardFee}
+                      unit="đ"
+                      min={0}
+                      max={1000000}
+                      step={1000}
+                      onChange={v => updateRule('newCardFee', v)}
+                      error={ruleErrors.newCardFee}
+                      className="w-32"
+                    />
                     <div className="flex items-center justify-between">
                       <label className="text-sm font-medium text-slate-600">Thời hạn mặc định</label>
                       <div className="w-32">
-                         <Select defaultValue="1y">
-                            <option value="6m">6 tháng</option>
-                            <option value="1y">1 năm</option>
-                            <option value="2y">2 năm</option>
-                         </Select>
+                        <Select
+                          value={rules.defaultCardDuration}
+                          onChange={e => setRules(prev => ({ ...prev, defaultCardDuration: e.target.value }))}
+                        >
+                          <option value="6m">6 tháng</option>
+                          <option value="1y">1 năm</option>
+                          <option value="2y">2 năm</option>
+                        </Select>
                       </div>
                     </div>
                   </div>
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium text-slate-600 text-left">Tự động hủy thẻ hết hạn sau</label>
-                      <div className="w-24 flex items-center gap-2">
-                         <Input type="number" defaultValue={3} className="text-center" />
-                         <span className="text-[10px] font-bold text-slate-400">tháng</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium text-slate-600">Tự động khóa thẻ khi quá hạn</label>
-                      <div className="w-24 flex items-center gap-2">
-                         <Input type="number" defaultValue={30} className="text-center" />
-                         <span className="text-[10px] font-bold text-slate-400">ngày</span>
-                      </div>
-                    </div>
+                    <NumberField
+                      label="Tự động hủy thẻ hết hạn sau"
+                      value={rules.autoDeactivateMonths}
+                      unit="tháng"
+                      min={1}
+                      max={12}
+                      onChange={v => updateRule('autoDeactivateMonths', v)}
+                      error={ruleErrors.autoDeactivateMonths}
+                    />
+                    <NumberField
+                      label="Tự động khóa thẻ khi quá hạn"
+                      value={rules.autoLockDays}
+                      unit="ngày"
+                      min={1}
+                      max={365}
+                      onChange={v => updateRule('autoLockDays', v)}
+                      error={ruleErrors.autoLockDays}
+                    />
                   </div>
                </div>
             </Card>
@@ -163,17 +413,51 @@ export default function SystemSettingsPage() {
              </div>
              <div className="grid grid-cols-2 gap-6">
                 <div className="col-span-2">
-                   <Input label="SMTP Host" defaultValue="smtp.gmail.com" />
+                   <Input
+                     label="SMTP Host"
+                     value={email.smtpHost}
+                     onChange={e => setEmail(prev => ({ ...prev, smtpHost: e.target.value }))}
+                   />
                 </div>
-                <Input label="SMTP Port" defaultValue="587" />
-                <Select label="SSL/TLS" defaultValue="tls">
-                   <option value="tls">STARTTLS</option>
-                   <option value="ssl">SSL/TLS</option>
+                <Input
+                  label="SMTP Port"
+                  type="number"
+                  value={email.smtpPort}
+                  min={1}
+                  max={65535}
+                  onChange={e => setEmail(prev => ({ ...prev, smtpPort: Number(e.target.value) }))}
+                  onKeyDown={preventNonNumeric}
+                />
+                <Select
+                  label="SSL/TLS"
+                  value={email.smtpSecurity}
+                  onChange={e => setEmail(prev => ({ ...prev, smtpSecurity: e.target.value }))}
+                >
+                  <option value="tls">STARTTLS</option>
+                  <option value="ssl">SSL/TLS</option>
                 </Select>
-                <Input label="Username" defaultValue="library@gmail.com" />
-                <Input label="Password" type="password" defaultValue="••••••••••••" />
-                <Input label="Tên hiển thị" defaultValue="Thư Viện Bookly" />
-                <Input label="Email gửi đi" defaultValue="no-reply@library.vn" />
+                <Input
+                  label="Username"
+                  value={email.smtpUsername}
+                  onChange={e => setEmail(prev => ({ ...prev, smtpUsername: e.target.value }))}
+                />
+                <Input
+                  label="Password"
+                  type="password"
+                  value={email.smtpPassword}
+                  onChange={e => setEmail(prev => ({ ...prev, smtpPassword: e.target.value }))}
+                />
+                <Input
+                  label="Tên hiển thị"
+                  value={email.displayName}
+                  onChange={e => setEmail(prev => ({ ...prev, displayName: e.target.value }))}
+                />
+                <Input
+                  label="Email gửi đi"
+                  type="email"
+                  value={email.senderEmail}
+                  onChange={e => setEmail(prev => ({ ...prev, senderEmail: e.target.value }))}
+                />
              </div>
              <div className="p-4 rounded-2xl bg-amber-50 border border-amber-100 flex gap-4">
                 <div className="w-10 h-10 rounded-full bg-amber-600 flex items-center justify-center text-white shrink-0 shadow-lg"><Mail className="w-5 h-5" /></div>

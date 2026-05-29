@@ -238,8 +238,8 @@ export default function AdminDashboard() {
                   }`} />
                   <span className="text-xs font-medium text-slate-300">{alert.label}</span>
                 </div>
-                <Link href="/admin/audit-logs" className={`text-[10px] font-bold px-2 py-1 rounded-md ${
-                  alert.action === 'Backup' || alert.action === 'Chi tiết' ? 'bg-amber-500 text-white' : 'text-amber-400 hover:bg-amber-500/20'
+                <Link href={alert.href || '/admin/audit-logs'} className={`text-[10px] font-bold px-2 py-1 rounded-md ${
+                  alert.action === 'Backup' || alert.action === 'Chi tiết' || alert.action === 'Xem chi tiết' ? 'bg-amber-500 text-white' : 'text-amber-400 hover:bg-amber-500/20'
                 }`}>
                   [{alert.action}]
                 </Link>

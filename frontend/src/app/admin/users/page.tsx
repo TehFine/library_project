@@ -110,6 +110,7 @@ export default function UsersManagementPage() {
 
       {/* User Table */}
       <Card padding="none" className="overflow-hidden border-none shadow-card">
+        <div className="overflow-x-auto">
         <table className="w-full text-left">
           <thead className="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
             <tr>
@@ -196,6 +197,7 @@ export default function UsersManagementPage() {
             )}
           </tbody>
         </table>
+        </div>
       </Card>
 
       {/* Role Modal */}

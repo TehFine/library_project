@@ -281,6 +281,7 @@ export default function AuditLogsPage() {
               </div>
             ) : (
               <>
+                <div className="overflow-x-auto">
                 <table className="w-full text-left">
                   <thead className="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
                     <tr>
@@ -313,7 +314,8 @@ export default function AuditLogsPage() {
                     ))}
                   </tbody>
                 </table>
-                <div className="bg-slate-50 px-6 py-4 border-t border-slate-100 flex items-center justify-between">
+                </div>
+                <div className="bg-slate-50 px-4 sm:px-6 py-4 border-t border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
                   <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">
                     Hiển thị {displayedLogs.length}/{filteredLogs.length} bản ghi
                   </p>

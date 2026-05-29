@@ -9,7 +9,7 @@ import { adminApi, BookReportData } from '@/lib/api'
 import { exportToExcel, exportToPDF } from '@/lib/export'
 import { useRealtimeRefresh } from '@/hooks/useWebSocket'
 import toast from 'react-hot-toast'
-import { CheckCircle, XCircle } from 'lucide-react'
+import { CheckCircle, XCircle, AlertTriangle } from 'lucide-react'
 
 type Tab = 'top' | 'stock' | 'replenish' | 'disposal'
 
@@ -289,9 +289,10 @@ export default function BookReportsPage() {
                           <td className="px-6 py-4 text-right">
                             {s.action && (
                               <button className={cn(
-                                "text-xs font-bold py-1 px-3 rounded-lg border",
+                                "text-xs font-bold py-1 px-3 rounded-lg border inline-flex items-center gap-1.5",
                                 s.critical ? "border-amber-100 bg-amber-50 text-amber-700 hover:bg-amber-100" : "border-slate-100 bg-slate-50 text-slate-500"
                               )}>
+                                {s.critical ? <AlertTriangle className="w-3.5 h-3.5" /> : <CheckCircle className="w-3.5 h-3.5 text-slate-400" />}
                                 {s.action}
                               </button>
                             )}

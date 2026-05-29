@@ -236,12 +236,12 @@ export default function BulkNotificationsPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <PageHeader 
           title="Gửi thông báo hàng loạt" 
           description="Gửi thông báo Email đến nhóm độc giả được chỉ định."
         />
-        <div className="flex gap-1 bg-slate-100 rounded-2xl p-1">
+        <div className="flex gap-1 bg-slate-100 rounded-2xl p-1 shrink-0 self-start sm:self-auto">
           <button
             onClick={() => setActiveTab('compose')}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
@@ -483,6 +483,7 @@ export default function BulkNotificationsPage() {
       ) : (
         /* ── History Tab ── */
         <Card padding="none" className="overflow-hidden border-none shadow-card">
+          <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead className="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
               <tr>
@@ -527,6 +528,7 @@ export default function BulkNotificationsPage() {
               )}
             </tbody>
           </table>
+          </div>
         </Card>
       )}
 
