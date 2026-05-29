@@ -190,7 +190,7 @@ export class ReservationsService {
     async findMine(userId: string, query: any) {
         await this.syncReservationsStatus()
         
-        const { status, page = 1, limit = 10 } = query
+        const { status, page = 1, limit = 12 } = query
         const skip = (page - 1) * limit
 
         let statusFilter = undefined

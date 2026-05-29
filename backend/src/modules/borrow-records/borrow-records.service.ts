@@ -176,23 +176,17 @@ export class BorrowRecordsService {
                 await queryRunner.manager.save(copy)
             }
 
-            await queryRunner.commitTransaction()
-            
-            // Emit realtime events
-            this.realtime.emit('librarian:dashboard-update')
-            this.realtime.emit('admin:dashboard-update')
-            this.realtime.emit('reader:dashboard-update')
-            
             // Kiểm tra quá hạn để tính phạt
-            const overdue = new Date(record.returnDate) > new Date(record.dueDate)
-            
-            // Tự động tạo/cập nhật phí phạt nếu quá hạn
-            if (overdue) {
-                const dueDate = new Date(record.dueDate)
-                const returnDate = new Date(record.returnDate)
-                const diffTime = returnDate.getTime() - dueDate.getTime()
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+            const dueDate = new Date(record.dueDate)
+            const returnDate = new Date(record.returnDate)
+            dueDate.setHours(0, 0, 0, 0)
+            returnDate.setHours(0, 0, 0, 0)
+            const diffTime = returnDate.getTime() - dueDate.getTime()
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+            const overdue = diffDays > 0
 
+            // Tự động tạo/cập nhật phí phạt nếu quá hạn (trong transaction)
+            if (overdue) {
                 let amount: number
                 if (diffDays <= 5) {
                     amount = diffDays * 1000
@@ -200,24 +194,32 @@ export class BorrowRecordsService {
                     amount = 5000 + (diffDays - 5) * 3000
                 }
 
-                const existingFine = await this.fineRepo.findOneBy({ borrowRecordId: record.id })
+                const existingFine = await queryRunner.manager.findOne(Fine, {
+                    where: { borrowRecordId: record.id }
+                })
                 if (existingFine) {
-                    // Cập nhật số ngày & số tiền theo thời điểm trả thực tế
                     existingFine.overdueDays = diffDays
                     existingFine.amount = amount
-                    await this.fineRepo.save(existingFine)
+                    await queryRunner.manager.save(existingFine)
                 } else {
-                    const fine = this.fineRepo.create({
+                    const fine = queryRunner.manager.create(Fine, {
                         borrowRecordId: record.id,
                         fineType: 'overdue',
                         overdueDays: diffDays,
                         amount,
                         status: 'pending',
                     })
-                    await this.fineRepo.save(fine)
+                    await queryRunner.manager.save(fine)
                 }
             }
-            
+
+            await queryRunner.commitTransaction()
+
+            // Emit realtime events (sau khi đã tạo fine)
+            this.realtime.emit('librarian:dashboard-update')
+            this.realtime.emit('admin:dashboard-update')
+            this.realtime.emit('reader:dashboard-update')
+
             return { record, overdue }
         } catch (err) {
             await queryRunner.rollbackTransaction()
@@ -261,7 +263,7 @@ export class BorrowRecordsService {
     }
 
     async findMine(userId: string, query: any) {
-        const { status, page = 1, limit = 10 } = query
+        const { status, page = 1, limit = 12 } = query
         const skip = (page - 1) * limit
 
         const today = new Date().toISOString().split('T')[0]
@@ -273,10 +275,11 @@ export class BorrowRecordsService {
                 { libraryCard: { userId }, status: 'borrowing', dueDate: LessThan(today) }
             ]
         } else if (status === 'borrowing') {
-            where = { 
-                libraryCard: { userId }, 
-                status: 'borrowing'
-            }
+            // Bao gồm cả 'borrowing' và 'overdue' vì độc giả vẫn đang giữ sách
+            where = [
+                { libraryCard: { userId }, status: 'borrowing' },
+                { libraryCard: { userId }, status: 'overdue' }
+            ]
         } else if (status && status !== 'all') {
             where = { libraryCard: { userId }, status }
         }
@@ -374,12 +377,14 @@ export class BorrowRecordsService {
             throw new BadRequestException('Phiếu mượn này đã được trả rồi')
         }
 
-        // Xóa cờ yêu cầu trả trước khi gọi returnBook
+        // Gọi returnBook trước (có transaction riêng) để đảm bảo trả sách thành công
+        const result = await this.returnBook(recordId, condition)
+
+        // Sau đó xóa cờ yêu cầu trả
         record.returnRequested = false
         await this.borrowRepo.save(record)
 
-        // Gọi logic trả sách có sẵn (cập nhật trạng thái bản sao, xử lý reservation...)
-        return this.returnBook(recordId, condition)
+        return result
     }
 
     async simulateReturn(recordId: string, userId: string) {
@@ -442,6 +447,13 @@ export class BorrowRecordsService {
             record.status = 'borrowing'
         }
         
-        return this.borrowRepo.save(record)
+        const saved = await this.borrowRepo.save(record)
+        
+        // Emit realtime events
+        this.realtime.emit('librarian:dashboard-update')
+        this.realtime.emit('admin:dashboard-update')
+        this.realtime.emit('reader:dashboard-update')
+        
+        return saved
     }
 }
