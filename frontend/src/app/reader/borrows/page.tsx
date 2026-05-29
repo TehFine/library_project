@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/useToast'
 
 const TABS: { label: string; value: any }[] = [
   { label: 'Đang mượn',  value: 'borrowing' },
+  { label: 'Quá hạn',    value: 'overdue'   },
   { label: 'Yêu cầu',    value: 'requests'  },
   { label: 'Lịch sử',   value: 'returned'  },
   { label: 'Tất cả',    value: 'all'       },
@@ -110,16 +111,16 @@ export default function BorrowsPage() {
     <div>
       <PageHeader title="Sách đang mượn" description="Theo dõi tình trạng mượn sách của bạn" />
 
-      <div className="flex gap-2 mb-6 flex-wrap">
+      <div className="flex gap-2 mb-6 overflow-x-auto px-1 pb-2 pt-1">
         {TABS.map(t => (
           <button
             key={t.value}
             onClick={() => handleTabChange(t.value)}
             className={cn(
-              'px-5 py-2.5 text-sm font-semibold transition-all duration-200 rounded-xl',
+              'px-4 py-2 text-xs sm:text-sm font-semibold transition-all duration-200 rounded-xl shrink-0 border',
               tab === t.value
-                ? 'bg-amber-50 text-amber-600 shadow-sm ring-1 ring-amber-100'
-                : 'bg-white text-gray-500 hover:bg-gray-50 hover:text-gray-700 border border-transparent hover:border-gray-200',
+                ? 'bg-amber-50 text-amber-600 shadow-sm ring-1 ring-amber-100 border-amber-200'
+                : 'bg-white text-gray-500 hover:bg-gray-50 hover:text-gray-700 border-transparent hover:border-gray-200',
             )}
           >
             {t.label}

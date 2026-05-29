@@ -15,21 +15,19 @@ function HeroBanner({ card }: { card: LibraryCard | null }) {
       {/* Decorative circles */}
       <div className="absolute -top-10 -right-10 w-48 h-48 rounded-full bg-white/10" />
       <div className="absolute -bottom-8 -left-8 w-32 h-32 rounded-full bg-white/10" />
-      <div className="absolute top-4 right-24 w-16 h-16 rounded-full bg-white/10" />
-
-      <div className="relative z-10 px-8 py-7 flex items-center justify-between">
+      <div className="absolute top-4 right-24 w-16 h-16 rounded-full bg-white/10" />          <div className="relative z-10 px-5 sm:px-8 py-5 sm:py-7 flex items-center justify-between">
         <div>
-          <p className="text-white/80 text-sm font-medium mb-1">Chào mừng trở lại</p>
-          <h2 className="text-white text-2xl font-bold mb-3">Thư viện của bạn</h2>
-          <p className="text-white/70 text-sm max-w-xs">
+          <p className="text-white/80 text-xs sm:text-sm font-medium mb-1">Chào mừng trở lại</p>
+          <h2 className="text-white text-xl sm:text-2xl font-bold mb-2 sm:mb-3">Thư viện của bạn</h2>
+          <p className="text-white/70 text-xs sm:text-sm max-w-[200px] sm:max-w-xs">
             Khám phá hàng nghìn đầu sách. Chúng tôi đã chọn những cuốn sách phù hợp nhất cho bạn.
           </p>
           <Link
             href="/reader/books"
-            className="inline-flex items-center gap-2 mt-4 bg-white text-primary font-bold text-sm px-5 py-2.5 rounded-full shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300"
+            className="inline-flex items-center gap-1.5 mt-3 sm:mt-4 bg-white text-primary font-bold text-xs sm:text-sm px-4 sm:px-5 py-2 sm:py-2.5 rounded-full shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300"
           >
             Tìm kiếm sách
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
             </svg>
           </Link>

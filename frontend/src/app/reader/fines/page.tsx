@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import PageHeader from '@/components/layout/PageHeader'
 import { Badge, Card, EmptyState, Pagination, Skeleton, StatCard } from '@/components/ui'
 import { finesApi } from '@/lib/api'
@@ -15,7 +15,9 @@ export default function FinesPage() {
   const [loading, setLoading] = useState(true)
   const [payingId, setPayingId] = useState<string | null>(null)
   const { toast } = useToast()
-  const LIMIT = 10
+  const LIMIT = 12
+  // Track previous pending amount để phát hiện phí phạt mới qua realtime
+  const prevPendingRef = useRef(0)
 
   async function load(p: number) {
     setLoading(true)
@@ -47,6 +49,15 @@ export default function FinesPage() {
 
   const pendingTotal = fines.filter(f => f.status === 'pending').reduce((s, f) => s + f.amount, 0)
   const paidTotal    = fines.filter(f => f.status === 'paid').reduce((s, f) => s + f.amount, 0)
+
+  // Toast thông báo khi phát hiện phí phạt mới qua realtime
+  useEffect(() => {
+    const newPending = fines.filter(f => f.status === 'pending').reduce((s, f) => s + f.amount, 0)
+    if (newPending > prevPendingRef.current && prevPendingRef.current > 0) {
+      toast(`Bạn có phí phạt mới: ${formatCurrency(newPending - prevPendingRef.current)}`, 'info')
+    }
+    prevPendingRef.current = newPending
+  }, [fines, toast])
 
   async function handleSimulatePayOnline(id: string) {
     setPayingId(id)

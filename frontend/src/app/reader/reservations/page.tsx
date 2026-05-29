@@ -68,14 +68,14 @@ export default function ReservationsPage() {
     <div>
       <PageHeader title="Sách đặt trước" description="Danh sách sách bạn đang chờ mượn" />
 
-      <div className="flex gap-2 mb-6">
+      <div className="flex gap-2 mb-6 overflow-x-auto px-1 pb-2 pt-1">
         <button
           onClick={() => { setStatusTab('active'); setPage(1); }}
           className={cn(
-            "px-5 py-2.5 text-sm font-semibold transition-all duration-200 rounded-xl",
+            "px-4 py-2 text-xs sm:text-sm font-semibold transition-all duration-200 rounded-xl shrink-0 border",
             statusTab === 'active'
-              ? "bg-amber-50 text-amber-600 shadow-sm ring-1 ring-amber-100"
-              : "bg-white text-gray-500 hover:bg-gray-50 hover:text-gray-700 border border-transparent hover:border-gray-200"
+              ? "bg-amber-50 text-amber-600 shadow-sm ring-1 ring-amber-100 border-amber-200"
+              : "bg-white text-gray-500 hover:bg-gray-50 hover:text-gray-700 border-transparent hover:border-gray-200"
           )}
         >
           Đang chờ
@@ -83,13 +83,13 @@ export default function ReservationsPage() {
         <button
           onClick={() => { setStatusTab('all'); setPage(1); }}
           className={cn(
-            "px-5 py-2.5 text-sm font-semibold transition-all duration-200 rounded-xl",
+            "px-4 py-2 text-xs sm:text-sm font-semibold transition-all duration-200 rounded-xl shrink-0 border",
             statusTab === 'all'
-              ? "bg-amber-50 text-amber-600 shadow-sm ring-1 ring-amber-100"
-              : "bg-white text-gray-500 hover:bg-gray-50 hover:text-gray-700 border border-transparent hover:border-gray-200"
+              ? "bg-amber-50 text-amber-600 shadow-sm ring-1 ring-amber-100 border-amber-200"
+              : "bg-white text-gray-500 hover:bg-gray-50 hover:text-gray-700 border-transparent hover:border-gray-200"
           )}
         >
-          Tất cả lịch sử
+          Tất cả
         </button>
       </div>
 

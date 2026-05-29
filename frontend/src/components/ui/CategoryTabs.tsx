@@ -14,7 +14,7 @@ export default function CategoryTabs({ categories, activeId, onSelect, className
   const tabs = [all, ...categories.map(c => ({ id: c.id as number | undefined, name: c.name }))]
 
   return (
-    <div className={cn('flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide', className)}>
+    <div className={cn('flex items-center gap-2 overflow-x-auto px-1 pb-2 pt-1 scrollbar-hide', className)}>
       {tabs.map(tab => {
         const active = tab.id === activeId
         return (
@@ -22,10 +22,10 @@ export default function CategoryTabs({ categories, activeId, onSelect, className
             key={tab.id ?? 'all'}
             onClick={() => onSelect(tab.id)}
             className={cn(
-              'shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200',
+              'shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 border',
               active
-                ? 'bg-gradient-to-r from-primary to-primary-light text-white shadow-glow'
-                : 'bg-white/70 text-gray-600 hover:bg-white hover:text-gray-800 border border-amber-200/60 hover:border-amber-300',
+                ? 'bg-gradient-to-r from-primary to-primary-light text-white shadow-glow border-primary-light'
+                : 'bg-white/70 text-gray-600 hover:bg-white hover:text-gray-800 border-amber-200/60 hover:border-amber-300',
             )}
           >
             {tab.name}

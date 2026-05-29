@@ -11,23 +11,24 @@ export function AvatarCard({ user }: { user: User }) {
     : user.username.slice(0, 2).toUpperCase()
 
   return (
-    <div className="relative rounded-[2rem] overflow-hidden bg-gradient-to-br from-[#d4cbb8] to-[#e6dcc8] h-full min-h-[260px] shadow-sm border border-white/50">
-      {/* Abstract face/photo placeholder using big blurred text or shape */}
-      <div className="absolute inset-0 flex items-center justify-center opacity-40 mix-blend-overlay">
-        <span className="text-[12rem] font-black text-black/20 tracking-tighter select-none">{initials[0]}</span>
+    <div className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-amber-200 via-amber-100 to-amber-50 h-full min-h-[260px] shadow-soft border border-white/60">
+      {/* Decorative initial */}
+      <div className="absolute inset-0 flex items-center justify-center opacity-30">
+        <span className="text-[12rem] font-black text-amber-900/10 tracking-tighter select-none">{initials[0]}</span>
       </div>
-      
+
+      {/* Gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-      
-      <div className="absolute bottom-0 left-0 right-0 p-5 flex justify-between items-end">
+
+      <div className="absolute bottom-0 left-0 right-0 p-6 flex justify-between items-end">
         <div>
           <h2 className="text-xl font-bold text-white drop-shadow-sm">{user.fullName || user.username}</h2>
           <p className="text-xs text-white/80 drop-shadow-sm mt-0.5">
-            {user.role === 'reader' ? 'Thành viên Độc giả' : 
+            {user.role === 'reader' ? 'Thành viên Độc giả' :
              user.role === 'librarian' ? 'Thủ thư' : 'Quản trị viên'}
           </p>
         </div>
-        <div className="px-4 py-1.5 rounded-full border border-white/30 bg-black/20 backdrop-blur-md text-white text-xs font-semibold shadow-sm">
+        <div className="px-4 py-1.5 rounded-full border border-white/30 bg-white/10 backdrop-blur-md text-white text-xs font-semibold shadow-sm">
           {user.username}
         </div>
       </div>
@@ -36,8 +37,8 @@ export function AvatarCard({ user }: { user: User }) {
 }
 
 // ── AccordionPersonalInfo ─────────────────────────────────────────────────────
-export function AccordionPersonalInfo({ 
-  user, editing, setEditing, onSave, loading, 
+export function AccordionPersonalInfo({
+  user, editing, setEditing, onSave, loading,
   fullName, setFullName, phone, setPhone, address, setAddress,
   dateOfBirth, setDateOfBirth
 }: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -49,32 +50,32 @@ export function AccordionPersonalInfo({
   ]
 
   return (
-    <div className="rounded-[2rem] bg-[#fdfcf9] border border-amber-100/80 p-5 h-full flex flex-col">
+    <div className="rounded-3xl bg-white border border-amber-100/80 p-5 h-full flex flex-col shadow-card">
        <div className="flex justify-between items-center mb-4">
           <p className="text-sm font-bold text-gray-800">Thông tin cá nhân</p>
           {!editing ? (
-            <button onClick={() => setEditing(true)} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-amber-100 hover:text-amber-600 transition-colors shadow-sm">
+            <button onClick={() => setEditing(true)} className="w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center text-amber-500 hover:bg-amber-100 hover:text-amber-600 transition-colors shadow-sm">
                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" /></svg>
             </button>
           ) : (
              <button onClick={() => setEditing(false)} className="text-xs font-semibold text-gray-500 hover:text-gray-800">Hủy</button>
           )}
        </div>
-       
+
        {editing ? (
           <form onSubmit={onSave} className="space-y-3 flex-1">
-             <Input value={fullName} onChange={e => setFullName(e.target.value)} required placeholder="Họ và tên" className="bg-white" />
-             <Input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="Số điện thoại" className="bg-white" />
-             <Input value={address} onChange={e => setAddress(e.target.value)} placeholder="Địa chỉ" className="bg-white" />
-             <Input type="date" value={dateOfBirth} onChange={e => setDateOfBirth(e.target.value)} placeholder="Ngày sinh" className="bg-white" />
+             <Input value={fullName} onChange={e => setFullName(e.target.value)} required placeholder="Họ và tên" className="bg-amber-50/50" />
+             <Input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="Số điện thoại" className="bg-amber-50/50" />
+             <Input value={address} onChange={e => setAddress(e.target.value)} placeholder="Địa chỉ" className="bg-amber-50/50" />
+             <Input type="date" value={dateOfBirth} onChange={e => setDateOfBirth(e.target.value)} placeholder="Ngày sinh" className="bg-amber-50/50" />
              <Button type="submit" size="sm" loading={loading} fullWidth className="mt-2">Lưu thay đổi</Button>
           </form>
        ) : (
           <div className="space-y-2 flex-1">
             {items.map((it, i) => (
-              <div key={i} className="flex items-center justify-between p-3.5 rounded-2xl bg-[#f5efe4] border border-[#ebe0cd] cursor-pointer hover:bg-white hover:border-amber-200 transition-all group">
+              <div key={i} className="flex items-center justify-between p-3.5 rounded-2xl bg-amber-50/60 border border-amber-100/80 cursor-pointer hover:bg-white hover:border-amber-300 transition-all group">
                 <div className="flex items-center gap-3 text-gray-700 min-w-0 flex-1">
-                  <span className="text-gray-400 group-hover:text-amber-500 transition-colors shrink-0">{it.icon}</span>
+                  <span className="text-amber-400 group-hover:text-primary transition-colors shrink-0">{it.icon}</span>
                   <span className="text-sm font-medium whitespace-nowrap">{it.label}</span>
                 </div>
                 <div className="flex items-center gap-3 shrink-0 ml-2">
@@ -90,47 +91,57 @@ export function AccordionPersonalInfo({
 }
 
 // ── SecurityCard ──────────────────────────────────────────────────────────────
-export function SecurityCard({ 
-  pwSection, setPwSection, currentPw, setCurrentPw, 
-  newPw, setNewPw, confirmPw, setConfirmPw, 
-  pwError, setPwError, handleChangePassword, pwLoading 
+export function SecurityCard({
+  pwSection, setPwSection, currentPw, setCurrentPw,
+  newPw, setNewPw, confirmPw, setConfirmPw,
+  pwError, setPwError, handleChangePassword, pwLoading
 }: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
   return (
-    <div className="rounded-[2rem] bg-[#fbf9f4] shadow-sm border border-amber-100/50 p-6 h-full flex flex-col relative overflow-hidden">
-       {/* Fake Calendar Header */}
-       <div className="flex justify-between items-center mb-6">
-         <span className="px-3 py-1 bg-white rounded-full text-xs font-bold text-gray-500 shadow-sm">Bảo mật</span>
-         <span className="text-sm font-bold text-gray-800">Cài đặt tài khoản</span>
-         <span className="px-3 py-1 bg-white rounded-full text-xs font-bold text-gray-500 shadow-sm">Đổi MK</span>
+    <div className="rounded-3xl bg-white border border-amber-100/80 p-6 h-full flex flex-col relative overflow-hidden shadow-card">
+       {/* Header */}
+       <div className="flex items-center gap-3 mb-6">
+         <div className="w-9 h-9 rounded-full bg-amber-50 flex items-center justify-center">
+           <svg className="w-5 h-5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+             <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+           </svg>
+         </div>
+         <div>
+           <p className="text-sm font-bold text-gray-800">Bảo mật tài khoản</p>
+           <p className="text-xs text-gray-500 mt-0.5">Mật khẩu & đăng nhập</p>
+         </div>
        </div>
-       
-       <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full">
+
+       <div className="flex-1 flex flex-col justify-center">
          {pwSection ? (
-            <form onSubmit={handleChangePassword} className="space-y-3 bg-white p-5 rounded-3xl shadow-sm border border-amber-100/50">
-               <Input type="password" value={currentPw} onChange={e => setCurrentPw(e.target.value)} required placeholder="Mật khẩu hiện tại" className="bg-gray-50" />
-               <Input type="password" value={newPw} onChange={e => setNewPw(e.target.value)} required placeholder="Mật khẩu mới (tối thiểu 8 ký tự)" className="bg-gray-50" />
-               <Input type="password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} required placeholder="Xác nhận mật khẩu mới" className="bg-gray-50" />
+            <form onSubmit={handleChangePassword} className="space-y-3">
+               <Input type="password" value={currentPw} onChange={e => setCurrentPw(e.target.value)} required placeholder="Mật khẩu hiện tại" className="bg-amber-50/50" />
+               <Input type="password" value={newPw} onChange={e => setNewPw(e.target.value)} required placeholder="Mật khẩu mới (tối thiểu 8 ký tự)" className="bg-amber-50/50" />
+               <Input type="password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} required placeholder="Xác nhận mật khẩu mới" className="bg-amber-50/50" />
                {pwError && <p className="text-xs text-red-500 font-medium px-1">{pwError}</p>}
                <div className="flex gap-2 pt-2">
                  <Button type="button" variant="ghost" size="sm" onClick={() => { setPwSection(false); setPwError('') }} className="flex-1">Hủy</Button>
-                 <Button type="submit" size="sm" loading={pwLoading} className="flex-1 bg-gray-800 hover:bg-gray-900 text-white border-none">Lưu</Button>
+                 <Button type="submit" size="sm" loading={pwLoading} className="flex-1">Lưu</Button>
                </div>
             </form>
          ) : (
-            <div className="bg-[#292929] text-white rounded-3xl p-6 relative overflow-hidden shadow-lg mt-2">
-               <div className="flex items-center gap-3 mb-4">
-                 <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
-                   <svg className="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+            <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-3xl p-6 relative overflow-hidden border border-amber-200/60 shadow-card">
+               {/* Decorative circles */}
+               <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-amber-200/20" />
+               <div className="absolute -bottom-4 -left-4 w-16 h-16 rounded-full bg-amber-300/15" />
+
+               <div className="flex items-center gap-3 mb-5 relative z-10">
+                 <div className="w-10 h-10 rounded-full bg-amber-200/50 flex items-center justify-center">
+                   <svg className="w-5 h-5 text-amber-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
                  </div>
                  <div>
-                   <p className="text-sm font-bold">Mật khẩu & Đăng nhập</p>
-                   <p className="text-[10px] text-gray-400 mt-0.5">Bảo vệ tài khoản của bạn</p>
+                   <p className="text-sm font-bold text-amber-900">Mật khẩu & Đăng nhập</p>
+                   <p className="text-[10px] text-amber-600/70 mt-0.5">Bảo vệ tài khoản của bạn</p>
                  </div>
                </div>
-               
-               <Button variant="secondary" size="sm" onClick={() => setPwSection(true)} className="w-full border-none bg-white/10 hover:bg-white/20 text-white justify-between px-4">
+
+               <Button variant="secondary" size="sm" onClick={() => setPwSection(true)} className="w-full border border-amber-300/50 bg-white/60 hover:bg-white/80 text-amber-800 justify-between px-4 relative z-10 shadow-sm">
                  Thay đổi mật khẩu
-                 <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+                 <svg className="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
                </Button>
             </div>
          )}

@@ -114,11 +114,11 @@ function BooksContent() {
       />
 
       {/* Secondary filters row */}
-      <div className="flex items-center gap-3 mb-6 flex-wrap">
+      <div className="flex items-center gap-2 mb-6 overflow-x-auto px-1 pb-2 pt-1">
         {/* Local search */}
-        <div className="relative flex-1 min-w-[200px]">
-          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none z-10">
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <div className="relative flex-1 min-w-[140px]">
+          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none z-10">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </span>
@@ -127,23 +127,23 @@ function BooksContent() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Lọc theo tên sách, tác giả..."
-            className="w-full h-10 rounded-full pl-11 pr-4 text-sm bg-white/80 text-gray-700 placeholder:text-gray-400 outline-none ring-1 ring-amber-200/60 focus:ring-2 focus:ring-primary/40 transition-all"
+            className="w-full h-9 rounded-full pl-9 pr-3 text-sm bg-white/80 text-gray-700 placeholder:text-gray-400 outline-none ring-1 ring-amber-200/60 focus:ring-2 focus:ring-primary/40 transition-all"
           />
         </div>
 
         {/* Available only toggle */}
-        <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer select-none bg-white/70 rounded-full px-4 py-2 ring-1 ring-amber-200/60 hover:ring-amber-300 transition-all">
+        <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer select-none bg-white/70 rounded-full px-3 py-1.5 ring-1 ring-amber-200/60 hover:ring-amber-300 transition-all shrink-0">
           <input
             type="checkbox"
             checked={onlyAvailable}
             onChange={e => setOnlyAvailable(e.target.checked)}
-            className="rounded border-amber-300 text-primary focus:ring-primary w-3.5 h-3.5"
+            className="rounded border-amber-300 text-primary focus:ring-primary w-3 h-3"
           />
-          Chỉ sách có sẵn
+          Có sẵn
         </label>
 
         {/* View toggle */}
-        <div className="flex bg-amber-100/60 rounded-full overflow-hidden ring-1 ring-amber-200/60 p-0.5">
+        <div className="flex bg-amber-100/60 rounded-full overflow-hidden ring-1 ring-amber-200/60 p-0.5 shrink-0">
           {(['grid', 'list'] as ViewMode[]).map(m => (
             <button
               key={m}
