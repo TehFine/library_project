@@ -465,7 +465,7 @@ export default function NewBorrowPage() {
                           <p className="text-xs text-gray-500">Mã BC: <span className="font-mono">{b.copyCode}</span> • Tình trạng: {b.condition}</p>
                         </div>
                       </div>
-                      <button onClick={() => handleRemoveBook(b.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all">
+                      <button onClick={() => handleRemoveBook(b.id)} className="p-2 text-gray-500 hover:text-red-600 bg-amber-50 hover:bg-red-100 rounded-xl transition-all">
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
@@ -545,7 +545,7 @@ export default function NewBorrowPage() {
         {step === 4 && (
           <div className="text-center py-12 space-y-6">
             <div className="w-24 h-24 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-5xl mx-auto shadow-sm ring-8 ring-emerald-50">
-              ✓
+              <Check className="w-10 h-10" />
             </div>
             <div>
               <h3 className="text-3xl font-black text-gray-900 tracking-tight">Mượn sách thành công!</h3>

@@ -187,7 +187,7 @@ export default function ReturnBorrowPage() {
         <Card padding="lg">
           <div className="text-center py-12 space-y-6">
             <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-4xl mx-auto shadow-sm ring-4 ring-emerald-50">
-              ✓
+              <Check className="w-8 h-8" />
             </div>
             <div>
               <h3 className="text-2xl font-bold text-gray-900">Nhận trả sách thành công!</h3>
@@ -343,7 +343,7 @@ export default function ReturnBorrowPage() {
                       Mượn bởi: <span className="font-medium text-gray-900">{selectedRecord.libraryCard?.user?.fullName || selectedRecord.libraryCard?.user?.username}</span> • Ngày mượn: {selectedRecord.borrowDate}
                     </p>
                     <p className={`mt-2 text-sm font-bold ${selectedRecord.daysOverdue <= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
-                      Hạn trả: {selectedRecord.dueDate} → {selectedRecord.daysOverdue <= 0 ? <>Còn hạn <Check className="w-3.5 h-3.5 inline" /></> : <>Quá hạn {selectedRecord.daysOverdue} ngày <TriangleAlert className="w-3.5 h-3.5 inline" /> (Phí dự kiến: {formatCurrency(selectedRecord.fine)})</>}
+                      Hạn trả: {selectedRecord.dueDate} → {selectedRecord.daysOverdue <= 0 ? <><span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1" />Còn hạn</> : <><span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500 mr-1" />Quá hạn {selectedRecord.daysOverdue} ngày <TriangleAlert className="w-3.5 h-3.5 inline" /> (Phí dự kiến: {formatCurrency(selectedRecord.fine)})</>}
                     </p>
                   </div>
                 </div>
@@ -441,7 +441,7 @@ export default function ReturnBorrowPage() {
                 </div>
               ) : (
                 <div className="pt-2 text-center text-emerald-600 font-bold italic">
-                  ✓ Không phát sinh phí phạt.
+                  <Check className="w-4 h-4 inline text-emerald-500 mr-1" /> Không phát sinh phí phạt.
                 </div>
               )}
             </div>

@@ -156,7 +156,7 @@ export default function LibrarianCardsPage() {
                   </td>
                   <td className="py-4 px-6">
                      <Badge className={card.status === 'active' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}>
-                        {card.status === 'active' ? '● Hoạt động' : '● Đã khóa'}
+                        {card.status === 'active' ? <><span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1" />Hoạt động</> : <><span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500 mr-1" />Đã khóa</>}
                      </Badge>
                   </td>
                   <td className="py-4 px-6 text-right space-x-2">
@@ -233,7 +233,7 @@ export default function LibrarianCardsPage() {
               <div className="flex justify-between items-center border-b border-gray-100 pb-3">
                 <span className="text-gray-400">Trạng thái</span>
                 <Badge className={selectedCard?.status === 'active' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}>
-                   {selectedCard?.status === 'active' ? '● Hoạt động' : '● Đã khóa'}
+                   {selectedCard?.status === 'active' ? <><span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1" />Hoạt động</> : <><span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500 mr-1" />Đã khóa</>}
                 </Badge>
               </div>
               <div className="flex justify-between items-center border-b border-gray-100 pb-3">

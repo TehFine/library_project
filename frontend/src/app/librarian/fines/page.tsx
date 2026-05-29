@@ -9,6 +9,7 @@ import Modal from '@/components/ui/Modal'
 import { librarianApi } from '@/lib/api'
 import { formatCurrency, cn } from '@/lib/utils'
 import { toast } from 'react-hot-toast'
+import { Check } from 'lucide-react'
 
 
 export default function LibrarianFinesPage() {
@@ -116,7 +117,7 @@ export default function LibrarianFinesPage() {
                   <td className="py-4 px-6 font-black text-sm text-gray-900">{formatCurrency(fine.amount)}</td>
                   <td className="py-4 px-6">
                     <Badge className={fine.status === 'paid' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}>
-                        {fine.status === 'paid' ? '● Đã thu' : '● Chờ thu'}
+                        {fine.status === 'paid' ? <><span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1" /> Đã thu</> : <><span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500 mr-1" /> Chờ thu</>}
                     </Badge>
                   </td>
                   <td className="py-4 px-6 text-right">
@@ -181,7 +182,7 @@ export default function LibrarianFinesPage() {
       <Modal open={!!receiptFine} onClose={() => setReceiptFine(null)} title="Biên lai điện tử" size="sm">
         <div className="space-y-6">
            <div className="bg-emerald-50 p-6 rounded-3xl border border-emerald-100 text-center space-y-2">
-              <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full mx-auto flex items-center justify-center text-xl font-bold mb-4">✓</div>
+              <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full mx-auto flex items-center justify-center text-xl font-bold mb-4"><Check className="w-6 h-6" /></div>
               <p className="text-xs font-bold text-emerald-600 uppercase tracking-widest">Đã thanh toán</p>
               <p className="text-4xl font-black text-emerald-900">{formatCurrency(receiptFine?.amount || 0)}</p>
            </div>

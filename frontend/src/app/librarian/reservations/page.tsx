@@ -130,9 +130,9 @@ export default function LibrarianReservationsPage() {
                       res.status === 'completed' ? 'bg-blue-50 text-blue-600' :
                       res.status === 'waiting' ? 'bg-amber-50 text-amber-600' : 'bg-gray-100 text-gray-400'
                     )}>
-                      {res.status === 'waiting' ? '● Chờ có sách' : 
-                       res.status === 'notified' ? '● Chờ đến nhận' : 
-                       res.status === 'completed' ? '● Đã hoàn tất' : '● ' + res.status}
+                      {res.status === 'waiting' ? <><span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 mr-1" />Chờ có sách</> : 
+                       res.status === 'notified' ? <><span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1" />Chờ đến nhận</> : 
+                       res.status === 'completed' ? <><span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-500 mr-1" />Đã hoàn tất</> : <><span className="inline-block w-1.5 h-1.5 rounded-full bg-gray-400 mr-1" />{res.status}</>}
                     </Badge>
                   </td>
                   <td className="py-4 px-6 text-right space-x-2">
@@ -166,9 +166,9 @@ export default function LibrarianReservationsPage() {
                   selectedReservation?.status === 'completed' ? 'bg-blue-50 text-blue-600' :
                   selectedReservation?.status === 'waiting' ? 'bg-amber-50 text-amber-600' : 'bg-gray-100 text-gray-400'
                 )}>
-                  {selectedReservation?.status === 'waiting' ? '● Chờ có sách' : 
-                   selectedReservation?.status === 'notified' ? '● Chờ đến nhận' : 
-                   selectedReservation?.status === 'completed' ? '● Đã hoàn tất' : '● ' + selectedReservation?.status}
+                  {selectedReservation?.status === 'waiting' ? <><span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 mr-1" />Chờ có sách</> : 
+                   selectedReservation?.status === 'notified' ? <><span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1" />Chờ đến nhận</> : 
+                   selectedReservation?.status === 'completed' ? <><span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-500 mr-1" />Đã hoàn tất</> : <><span className="inline-block w-1.5 h-1.5 rounded-full bg-gray-400 mr-1" />{selectedReservation?.status}</>}
                 </Badge>
               </div>
               <div className="flex justify-between items-center border-b border-gray-100 pb-3">

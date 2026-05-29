@@ -213,8 +213,8 @@ export default function LibrarianRequestsPage() {
                       req.status === 'pending' ? 'bg-amber-50 text-amber-600' : 
                       'bg-red-50 text-red-600'
                     )}>
-                      {req.status === 'pending' ? '● Đang chờ' : 
-                       req.status === 'approved' ? '● Đã duyệt' : '● Từ chối'}
+                      {req.status === 'pending' ? <><span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 mr-1" />Đang chờ</> : 
+                       req.status === 'approved' ? <><span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1" />Đã duyệt</> : <><span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500 mr-1" />Từ chối</>}
                     </Badge>
                   </td>
                   <td className="py-4 px-6 text-right space-x-2">
