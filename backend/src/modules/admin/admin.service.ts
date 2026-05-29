@@ -29,20 +29,225 @@ export class AdminService {
     ) {}
 
     async getDashboardStats() {
-        const totalUsers = await this.userRepo.count();
+        const readerRole = await this.roleRepo.findOneBy({ name: RoleName.READER });
+        const totalUsers = readerRole
+            ? await this.userRepo.count({ where: { roleId: readerRole.id } })
+            : 0;
         const totalBooks = await this.bookRepo.count();
         const borrowedBooks = await this.borrowRepo.count({ where: { status: 'borrowing' } });
         
         const fines = await this.fineRepo.find({ where: { status: 'pending' } });
         const totalFines = fines.reduce((sum, f) => sum + Number(f.amount), 0);
 
-        const recentActivities = [
-            { id: 1, type: 'create', user: 'System', content: 'Khởi tạo dashboard', time: new Date().toISOString(), color: 'emerald' }
-        ];
+        // ── Recent Activities: gom từ nhiều bảng ───────────────────────────
+        const recentActivities: {
+            id: number
+            type: string
+            user: string
+            content: string
+            time: string
+            color: string
+        }[] = [];
 
-        const systemAlerts = [
-            { label: 'Hệ thống đang hoạt động tốt', type: 'healthy', action: 'Chi tiết' }
-        ];
+        // 1a. Borrows created
+        const recentBorrows = await this.borrowRepo.find({
+            relations: {
+                bookCopy: { book: true },
+                libraryCard: { user: { profile: true } },
+                librarian: { profile: true }
+            },
+            order: { createdAt: 'DESC' },
+            take: 10,
+        });
+        for (const b of recentBorrows) {
+            const userName = b.libraryCard?.user?.profile?.fullName || b.libraryCard?.user?.username || '—';
+            const librarianName = b.librarian?.profile?.fullName || b.librarian?.username || 'Hệ thống';
+            recentActivities.push({
+                id: recentActivities.length + 1,
+                type: 'borrow',
+                user: librarianName,
+                content: `Tạo phiếu mượn cho ${userName}: ${b.bookCopy?.book?.title || '—'}`,
+                time: b.createdAt?.toISOString?.() || new Date().toISOString(),
+                color: 'amber',
+            });
+        }
+
+        // 1b. Returns
+        const recentReturns = await this.borrowRepo.find({
+            where: { status: 'returned' },
+            relations: {
+                bookCopy: { book: true },
+                libraryCard: { user: { profile: true } },
+                librarian: { profile: true }
+            },
+            order: { returnDate: 'DESC' },
+            take: 10,
+        });
+        for (const b of recentReturns) {
+            if (!b.returnDate) continue;
+            const userName = b.libraryCard?.user?.profile?.fullName || b.libraryCard?.user?.username || '—';
+            const librarianName = b.librarian?.profile?.fullName || b.librarian?.username || 'Hệ thống';
+            recentActivities.push({
+                id: recentActivities.length + 1,
+                type: 'return',
+                user: librarianName,
+                content: `Nhận trả sách từ ${userName}: ${b.bookCopy?.book?.title || '—'}`,
+                time: new Date(b.returnDate).toISOString(),
+                color: 'emerald',
+            });
+        }
+
+        // 2. Fines
+        const recentFines = await this.fineRepo.find({
+            relations: {
+                borrowRecord: { libraryCard: { user: { profile: true } } }
+            },
+            order: { createdAt: 'DESC' },
+            take: 10,
+        });
+        for (const f of recentFines) {
+            const readerName = f.borrowRecord?.libraryCard?.user?.profile?.fullName || f.borrowRecord?.libraryCard?.user?.username || '—';
+            const amount = Number(f.amount).toLocaleString('vi-VN');
+            recentActivities.push({
+                id: recentActivities.length + 1,
+                type: 'fine',
+                user: 'Hệ thống',
+                content: `Phát sinh phí phạt ${amount}đ cho ${readerName} (${f.fineType === 'overdue' ? 'quá hạn' : f.fineType === 'damaged' ? 'hư hỏng' : 'mất sách'})`,
+                time: f.createdAt?.toISOString?.() || new Date().toISOString(),
+                color: 'red',
+            });
+        }
+
+        // 3. Reservations
+        const recentReservations = await this.resRepo.find({
+            relations: {
+                libraryCard: { user: { profile: true } },
+                book: true
+            },
+            order: { reservedAt: 'DESC' },
+            take: 10,
+        });
+        for (const r of recentReservations) {
+            const userName = r.libraryCard?.user?.profile?.fullName || r.libraryCard?.user?.username || '—';
+            recentActivities.push({
+                id: recentActivities.length + 1,
+                type: 'reservation',
+                user: userName,
+                content: r.status === 'cancelled'
+                    ? `Hủy đặt trước sách ${r.book?.title || '—'}`
+                    : `Đặt trước sách ${r.book?.title || '—'} (vị trí #${r.queuePosition})`,
+                time: r.reservedAt?.toISOString?.() || new Date().toISOString(),
+                color: 'sky',
+            });
+        }
+
+        // 4. Library cards
+        const recentCards = await this.cardRepo.find({
+            relations: { user: { profile: true }, issuedBy: { profile: true } },
+            order: { createdAt: 'DESC' },
+            take: 10,
+        });
+        for (const c of recentCards) {
+            const userName = c.user?.profile?.fullName || c.user?.username || '—';
+            const issuerName = c.issuedBy?.profile?.fullName || c.issuedBy?.username || 'Hệ thống';
+            recentActivities.push({
+                id: recentActivities.length + 1,
+                type: 'card',
+                user: issuerName,
+                content: `Cấp thẻ mới ${c.cardNumber} cho ${userName}`,
+                time: c.createdAt?.toISOString?.() || new Date().toISOString(),
+                color: 'purple',
+            });
+        }
+
+        // 5. New users
+        const recentUsers = await this.userRepo.find({
+            relations: { profile: true },
+            order: { createdAt: 'DESC' },
+            take: 10,
+        });
+        for (const u of recentUsers) {
+            const userName = u.profile?.fullName || u.username || '—';
+            recentActivities.push({
+                id: recentActivities.length + 1,
+                type: 'user',
+                user: userName,
+                content: `Đăng ký tài khoản mới: ${u.email} (${u.role || 'reader'})`,
+                time: u.createdAt?.toISOString?.() || new Date().toISOString(),
+                color: 'indigo',
+            });
+        }
+
+        // Sort by time DESC and take top 10
+        recentActivities.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
+        recentActivities.splice(10);
+
+        // ── System Alerts: cảnh báo thực tế ───────────────────────────────
+        const systemAlerts: {
+            label: string
+            type: string
+            action: string
+            href?: string
+        }[] = [];
+
+        const todayStr = new Date().toISOString().split('T')[0];
+
+        // Overdue books
+        const overdueCount = await this.borrowRepo.count({
+            where: {
+                status: In(['borrowing', 'overdue']),
+                dueDate: LessThan(todayStr),
+            }
+        });
+        if (overdueCount > 0) {
+            systemAlerts.push({
+                label: `${overdueCount} độc giả đang quá hạn sách — Cần xử lý ngay`,
+                type: overdueCount > 10 ? 'critical' : 'warning',
+                action: 'Xem chi tiết',
+                href: '/admin/reports/violations',
+            });
+        }
+
+        // Expiring cards (within 30 days)
+        const thirtyDaysLater = new Date();
+        thirtyDaysLater.setDate(thirtyDaysLater.getDate() + 30);
+        const expiringCount = await this.cardRepo.count({
+            where: {
+                status: 'active',
+                expiryDate: LessThan(thirtyDaysLater.toISOString().split('T')[0]),
+            }
+        });
+        if (expiringCount > 0) {
+            systemAlerts.push({
+                label: `${expiringCount} thẻ thư viện sắp hết hạn trong 30 ngày tới`,
+                type: 'warning',
+                action: 'Chi tiết',
+                href: '/admin/reports/violations',
+            });
+        }
+
+        // Unpaid fines
+        const unpaidFines = await this.fineRepo.find({
+            where: { status: 'pending' }
+        });
+        const unpaidTotal = unpaidFines.reduce((sum, f) => sum + Number(f.amount), 0);
+        if (unpaidFines.length > 0) {
+            systemAlerts.push({
+                label: `${unpaidFines.length} khoản phí phạt chưa thanh toán (${unpaidTotal.toLocaleString('vi-VN')}đ)`,
+                type: 'warning',
+                action: 'Chi tiết',
+                href: '/admin/reports/fines',
+            });
+        }
+
+        if (systemAlerts.length === 0) {
+            systemAlerts.push({
+                label: 'Hệ thống đang hoạt động tốt',
+                type: 'healthy',
+                action: 'Chi tiết',
+                href: '/admin/audit-logs',
+            });
+        }
 
         const topBooksRaw = await this.borrowRepo
             .createQueryBuilder('borrow')
@@ -149,7 +354,7 @@ export class AdminService {
             if (critical && b.totalCopies > 0) {
                 action = 'Đề xuất mua thêm';
             } else if (!critical && borrowedCopies === 0 && b.totalCopies > 0) {
-                action = '⚠️ Ít được mượn';
+                action = 'Ít được mượn';
             }
             return {
                 bookId: b.id,
@@ -249,6 +454,32 @@ export class AdminService {
                 action: 'INSERT',
                 table: 'borrow_records',
                 content: `Tạo phiếu mượn cho ${userName}: ${b.bookCopy?.book?.title || '—'}`,
+                ip: '—',
+            });
+        }
+
+        // 1b. Borrow records — trả sách
+        const recentReturns = await this.borrowRepo.find({
+            where: { status: 'returned' },
+            relations: {
+                bookCopy: { book: true },
+                libraryCard: { user: { profile: true } },
+                librarian: { profile: true }
+            },
+            order: { returnDate: 'DESC' },
+            take: 30,
+        });
+        for (const b of recentReturns) {
+            if (!b.returnDate) continue;
+            const userName = b.libraryCard?.user?.profile?.fullName || b.libraryCard?.user?.username || '—';
+            const librarianName = b.librarian?.profile?.fullName || b.librarian?.username || 'Hệ thống';
+            logs.push({
+                id: `return-${b.id}`,
+                time: new Date(b.returnDate).toISOString(),
+                user: librarianName,
+                action: 'UPDATE',
+                table: 'borrow_records',
+                content: `Nhận trả sách từ ${userName}: ${b.bookCopy?.book?.title || '—'}`,
                 ip: '—',
             });
         }
