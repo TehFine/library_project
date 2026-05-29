@@ -104,7 +104,7 @@ export default function AdminSidebar() {
   const pathname = usePathname()
 
   return (
-    <aside className="w-64 bg-app-sidebar border-r border-amber-200/50 flex flex-col h-screen sticky top-0 shrink-0 rounded-3xl shadow-[2px_0_20px_-4px_rgba(0,0,0,0.05)]">
+    <aside className="w-64 bg-app-sidebar border-r border-amber-200/50 flex flex-col shrink-0 rounded-3xl h-full shadow-[2px_0_20px_-4px_rgba(0,0,0,0.05)]">
       <div className="p-6">
         <Link href="/admin/dashboard" className="flex items-center gap-3 group">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary-dark flex items-center justify-center text-white shadow-glow group-hover:scale-110 transition-transform">
@@ -149,6 +149,9 @@ export default function AdminSidebar() {
           )
         })}
       </nav>
+
+      {/* Footer spacer */}
+      <div className="px-3 pb-6" />
     </aside>
   )
 }

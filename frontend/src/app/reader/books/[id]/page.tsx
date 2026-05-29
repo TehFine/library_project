@@ -22,6 +22,14 @@ export default function BookDetailPage() {
   const [reserved, setReserved]   = useState(false)
   const [borrowed, setBorrowed]   = useState(false)
   const [error, setError]         = useState('')
+  const [coverError, setCoverError] = useState(false)
+  const cover = useBookCover(book?.isbn, book?.coverUrl)
+  const coverSrc = book ? (getBookCoverUrl(book) || cover) : null
+
+  // Reset error when coverSrc changes (e.g. Google Books resolves after Open Library 404)
+  useEffect(() => {
+    setCoverError(false)
+  }, [coverSrc])
 
   useEffect(() => {
     fetchData()
@@ -98,14 +106,6 @@ export default function BookDetailPage() {
   const available = book.availableCopies > 0
   const activeCard = cards.find(c => c.status === 'active')
   const expiredCard = cards.find(c => c.status === 'expired')
-  const cover = useBookCover(book.isbn, book.coverUrl)
-  const coverSrc = getBookCoverUrl(book) || cover
-  const [coverError, setCoverError] = useState(false)
-
-  // Reset error when coverSrc changes (e.g. Google Books resolves after Open Library 404)
-  useEffect(() => {
-    setCoverError(false)
-  }, [coverSrc])
 
   return (
     <div>

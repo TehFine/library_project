@@ -251,7 +251,7 @@ export interface AdminDashboardStats {
   borrowedBooks: number
   totalFines: number
   recentActivities: { id: number; type: string; user: string; content: string; time: string; color: string }[]
-  systemAlerts: { label: string; type: string; action: string }[]
+  systemAlerts: { label: string; type: string; action: string; href?: string }[]
   topBooks: { rank: number; title: string; count: number }[]
   categoryStats: { label: string; count: number; p: string; color: string }[]
   borrowStats: { date: string; count: number }[]
@@ -377,7 +377,20 @@ export interface AdminNotification {
     createdAt: string
 }
 
+export interface ReaderNotification {
+    id: string
+    notificationType: string
+    title: string
+    content: string
+    userId: string | null
+    read: boolean
+    status: string
+    sentAt: string | null
+    createdAt: string
+}
+
 export const notificationApi = {
+    // Admin endpoints
     getTargetCounts: () => request<NotificationTargetCounts>('/admin/notifications/target-counts'),
     list: () => request<AdminNotification[]>('/admin/notifications'),
     getOne: (id: string) => request<AdminNotification>(`/admin/notifications/${id}`),
@@ -404,5 +417,10 @@ export const notificationApi = {
     }>) => request<AdminNotification>(`/admin/notifications/${id}/draft`, {
         method: 'PATCH',
         body: JSON.stringify(data),
+    }),
+    // Reader endpoints
+    mine: () => request<ReaderNotification[]>('/notifications/mine'),
+    markAsRead: (id: string) => request<{ success: boolean }>(`/notifications/${id}/read`, {
+        method: 'PATCH',
     }),
 }

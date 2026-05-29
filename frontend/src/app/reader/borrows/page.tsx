@@ -13,7 +13,6 @@ import { useToast } from '@/hooks/useToast'
 const TABS: { label: string; value: any }[] = [
   { label: 'Đang mượn',  value: 'borrowing' },
   { label: 'Yêu cầu',    value: 'requests'  },
-  { label: 'Quá hạn',   value: 'overdue'   },
   { label: 'Lịch sử',   value: 'returned'  },
   { label: 'Tất cả',    value: 'all'       },
 ]
@@ -119,7 +118,7 @@ export default function BorrowsPage() {
             className={cn(
               'px-5 py-2.5 text-sm font-semibold transition-all duration-200 rounded-xl',
               tab === t.value
-                ? 'bg-gray-900 text-white shadow-md'
+                ? 'bg-amber-50 text-amber-600 shadow-sm ring-1 ring-amber-100'
                 : 'bg-white text-gray-500 hover:bg-gray-50 hover:text-gray-700 border border-transparent hover:border-gray-200',
             )}
           >

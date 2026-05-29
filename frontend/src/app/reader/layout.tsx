@@ -1,16 +1,28 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import ReaderSidebar from '@/components/layout/ReaderSidebar'
 import TopBar from '@/components/layout/TopBar'
+import MobileDrawer from '@/components/layout/MobileDrawer'
 import { authApi } from '@/lib/api'
 import { User } from '@/types'
+import { useToast } from '@/hooks/useToast'
+import { useWebSocket } from '@/hooks/useWebSocket'
 
 export default function ReaderLayout({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [drawerOpen, setDrawerOpen] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
+  const { toast } = useToast()
+
+  // Real-time notification: show toast when admin sends a notification
+  const handleNotification = useCallback((data?: { title: string; content: string }) => {
+    if (!user) return
+    toast(data?.title || '📬 Bạn có thông báo mới từ thư viện', 'info')
+  }, [user, toast])
+  useWebSocket<{ title: string; content: string }>('reader:notification', handleNotification, !!user)
 
   useEffect(() => {
     authApi.me()
@@ -54,36 +66,41 @@ export default function ReaderLayout({ children }: { children: React.ReactNode }
      * Full-screen amber shell — fixed, no scroll on the outer frame
      */
     <div
-      className="h-screen w-screen flex overflow-hidden p-4 gap-3"
+      className="h-screen w-screen flex overflow-hidden p-2 sm:p-4 gap-2 sm:gap-3"
       style={{ background: '#F5E6CC' }}
     >
-      {/* ── Sidebar — on amber background, full height ── */}
-      <ReaderSidebar isGuest={isGuest} />
+      {/* ── Sidebar — hidden on mobile ── */}
+      <div className="hidden md:block h-full">
+        <ReaderSidebar isGuest={isGuest} />
+      </div>
 
       {/* ── Right column — TopBar + white card ── */}
-      <div className="flex-1 flex flex-col min-w-0 gap-3">
+      <div className="flex-1 flex flex-col min-w-0 gap-2 sm:gap-3">
 
         {/* TopBar lives on the amber background */}
-        <TopBar user={user} isGuest={isGuest} />
+        <TopBar user={user} isGuest={isGuest} onMenuToggle={() => setDrawerOpen(v => !v)} />
 
         {/*
          * Main content card — white, rounded, takes all remaining height.
          * Only THIS scrolls; the amber shell stays fixed.
          */}
         <div
-          className="flex-1 rounded-3xl overflow-hidden min-h-0"
+          className="flex-1 rounded-2xl sm:rounded-3xl overflow-hidden min-h-0"
           style={{
             background: '#FFFFFF',
             boxShadow: '0 8px 40px rgba(180, 130, 50, 0.15)',
           }}
         >
-          <div className="h-full overflow-y-auto px-8 py-8">
+          <div className="h-full overflow-y-auto px-4 py-4 sm:px-8 sm:py-8 pb-4 sm:pb-8">
             <div className="max-w-[1400px] mx-auto">
               {children}
             </div>
           </div>
         </div>
       </div>
+
+      {/* ── Mobile drawer (hamburger menu) ── */}
+      <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} isGuest={isGuest} />
     </div>
   )
 }

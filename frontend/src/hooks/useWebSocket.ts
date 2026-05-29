@@ -14,9 +14,9 @@ const WS_URL = process.env.NEXT_PUBLIC_API_URL
  * @param callback - Callback to fire when the event is received
  * @param enabled - Whether the WebSocket connection should be active
  */
-export function useWebSocket(
+export function useWebSocket<T = unknown>(
   event: string,
-  callback: () => void,
+  callback: (data?: T) => void,
   enabled: boolean = true
 ) {
   const socketRef = useRef<Socket | null>(null)
@@ -43,9 +43,9 @@ export function useWebSocket(
       console.log(`[WS] Connected to ${WS_URL}/events [${socket.id}]`)
     })
 
-    socket.on(event, () => {
-      console.log(`[WS] Event received: ${event}`)
-      callbackRef.current()
+    socket.on(event, (data: unknown) => {
+      console.log(`[WS] Event received: ${event}`, data)
+      callbackRef.current(data as any)
     })
 
     socket.on('disconnect', (reason) => {

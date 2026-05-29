@@ -12,7 +12,7 @@ interface ModalProps {
   footer?: React.ReactNode
 }
 
-const sizes = { sm: 'max-w-sm', md: 'max-w-md', lg: 'max-w-lg' }
+const sizes = { sm: 'max-w-sm mx-3 sm:mx-auto', md: 'max-w-md mx-3 sm:mx-auto', lg: 'max-w-lg mx-3 sm:mx-auto' }
 
 export default function Modal({
   open, onClose, title, description, children, size = 'md', footer,
@@ -67,7 +67,7 @@ export default function Modal({
               </div>
               <button
                 onClick={onClose}
-                className="text-gray-300 hover:text-gray-500 transition-colors mt-0.5"
+                className="text-gray-500 hover:text-gray-700 bg-amber-50 hover:bg-amber-200 transition-colors rounded-lg p-0.5"
                 aria-label="Đóng"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

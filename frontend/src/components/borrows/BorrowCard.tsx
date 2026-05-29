@@ -17,7 +17,7 @@ export default function BorrowCard({ record, onRenew, onRequestReturn, isRenewin
   const isActuallyOverdue = record.status === 'overdue' || (record.status === 'borrowing' && daysLeft <= 0)
   
   const statusInfo = borrowStatusMap[isActuallyOverdue ? 'overdue' : record.status]
-  const canRenew = record.status === 'borrowing' && record.renewalCount === 0 && daysLeft > 0
+  const canRenew = (record.status === 'borrowing' || isActuallyOverdue) && record.renewalCount < 2
   
   const book = record.book || record.bookCopy?.book
   const coverSrc = book ? getBookCoverUrl(book) : null
@@ -104,7 +104,7 @@ export default function BorrowCard({ record, onRenew, onRequestReturn, isRenewin
             </svg>
             Đã yêu cầu trả
           </span>
-        ) : onRequestReturn && record.status === 'borrowing' && (
+        ) : onRequestReturn && (record.status === 'borrowing' || isActuallyOverdue) && (
           <Button
             variant="ghost"
             size="sm"

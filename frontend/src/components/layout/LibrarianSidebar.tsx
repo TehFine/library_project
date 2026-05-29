@@ -92,7 +92,7 @@ export default function LibrarianSidebar() {
   const pathname = usePathname()
 
   return (
-    <aside className="w-52 shrink-0 flex flex-col rounded-3xl shadow-[2px_0_20px_-4px_rgba(0,0,0,0.05)]" style={{ background: '#FDF8F0' }}>
+    <aside className="w-64 shrink-0 flex flex-col rounded-3xl h-full shadow-[2px_0_20px_-4px_rgba(0,0,0,0.05)]" style={{ background: '#FDF8F0' }}>
       {/* Logo */}
       <div className="h-16 flex items-center px-6">
         <Link href="/librarian/dashboard" className="flex items-center gap-3 group">

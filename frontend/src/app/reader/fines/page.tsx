@@ -105,10 +105,10 @@ export default function FinesPage() {
           {fines.map(f => {
             const si = fineStatusMap[f.status]
             return (
-              <div key={f.id} className="flex items-start gap-4 px-4 py-4 border-b border-gray-100 last:border-0">
-                <div className="flex-1 min-w-0">
+              <div key={f.id} className="flex flex-col sm:flex-row items-start gap-3 px-4 py-4 border-b border-gray-100 last:border-0">
+                <div className="flex-1 min-w-0 w-full">
                   <p className="text-sm text-gray-600 truncate">{f.borrowRecord?.book?.title ?? '—'}</p>
-                  <div className="flex items-center gap-2 mt-1.5">
+                  <div className="flex flex-wrap items-center gap-2 mt-1.5">
                     <Badge className={si.color}>{si.label}</Badge>
                     {f.isVirtual && (
                       <Badge className="bg-amber-50 text-amber-600 border border-amber-100">Phí tạm tính</Badge>
@@ -122,16 +122,18 @@ export default function FinesPage() {
                     <p className="text-xs text-gray-400 mt-1">Thanh toán {formatDate(f.paidAt)} · Biên lai {f.receiptNumber}</p>
                   )}
                 </div>
-                <div className="text-right shrink-0 flex flex-col items-end gap-2">
-                  <p className={`text-sm font-semibold ${f.status === 'pending' ? 'text-red-600' : 'text-gray-500'}`}>
-                    {formatCurrency(f.amount)}
-                  </p>
-                  <p className="text-xs text-gray-400 mt-0.5">{formatDate(f.createdAt)}</p>
+                <div className="text-left sm:text-right shrink-0 flex flex-row sm:flex-col items-center sm:items-end gap-3 sm:gap-2 w-full sm:w-auto justify-between sm:justify-start">
+                  <div className="flex sm:flex-col items-center sm:items-end gap-3 sm:gap-1">
+                    <p className={`text-sm font-semibold ${f.status === 'pending' ? 'text-red-600' : 'text-gray-500'}`}>
+                      {formatCurrency(f.amount)}
+                    </p>
+                    <p className="text-xs text-gray-400">{formatDate(f.createdAt)}</p>
+                  </div>
                   {f.status === 'pending' && !f.isVirtual && (
                     <button
                       onClick={() => handleSimulatePayOnline(f.id)}
                       disabled={payingId === f.id}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors disabled:opacity-50"
+                      className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors disabled:opacity-50 shrink-0"
                     >
                       {payingId === f.id ? (
                         <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">

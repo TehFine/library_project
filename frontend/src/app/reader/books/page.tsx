@@ -117,9 +117,9 @@ function BooksContent() {
       <div className="flex items-center gap-3 mb-6 flex-wrap">
         {/* Local search */}
         <div className="relative flex-1 min-w-[200px]">
-          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 15.803a7.5 7.5 0 0010.607 10.607z" />
+          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none z-10">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </span>
           <input
@@ -127,7 +127,7 @@ function BooksContent() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Lọc theo tên sách, tác giả..."
-            className="w-full h-10 rounded-full pl-10 pr-4 text-sm bg-white/80 text-gray-700 placeholder:text-gray-400 outline-none ring-1 ring-amber-200/60 focus:ring-2 focus:ring-primary/40 transition-all"
+            className="w-full h-10 rounded-full pl-11 pr-4 text-sm bg-white/80 text-gray-700 placeholder:text-gray-400 outline-none ring-1 ring-amber-200/60 focus:ring-2 focus:ring-primary/40 transition-all"
           />
         </div>
 

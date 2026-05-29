@@ -57,14 +57,14 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       {/* Toast container */}
       <div
         aria-live="polite"
-        className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"
+        className="fixed bottom-4 right-4 left-4 sm:left-auto sm:right-4 z-50 flex flex-col gap-2 pointer-events-none"
       >
         {toasts.map(t => (
           <div
             key={t.id}
             className={cn(
               'flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg border shadow-sm',
-              'text-sm text-gray-700 max-w-xs pointer-events-auto',
+              'text-sm text-gray-700 max-w-xs sm:max-w-sm w-full sm:w-auto pointer-events-auto',
               'animate-slide-up',
               bg[t.type],
             )}
@@ -73,7 +73,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             <span>{t.message}</span>
             <button
               onClick={() => setToasts(prev => prev.filter(x => x.id !== t.id))}
-              className="ml-auto text-gray-300 hover:text-gray-500 transition-colors"
+              className="ml-auto text-gray-500 hover:text-gray-700 bg-amber-50 hover:bg-amber-200 transition-colors rounded-lg p-0.5"
             >
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
