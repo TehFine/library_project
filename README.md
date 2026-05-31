@@ -9,7 +9,7 @@ Hệ thống quản lý thư viện toàn diện với 3 vai trò: **Độc gi�
 | Layer | Công nghệ |
 |-------|-----------|
 | **Frontend** | Next.js 16 (App Router), React 19, Tailwind CSS 4, Lucide Icons, Socket.IO Client |
-| **Backend** | NestJS 11, TypeORM, Passport.js + JWT, Socket.IO, class-validator, bcryptjs |
+| **Backend** | NestJS 11, TypeORM, Passport.js + JWT, Socket.IO, class-validator, bcryptjs, @nestjs/swagger (Swagger UI) |
 | **Database** | PostgreSQL (qua Docker) |
 | **Realtime** | WebSocket (Socket.IO) — cập nhật dashboard + thông báo tức thì |
 
@@ -100,6 +100,10 @@ npm run start:dev
 ```
 
 API chạy tại: **`http://localhost:3001`**
+
+📖 **Swagger API Docs:** **`http://localhost:3001/api/docs`**
+  - Giao diện Swagger UI với danh sách đầy đủ các endpoint
+  - Nhấn **Authorize** và nhập JWT token từ `/api/auth/login` để test các API cần xác thực
 
 ### 4. Seed dữ liệu mẫu
 
@@ -231,6 +235,13 @@ Library_project/
 | GET | `/api/admin/users` | Danh sách người dùng |
 | GET | `/api/admin/audit-logs` | Nhật ký hoạt động |
 
+### Swagger
+| Trang | URL |
+|-------|-----|
+| Swagger UI | [`http://localhost:3001/api/docs`](http://localhost:3001/api/docs) |
+
+Endpoint Swagger hỗ trợ **Authorize** với JWT token. Tất cả API đều có mô tả bằng tiếng Việt kèm ví dụ payload.
+
 ### WebSocket
 | Event | Mô tả |
 |-------|-------|
@@ -275,6 +286,7 @@ Dashboard tự động cập nhật khi có sự kiện mượn/trả nhờ WebS
 - [x] Audit log
 - [x] Giao diện responsive
 - [x] Timezone Việt Nam
+- [x] Swagger API documentation
 - [ ] Gửi email thật (SMTP)
 - [ ] Kênh SMS cho thông báo
 - [ ] Upload ảnh bìa sách
