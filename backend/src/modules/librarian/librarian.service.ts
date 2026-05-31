@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository, LessThan, MoreThanOrEqual, Between } from 'typeorm'
+import { Repository, LessThan, MoreThanOrEqual, In } from 'typeorm'
 import { BorrowRecord } from '../borrow-records/entities/borrow-record.entity'
 import { Fine } from '../fines/entities/fine.entity'
 import { Reservation } from '../reservations/entities/reservation.entity'
@@ -39,7 +39,7 @@ export class LibrarianService {
         // 3. Số phiếu đang quá hạn
         const overdueCount = await this.borrowRepo.count({
             where: {
-                status: 'borrowing',
+                status: In(['borrowing', 'overdue']),
                 dueDate: LessThan(todayStr)
             }
         })
@@ -56,7 +56,7 @@ export class LibrarianService {
         // 5. Danh sách quá hạn cần xử lý (chi tiết)
         const overdueList = await this.borrowRepo.find({
             where: {
-                status: 'borrowing',
+                status: In(['borrowing', 'overdue']),
                 dueDate: LessThan(todayStr)
             },
             relations: { bookCopy: { book: true }, libraryCard: { user: { profile: true } } },
@@ -118,5 +118,15 @@ export class LibrarianService {
                 date: r.requestedAt
             }))
         }
+    }
+
+    async getPendingRequestsCount() {
+        const borrowRequestCount = await this.requestRepo.count({
+            where: { status: 'pending' }
+        })
+        const returnRequestCount = await this.borrowRepo.count({
+            where: { returnRequested: true, status: In(['borrowing', 'overdue']) }
+        })
+        return { count: borrowRequestCount + returnRequestCount }
     }
 }

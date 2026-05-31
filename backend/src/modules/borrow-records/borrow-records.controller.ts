@@ -33,8 +33,8 @@ export class BorrowRecordsController {
     }
 
     @Patch(':id/return')
-    returnBook(@Param('id') id: string, @Body() body: { condition: string }) {
-        return this.service.returnBook(id, body.condition)
+    returnBook(@Param('id') id: string, @Body() body: { condition: string; paymentMethod?: string }, @Req() req: any) {
+        return this.service.returnBook(id, body.condition, body.paymentMethod, req.user.userId)
     }
 
     @Get('search-by-book-title')

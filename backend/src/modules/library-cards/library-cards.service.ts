@@ -1,8 +1,9 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository, ILike } from 'typeorm'
+import { Repository } from 'typeorm'
 import { LibraryCard } from './entities/library-card.entity'
 import { RealtimeGateway } from '@/common/websocket/realtime.gateway'
+import { NotificationsService } from '../notifications/notifications.service'
 
 @Injectable()
 export class LibraryCardsService {
@@ -10,6 +11,7 @@ export class LibraryCardsService {
         @InjectRepository(LibraryCard)
         private cardRepo: Repository<LibraryCard>,
         private realtime: RealtimeGateway,
+        private notifService: NotificationsService,
     ) { }
 
     async findAll() {
@@ -115,6 +117,113 @@ export class LibraryCardsService {
         this.realtime.emit('reader:dashboard-update')
         
         return this.cardRepo.save(card)
+    }
+
+    // ── Reader requests card activation ──
+    async requestActivation(userId: string) {
+        // Check if user already has a card
+        const existing = await this.cardRepo.findOne({ where: { userId } })
+        if (existing) {
+            if (existing.status === 'active') {
+                throw new BadRequestException('Bạn đã có thẻ thư viện hoạt động')
+            }
+            if (existing.status === 'pending') {
+                throw new BadRequestException('Yêu cầu cấp thẻ của bạn đang chờ duyệt')
+            }
+            if (existing.status === 'rejected') {
+                // Allow re-request by updating the existing pending card
+                existing.status = 'pending'
+                existing.issuedDate = new Date().toISOString().split('T')[0]
+                existing.expiryDate = new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0]
+                const saved = await this.cardRepo.save(existing)
+                this.realtime.emit('librarian:dashboard-update')
+                this.realtime.emit('reader:dashboard-update')
+                return saved
+            }
+        }
+
+        const issuedDate = new Date().toISOString().split('T')[0]
+        const expiryDate = new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0]
+        const cardNumber = `TV-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`
+
+        const card = this.cardRepo.create({
+            userId,
+            cardNumber,
+            issuedDate,
+            expiryDate,
+            status: 'pending',
+        })
+
+        const saved = await this.cardRepo.save(card)
+        this.realtime.emit('librarian:dashboard-update')
+        this.realtime.emit('reader:dashboard-update')
+        return saved
+    }
+
+    // ── Librarian gets pending activation requests ──
+    async getPendingActivations() {
+        const cards = await this.cardRepo.find({
+            where: { status: 'pending' },
+            relations: { user: { profile: true } },
+            order: { createdAt: 'ASC' },
+        })
+        return cards
+    }
+
+    // ── Librarian approves card activation ──
+    async approveActivation(cardId: string, librarianId: string) {
+        const card = await this.cardRepo.findOne({
+            where: { id: cardId },
+            relations: { user: { profile: true } },
+        })
+        if (!card) throw new NotFoundException('Không tìm thấy yêu cầu cấp thẻ')
+        if (card.status !== 'pending') throw new BadRequestException('Yêu cầu này đã được xử lý')
+
+        card.status = 'active'
+        card.issuedDate = new Date().toISOString().split('T')[0]
+        card.issuedBy = { id: librarianId } as any
+        const saved = await this.cardRepo.save(card)
+
+        // Send notification to reader
+        await this.notifService.create({
+            title: 'Thẻ thư viện đã được kích hoạt',
+            content: `Thẻ thư viện ${card.cardNumber} của bạn đã được kích hoạt thành công. Bạn có thể mượn sách ngay bây giờ.`,
+            customRecipients: card.user?.email,
+            status: 'sent',
+            createdById: librarianId,
+        })
+
+        this.realtime.emit('librarian:dashboard-update')
+        this.realtime.emit('reader:dashboard-update')
+        this.realtime.emit('reader:notification')
+        return saved
+    }
+
+    // ── Librarian rejects card activation ──
+    async rejectActivation(cardId: string, librarianId: string) {
+        const card = await this.cardRepo.findOne({
+            where: { id: cardId },
+            relations: { user: { profile: true } },
+        })
+        if (!card) throw new NotFoundException('Không tìm thấy yêu cầu cấp thẻ')
+        if (card.status !== 'pending') throw new BadRequestException('Yêu cầu này đã được xử lý')
+
+        card.status = 'rejected'
+        const saved = await this.cardRepo.save(card)
+
+        // Send notification to reader
+        await this.notifService.create({
+            title: 'Yêu cầu cấp thẻ bị từ chối',
+            content: `Yêu cầu cấp thẻ thư viện của bạn đã bị từ chối. Vui lòng liên hệ thủ thư để biết thêm chi tiết.`,
+            customRecipients: card.user?.email,
+            status: 'sent',
+            createdById: librarianId,
+        })
+
+        this.realtime.emit('librarian:dashboard-update')
+        this.realtime.emit('reader:dashboard-update')
+        this.realtime.emit('reader:notification')
+        return saved
     }
 
     private async checkAndUpdateStatus<T extends LibraryCard | LibraryCard[]>(data: T): Promise<T> {

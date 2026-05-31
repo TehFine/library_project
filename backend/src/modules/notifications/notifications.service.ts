@@ -285,6 +285,14 @@ export class NotificationsService {
         })
     }
 
+    /** Get unread notification count for a reader */
+    async getUnreadCount(userId: string) {
+        const count = await this.notifRepo.count({
+            where: { userId, read: false },
+        })
+        return { count }
+    }
+
     /** Mark a notification as read */
     async markAsRead(notifId: string, userId: string) {
         const notif = await this.notifRepo.findOneBy({ id: notifId, userId })
@@ -364,12 +372,17 @@ export class NotificationsService {
 
             // Emit realtime — send generic content to avoid showing raw placeholders in toast
             this.realtime.emit('admin:notification-update')
-            this.realtime.emit('reader:notification', {
-                id: saved.id,
-                title: saved.title,
-                content: '📬 Bạn có thông báo mới từ thư viện. Vui lòng xem chi tiết trong trang Thông báo.',
-                createdAt: saved.createdAt,
-            })
+            // Only emit reader:notification to targeted readers (include targetUserIds for client-side filtering)
+            const targetUserIds = targetUsers.map(t => t.userId)
+            if (targetUserIds.length > 0) {
+                this.realtime.emit('reader:notification', {
+                    id: saved.id,
+                    title: saved.title,
+                    content: '📬 Bạn có thông báo mới từ thư viện. Vui lòng xem chi tiết trong trang Thông báo.',
+                    createdAt: saved.createdAt,
+                    targetUserIds,
+                })
+            }
         }
 
         return this.findOne(saved.id)

@@ -15,5 +15,6 @@ import { Fine } from '../fines/entities/fine.entity'
     ],
     controllers: [NotificationsController],
     providers: [NotificationsService],
+    exports: [NotificationsService],
 })
 export class NotificationsModule {}

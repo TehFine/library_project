@@ -31,8 +31,8 @@ export class LibraryCard {
 
     @Column({
         type: 'enum',
-        enum: ['active', 'expired', 'locked'],
-        default: 'active'
+        enum: ['pending', 'active', 'expired', 'locked', 'rejected'],
+        default: 'pending'
     })
     status: string
 

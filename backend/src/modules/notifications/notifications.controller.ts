@@ -63,6 +63,11 @@ export class NotificationsController {
         return this.notifService.getMyNotifications(req.user.userId)
     }
 
+    @Get('notifications/unread-count')
+    getUnreadCount(@Req() req: any) {
+        return this.notifService.getUnreadCount(req.user.userId)
+    }
+
     @Patch('notifications/:id/read')
     markAsRead(@Param('id') id: string, @Req() req: any) {
         return this.notifService.markAsRead(id, req.user.userId)

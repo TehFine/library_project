@@ -11,4 +11,9 @@ export class LibrarianController {
     getStats() {
         return this.librarianService.getStats()
     }
+
+    @Get('borrow-requests/pending-count')
+    getPendingRequestsCount() {
+        return this.librarianService.getPendingRequestsCount()
+    }
 }

@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository, DataSource, LessThan } from 'typeorm'
+import { Repository, DataSource, LessThan, In } from 'typeorm'
 import { BorrowRecord } from './entities/borrow-record.entity'
 import { BookCopy } from '@/modules/books/entities/book-copy.entity'
 import { LibraryCard } from '@/modules/library-cards/entities/library-card.entity'
@@ -128,7 +128,7 @@ export class BorrowRecordsService {
         return this.borrow({ cardId: card.id, copyId: copy.id }, userId)
     }
 
-    async returnBook(recordId: string, condition: string) {
+    async returnBook(recordId: string, condition: string, paymentMethod?: string, librarianId?: string) {
         const queryRunner = this.dataSource.createQueryRunner()
         await queryRunner.connect()
         await queryRunner.startTransaction()
@@ -186,6 +186,7 @@ export class BorrowRecordsService {
             const overdue = diffDays > 0
 
             // Tự động tạo/cập nhật phí phạt nếu quá hạn (trong transaction)
+            let fineAmount = 0
             if (overdue) {
                 let amount: number
                 if (diffDays <= 5) {
@@ -193,6 +194,7 @@ export class BorrowRecordsService {
                 } else {
                     amount = 5000 + (diffDays - 5) * 3000
                 }
+                fineAmount = amount
 
                 const existingFine = await queryRunner.manager.findOne(Fine, {
                     where: { borrowRecordId: record.id }
@@ -200,15 +202,30 @@ export class BorrowRecordsService {
                 if (existingFine) {
                     existingFine.overdueDays = diffDays
                     existingFine.amount = amount
+                    // Nếu có paymentMethod, đánh dấu đã thu ngay
+                    if (paymentMethod && librarianId) {
+                        existingFine.status = 'paid'
+                        existingFine.paidAt = new Date()
+                        existingFine.paymentMethod = paymentMethod
+                        existingFine.receiptNumber = `REC-${Date.now()}`
+                        existingFine.collectedBy = { id: librarianId } as any
+                    }
                     await queryRunner.manager.save(existingFine)
                 } else {
-                    const fine = queryRunner.manager.create(Fine, {
+                    const fineData: any = {
                         borrowRecordId: record.id,
                         fineType: 'overdue',
                         overdueDays: diffDays,
                         amount,
-                        status: 'pending',
-                    })
+                        status: paymentMethod && librarianId ? 'paid' : 'pending',
+                    }
+                    if (paymentMethod && librarianId) {
+                        fineData.paidAt = new Date()
+                        fineData.paymentMethod = paymentMethod
+                        fineData.receiptNumber = `REC-${Date.now()}`
+                        fineData.collectedBy = { id: librarianId } as any
+                    }
+                    const fine = queryRunner.manager.create(Fine, fineData)
                     await queryRunner.manager.save(fine)
                 }
             }
@@ -220,7 +237,7 @@ export class BorrowRecordsService {
             this.realtime.emit('admin:dashboard-update')
             this.realtime.emit('reader:dashboard-update')
 
-            return { record, overdue }
+            return { record, overdue, fineAmount }
         } catch (err) {
             await queryRunner.rollbackTransaction()
             throw err
@@ -332,7 +349,7 @@ export class BorrowRecordsService {
 
     async findPendingReturns() {
         return this.borrowRepo.find({
-            where: { returnRequested: true, status: 'borrowing' },
+            where: { returnRequested: true, status: In(['borrowing', 'overdue']) },
             relations: { bookCopy: { book: true }, libraryCard: { user: { profile: true } } },
             order: { createdAt: 'DESC' }
         });
@@ -378,7 +395,7 @@ export class BorrowRecordsService {
         }
 
         // Gọi returnBook trước (có transaction riêng) để đảm bảo trả sách thành công
-        const result = await this.returnBook(recordId, condition)
+        const result = await this.returnBook(recordId, condition, undefined, librarianId)
 
         // Sau đó xóa cờ yêu cầu trả
         record.returnRequested = false
@@ -401,7 +418,7 @@ export class BorrowRecordsService {
         }
 
         // Gọi logic trả sách giống librarian, mặc định condition là 'good'
-        const result = await this.returnBook(recordId, 'good')
+        const result = await this.returnBook(recordId, 'good', undefined, userId)
         
         // Emit thêm reader event
         this.realtime.emit('reader:dashboard-update')
