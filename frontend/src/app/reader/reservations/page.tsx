@@ -6,6 +6,7 @@ import { reservationsApi } from '@/lib/api'
 import { Reservation } from '@/types'
 import { formatDate, reservationStatusMap, cn } from '@/lib/utils'
 import Button from '@/components/ui/Button'
+import Modal from '@/components/ui/Modal'
 import { useToast } from '@/hooks/useToast'
 
 import ReservationCard from '@/components/borrows/ReservationCard'
@@ -17,6 +18,7 @@ export default function ReservationsPage() {
   const [statusTab, setStatusTab] = useState<'active' | 'all'>('active')
   const [loading, setLoading] = useState(true)
   const [cancellingId, setCancellingId] = useState<string | null>(null)
+  const [cancelTarget, setCancelTarget] = useState<Reservation | null>(null)
   const LIMIT = 12
 
   async function load(p: number, tab: 'active' | 'all') {
@@ -48,9 +50,15 @@ export default function ReservationsPage() {
 
   const { toast } = useToast()
 
-  async function handleCancel(id: string) {
-    if (!confirm('Bạn có chắc muốn hủy đặt trước cuốn sách này?')) return
+  function handleCancel(reservation: Reservation) {
+    setCancelTarget(reservation)
+  }
+
+  async function confirmCancel() {
+    if (!cancelTarget) return
+    const id = cancelTarget.id
     setCancellingId(id)
+    setCancelTarget(null)
     try {
       await reservationsApi.cancel(id)
       setList(prev => prev.filter(r => r.id !== id))
@@ -113,7 +121,7 @@ export default function ReservationsPage() {
             <ReservationCard
               key={r.id}
               reservation={r}
-              onCancel={handleCancel}
+              onCancel={() => handleCancel(r)}
               isCancelling={cancellingId === r.id}
             />
           ))}
@@ -121,6 +129,38 @@ export default function ReservationsPage() {
       )}
 
       <Pagination page={page} totalPages={Math.ceil(total / LIMIT)} onPageChange={p => setPage(p)} />
+
+      {/* Cancel confirmation modal */}
+      <Modal
+        open={!!cancelTarget}
+        onClose={() => setCancelTarget(null)}
+        title="Xác nhận hủy đặt trước"
+        description={cancelTarget ? `Bạn có chắc muốn hủy đặt trước cuốn sách "${cancelTarget.book?.title ?? ''}"?` : ''}
+        size="sm"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setCancelTarget(null)} className="text-gray-600">
+              Không, giữ lại
+            </Button>
+            <Button variant="primary" onClick={confirmCancel} className="bg-red-600 hover:bg-red-700 ring-red-200">
+              Có, hủy đặt trước
+            </Button>
+          </>
+        }
+      >
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+            <svg className="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-sm text-gray-700">
+              Hành động này sẽ hủy đặt trước của bạn. Nếu sách đã sẵn sàng, bạn sẽ mất cơ hội mượn cuốn sách này.
+            </p>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }

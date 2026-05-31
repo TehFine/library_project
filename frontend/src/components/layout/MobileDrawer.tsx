@@ -8,9 +8,11 @@ interface MobileDrawerProps {
   open: boolean
   onClose: () => void
   isGuest?: boolean
+  unreadCount?: number
+  pendingRequestsCount?: number
 }
 
-export default function MobileDrawer({ open, onClose, isGuest }: MobileDrawerProps) {
+export default function MobileDrawer({ open, onClose, isGuest, unreadCount, pendingRequestsCount }: MobileDrawerProps) {
   const pathname = usePathname()
   let nav = getNav(pathname)
 
@@ -62,6 +64,9 @@ export default function MobileDrawer({ open, onClose, isGuest }: MobileDrawerPro
           <nav className="flex-1 py-4 px-3 overflow-y-auto space-y-0.5">
             {nav.map(item => {
               const active = pathname === item.href || pathname.startsWith(item.href + '/')
+              const isNotif = item.href === '/reader/notifications'
+              const isLibrarianRequest = item.href === '/librarian/borrows/requests'
+              const badgeCount = isLibrarianRequest ? pendingRequestsCount : (isNotif ? unreadCount : undefined)
               return (
                 <Link
                   key={item.href}
@@ -74,8 +79,20 @@ export default function MobileDrawer({ open, onClose, isGuest }: MobileDrawerPro
                       : 'text-gray-600 hover:bg-white/60 hover:text-gray-900',
                   )}
                 >
-                  <span className={cn('shrink-0', active ? 'text-white' : 'text-gray-400')}>
+                  <span className={cn('shrink-0 relative', active ? 'text-white' : 'text-gray-400')}>
                     {item.icon(active)}
+                    {/* Badge */}
+                    {badgeCount !== undefined && badgeCount > 0 && (
+                      <span className={cn(
+                        'absolute -top-1.5 -right-1.5 min-w-[16px] h-[16px] flex items-center justify-center',
+                        'rounded-full text-[9px] font-bold leading-none px-0.5',
+                        active
+                          ? 'bg-white text-primary'
+                          : 'bg-red-500 text-white',
+                      )}>
+                        {badgeCount > 99 ? '99+' : badgeCount}
+                      </span>
+                    )}
                   </span>
                   {item.label}
                 </Link>

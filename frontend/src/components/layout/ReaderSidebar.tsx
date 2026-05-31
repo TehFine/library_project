@@ -69,7 +69,7 @@ const NAV = [
   },
 ]
 
-export default function ReaderSidebar({ isGuest }: { isGuest?: boolean }) {
+export default function ReaderSidebar({ isGuest, unreadCount }: { isGuest?: boolean; unreadCount?: number }) {
   const pathname = usePathname()
 
   const publicHrefs = ['/reader/books']
@@ -93,6 +93,7 @@ export default function ReaderSidebar({ isGuest }: { isGuest?: boolean }) {
       <nav className="flex-1 py-4 px-3 overflow-y-auto space-y-0.5">
         {filteredNav.map(item => {
           const active = pathname === item.href || pathname.startsWith(item.href + '/')
+          const isNotif = item.href === '/reader/notifications'
           return (
             <Link
               key={item.href}
@@ -104,7 +105,21 @@ export default function ReaderSidebar({ isGuest }: { isGuest?: boolean }) {
                   : 'text-gray-600 hover:bg-white/60 hover:text-gray-900',
               )}
             >
-              <span className={cn('shrink-0', active ? 'text-white' : 'text-gray-400')}>{item.icon}</span>
+              <span className={cn('shrink-0 relative', active ? 'text-white' : 'text-gray-400')}>
+                {item.icon}
+                {/* Unread badge */}
+                {isNotif && unreadCount !== undefined && unreadCount > 0 && (
+                  <span className={cn(
+                    'absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center',
+                    'rounded-full text-[10px] font-bold leading-none px-1',
+                    active
+                      ? 'bg-white text-primary'
+                      : 'bg-red-500 text-white',
+                  )}>
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+              </span>
               {item.label}
             </Link>
           )

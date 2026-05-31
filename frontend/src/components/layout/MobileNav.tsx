@@ -1,5 +1,6 @@
 'use client'
 import Link from 'next/link'
+import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 
@@ -252,7 +253,16 @@ const PUBLIC_READER_HREFS = ['/reader/books']
 // Hiển thị trên mobile (md trở xuống) — ẩn trên desktop (sidebar thay thế)
 export default function MobileNav({ isGuest }: { isGuest?: boolean }) {
   const pathname = usePathname()
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0)
   let nav = getNav(pathname)
+
+  useEffect(() => {
+    function handler(e: CustomEvent<{ count: number }>) {
+      setPendingRequestsCount(e.detail.count)
+    }
+    window.addEventListener('librarian-pending-count', handler as EventListener)
+    return () => window.removeEventListener('librarian-pending-count', handler as EventListener)
+  }, [])
 
   // Guest mode: chỉ hiển thị mục công khai (sách)
   if (isGuest && pathname.startsWith('/reader')) {
@@ -268,6 +278,8 @@ export default function MobileNav({ isGuest }: { isGuest?: boolean }) {
         <ul className="flex min-w-max px-1">
           {nav.map(item => {
             const active = pathname === item.href || pathname.startsWith(item.href + '/')
+            const isLibrarianRequest = item.href === '/librarian/borrows/requests'
+            const badgeCount = isLibrarianRequest ? pendingRequestsCount : undefined
             return (
               <li key={item.href} className="flex-shrink-0">
                 <Link
@@ -277,7 +289,18 @@ export default function MobileNav({ isGuest }: { isGuest?: boolean }) {
                     active ? 'text-amber-600' : 'text-gray-400 hover:text-gray-600',
                   )}
                 >
-                  {item.icon(active)}
+                  <span className="relative inline-flex">
+                    {item.icon(active)}
+                    {badgeCount !== undefined && badgeCount > 0 && (
+                      <span className={cn(
+                        'absolute -top-1.5 -right-1.5 min-w-[14px] h-[14px] flex items-center justify-center',
+                        'rounded-full text-[8px] font-bold leading-none px-0.5',
+                        active ? 'bg-white text-amber-600' : 'bg-red-500 text-white',
+                      )}>
+                        {badgeCount > 99 ? '99+' : badgeCount}
+                      </span>
+                    )}
+                  </span>
                   <span className="text-[10px] font-semibold leading-none whitespace-nowrap">{item.label}</span>
                 </Link>
               </li>

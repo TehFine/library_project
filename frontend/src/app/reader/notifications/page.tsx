@@ -2,7 +2,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { notificationApi, ReaderNotification } from '@/lib/api'
 import { Card, EmptyState, Skeleton } from '@/components/ui'
-import { useRealtimeRefresh } from '@/hooks/useWebSocket'
 import { Bell, Check, Clock, Mail, MailOpen } from 'lucide-react'
 import { formatDate, cn } from '@/lib/utils'
 
@@ -80,8 +79,13 @@ export default function ReaderNotificationsPage() {
 
   useEffect(() => { loadData() }, [loadData])
 
-  // Auto-refresh when new notification arrives via WebSocket
-  useRealtimeRefresh('reader:notification', loadData)
+  // Auto-refresh when new notification arrives (dispatched from reader layout via window event)
+  // This avoids creating a separate WebSocket connection for the notifications page
+  useEffect(() => {
+    const handler = () => loadData()
+    window.addEventListener('reader-notification-ws', handler)
+    return () => window.removeEventListener('reader-notification-ws', handler)
+  }, [loadData])
 
   const handleMarkRead = async (id: string) => {
     try {

@@ -202,10 +202,10 @@ export default function FinancialReportsPage() {
       </div>
 
       {/* Filters */}
-      <Card padding="lg" className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-4 items-end bg-amber-900 border-none text-white shadow-glow">
+      <Card padding="lg" className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-4 items-end bg-white/80 backdrop-blur border border-slate-200 shadow-sm">
         <div className="space-y-1.5">
-          <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Loại phạt</label>
-          <Select className="bg-white/10 border-white/20 text-white" value={filterType} onChange={e => setFilterType(e.target.value)}>
+          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Loại phạt</label>
+          <Select value={filterType} onChange={e => setFilterType(e.target.value)}>
             <option value="">Tất cả</option>
             <option value="overdue">Quá hạn</option>
             <option value="damaged">Hư hỏng</option>
@@ -213,8 +213,8 @@ export default function FinancialReportsPage() {
           </Select>
         </div>
         <div className="space-y-1.5">
-          <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Trạng thái</label>
-          <Select className="bg-white/10 border-white/20 text-white" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Trạng thái</label>
+          <Select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
             <option value="">Tất cả</option>
             <option value="pending">Đang nợ</option>
             <option value="paid">Đã thu</option>
@@ -222,14 +222,14 @@ export default function FinancialReportsPage() {
           </Select>
         </div>
         <div className="space-y-1.5">
-          <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Từ ngày</label>
-          <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} className="w-full bg-white/10 border border-white/20 rounded-xl px-3 py-2 text-xs text-white outline-none" />
+          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Từ ngày</label>
+          <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 outline-none focus:border-amber-300 focus:ring-1 focus:ring-amber-200 transition-all" />
         </div>
         <div className="space-y-1.5">
-          <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Đến ngày</label>
-          <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} className="w-full bg-white/10 border border-white/20 rounded-xl px-3 py-2 text-xs text-white outline-none" />
+          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Đến ngày</label>
+          <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 outline-none focus:border-amber-300 focus:ring-1 focus:ring-amber-200 transition-all" />
         </div>
-        <Button variant="primary" className="w-full shadow-lg shadow-amber-500/50" onClick={applyFilter}>Áp dụng</Button>
+        <Button variant="primary" className="w-full" onClick={applyFilter}>Áp dụng</Button>
       </Card>
 
       {/* Transactions Table */}

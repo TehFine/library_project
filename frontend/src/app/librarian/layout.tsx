@@ -3,16 +3,29 @@ import { useEffect, useState } from 'react'
 import LibrarianSidebar from '@/components/layout/LibrarianSidebar'
 import TopBar from '@/components/layout/TopBar'
 import MobileDrawer from '@/components/layout/MobileDrawer'
-import { authApi } from '@/lib/api'
+import { useRealtimeRefresh } from '@/hooks/useWebSocket'
+import { authApi, librarianApi } from '@/lib/api'
 import { User } from '@/types'
 
 export default function LibrarianLayout({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0)
+
+  async function fetchPendingCount() {
+    try {
+      const res = await librarianApi.getPendingRequestsCount()
+      setPendingRequestsCount(res.count)
+      window.dispatchEvent(new CustomEvent('librarian-pending-count', { detail: { count: res.count } }))
+    } catch { /* ignore */ }
+  }
 
   useEffect(() => {
     authApi.me().then(setUser).catch(() => setUser(null))
+    fetchPendingCount()
   }, [])
+
+  useRealtimeRefresh('librarian:dashboard-update', fetchPendingCount)
 
   return (
     /*
@@ -24,7 +37,7 @@ export default function LibrarianLayout({ children }: { children: React.ReactNod
     >
       {/* ── Sidebar — hidden on mobile ── */}
       <div className="hidden md:block h-full">
-        <LibrarianSidebar />
+        <LibrarianSidebar pendingRequestsCount={pendingRequestsCount} />
       </div>
 
       {/* ── Right column — TopBar + white card ── */}
@@ -53,7 +66,7 @@ export default function LibrarianLayout({ children }: { children: React.ReactNod
       </div>
 
       {/* ── Mobile drawer (hamburger menu) ── */}
-      <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
+      <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} pendingRequestsCount={pendingRequestsCount} />
     </div>
   )
 }

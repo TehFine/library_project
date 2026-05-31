@@ -171,7 +171,7 @@ export default function ReturnBorrowPage() {
 
   const handleSubmit = async () => {
     try {
-      const res = await librarianApi.returnBook(selectedRecord.id, condition)
+      const res = await librarianApi.returnBook(selectedRecord.id, condition, totalFine > 0 ? paymentMethod : undefined)
       setReturnResult(res)
       setIsSuccess(true)
       toast.success('Nhận trả sách thành công')

@@ -88,7 +88,7 @@ const NAV = [
   },
 ]
 
-export default function LibrarianSidebar() {
+export default function LibrarianSidebar({ pendingRequestsCount }: { pendingRequestsCount?: number }) {
   const pathname = usePathname()
 
   return (
@@ -123,7 +123,21 @@ export default function LibrarianSidebar() {
                   : 'text-gray-600 hover:bg-white/60 hover:text-gray-900',
               )}
             >
-              <span className={cn('shrink-0', active ? 'text-white' : 'text-gray-400')}>{item.icon}</span>
+              <span className={cn('shrink-0 relative', active ? 'text-white' : 'text-gray-400')}>
+                {item.icon}
+                {/* Pending requests badge on Yêu cầu */}
+                {item.href === '/librarian/borrows/requests' && pendingRequestsCount !== undefined && pendingRequestsCount > 0 && (
+                  <span className={cn(
+                    'absolute -top-1.5 -right-1.5 min-w-[16px] h-[16px] flex items-center justify-center',
+                    'rounded-full text-[9px] font-bold leading-none px-0.5',
+                    active
+                      ? 'bg-white text-primary'
+                      : 'bg-red-500 text-white',
+                  )}>
+                    {pendingRequestsCount > 99 ? '99+' : pendingRequestsCount}
+                  </span>
+                )}
+              </span>
               {item.label}
             </Link>
           )
