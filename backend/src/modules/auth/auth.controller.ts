@@ -21,4 +21,14 @@ export class AuthController {
     me(@Req() req: any) {
         return this.auth.getMe(req.user.userId)
     }
+
+    @Post('forgot-password')
+    forgotPassword(@Body() body: { email: string }) {
+        return this.auth.forgotPassword(body.email)
+    }
+
+    @Post('reset-password')
+    resetPassword(@Body() body: { token: string; email: string; password: string }) {
+        return this.auth.resetPassword(body.token, body.email, body.password)
+    }
 }

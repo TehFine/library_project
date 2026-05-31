@@ -1,9 +1,13 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common'
+import { Injectable, UnauthorizedException, ConflictException, NotFoundException, BadRequestException } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
+import { InjectRepository } from '@nestjs/typeorm'
+import { Repository, MoreThan } from 'typeorm'
 import * as bcrypt from 'bcryptjs'
+import * as crypto from 'crypto'
 import { RealtimeGateway } from '@/common/websocket/realtime.gateway'
 import { UsersService } from '../users/users.service'
 import { RoleName } from '../users/entities/role.entity'
+import { PasswordReset } from './entities/password-reset.entity'
 
 @Injectable()
 export class AuthService {
@@ -11,6 +15,8 @@ export class AuthService {
     private jwt: JwtService,
     private usersService: UsersService,
     private realtime: RealtimeGateway,
+    @InjectRepository(PasswordReset)
+    private passwordResetRepo: Repository<PasswordReset>,
   ) { }
 
   async login(email: string, password: string) {
@@ -57,6 +63,93 @@ export class AuthService {
     this.realtime.emit('admin:dashboard-update')
     
     return { message: 'Đăng ký thành công' }
+  }
+
+  async forgotPassword(email: string) {
+    const user = await this.usersService.findByEmailOrUsername(email)
+    if (!user) {
+      // Don't reveal whether email exists for security
+      return { message: 'Nếu email tồn tại, bạn sẽ nhận được hướng dẫn đặt lại mật khẩu.' }
+    }
+
+    // Invalidate any existing unused tokens for this email
+    await this.passwordResetRepo.update(
+      { email: user.email, used: false, expiresAt: MoreThan(new Date()) } as any,
+      { used: true },
+    )
+
+    // Generate a secure random token
+    const rawToken = crypto.randomBytes(32).toString('hex')
+    const hashedToken = await bcrypt.hash(rawToken, 10)
+
+    const reset = this.passwordResetRepo.create({
+      email: user.email,
+      token: hashedToken,
+      expiresAt: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes
+    })
+    await this.passwordResetRepo.save(reset)
+
+    // For now, return the token directly since there's no email service.
+    // In production you'd send this via email: `${baseUrl}/auth/reset-password?token=${rawToken}&email=${encodeURIComponent(user.email)}`
+    console.log(`\n🔐 Password reset requested for ${user.email}`)
+    console.log(`   Reset token: ${rawToken}`)
+    console.log(`   Link: http://localhost:3000/auth/reset-password?token=${rawToken}&email=${encodeURIComponent(user.email)}\n`)
+
+    return {
+      message: 'Nếu email tồn tại, bạn sẽ nhận được hướng dẫn đặt lại mật khẩu.',
+      // Development only — remove in production!
+      _devToken: rawToken,
+      _devLink: `/auth/reset-password?token=${rawToken}&email=${encodeURIComponent(user.email)}`,
+    }
+  }
+
+  async resetPassword(token: string, email: string, newPassword: string) {
+    // Find the user
+    const user = await this.usersService.findByEmailOrUsername(email)
+    if (!user) throw new NotFoundException('Không tìm thấy tài khoản')
+
+    // Find all unused, non-expired tokens for this email
+    const resets = await this.passwordResetRepo.find({
+      where: {
+        email: user.email,
+        used: false,
+        expiresAt: MoreThan(new Date()),
+      } as any,
+      order: { createdAt: 'DESC' as any },
+    })
+
+    if (resets.length === 0) {
+      throw new BadRequestException('Token không hợp lệ hoặc đã hết hạn')
+    }
+
+    // Try to match the token against any stored hash
+    let matchedReset: PasswordReset | null = null
+    for (const reset of resets) {
+      const isValid = await bcrypt.compare(token, reset.token)
+      if (isValid) {
+        matchedReset = reset
+        break
+      }
+    }
+
+    if (!matchedReset) {
+      throw new BadRequestException('Token không hợp lệ hoặc đã hết hạn')
+    }
+
+    // Update password
+    const passwordHash = await bcrypt.hash(newPassword, 10)
+    await this.usersService.update(user.id, { passwordHash } as any)
+
+    // Mark token as used
+    await this.passwordResetRepo.update(matchedReset.id, { used: true })
+
+    // Invalidate all other tokens for this email
+    await this.passwordResetRepo.update(
+      { email: user.email, used: false } as any,
+      { used: true },
+    )
+
+    return { message: 'Mật khẩu đã được đặt lại thành công' }
   }
 
   async getMe(userId: string) {
