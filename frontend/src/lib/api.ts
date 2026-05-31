@@ -70,6 +70,16 @@ export const authApi = {
       method: 'PATCH',
       body: JSON.stringify(data),
     }),
+  forgotPassword: (email: string) =>
+    request<{ message: string; _devToken?: string; _devLink?: string }>('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
+  resetPassword: (data: { token: string; email: string; password: string }) =>
+    request<{ message: string }>('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 }
 
 // ── Books ─────────────────────────────────────────────────────────────────────
@@ -103,6 +113,10 @@ export const categoriesApi = {
 export const cardsApi = {
   mine: () => request<import('@/types').LibraryCard[]>('/library-cards/mine'),
   create: () => request<import('@/types').LibraryCard>('/library-cards', { method: 'POST', body: JSON.stringify({}) }),
+  requestActivation: () => request<import('@/types').LibraryCard>('/library-cards/request-activation', { method: 'POST' }),
+  getPendingActivations: () => request<import('@/types').LibraryCard[]>('/library-cards/pending-activations'),
+  approveActivation: (id: string) => request<import('@/types').LibraryCard>(`/library-cards/${id}/approve-activation`, { method: 'PATCH' }),
+  rejectActivation: (id: string) => request<import('@/types').LibraryCard>(`/library-cards/${id}/reject-activation`, { method: 'PATCH' }),
 }
 
 // ── Borrow Records ────────────────────────────────────────────────────────────
@@ -199,6 +213,7 @@ export interface LibrarianStats {
 
 export const librarianApi = {
   getStats: () => request<LibrarianStats>('/librarian/dashboard/stats'),
+  getPendingRequestsCount: () => request<{ count: number }>('/librarian/borrow-requests/pending-count'),
   
   // Search
   searchCards: (q: string) => request<any[]>(`/library-cards/search?q=${encodeURIComponent(q)}`),
@@ -227,7 +242,7 @@ export const librarianApi = {
   
   // Borrows
   createBorrow: (dto: { cardId: string; copyId: string; requestId?: string }) => request<any>('/borrow-records', { method: 'POST', body: JSON.stringify(dto) }),
-  returnBook: (id: string, condition: string) => request<any>(`/borrow-records/${id}/return`, { method: 'PATCH', body: JSON.stringify({ condition }) }),
+  returnBook: (id: string, condition: string, paymentMethod?: string) => request<any>(`/borrow-records/${id}/return`, { method: 'PATCH', body: JSON.stringify({ condition, paymentMethod }) }),
   
   // Borrow Requests
   getAllRequests: () => request<any[]>('/borrow-requests'),
@@ -420,6 +435,7 @@ export const notificationApi = {
     }),
     // Reader endpoints
     mine: () => request<ReaderNotification[]>('/notifications/mine'),
+    getUnreadCount: () => request<{ count: number }>('/notifications/unread-count'),
     markAsRead: (id: string) => request<{ success: boolean }>(`/notifications/${id}/read`, {
         method: 'PATCH',
     }),
