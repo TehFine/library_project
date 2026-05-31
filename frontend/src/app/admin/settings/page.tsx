@@ -6,7 +6,7 @@ import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import Select from '@/components/ui/Select'
 import { cn } from '@/lib/utils'
-import { Mail, AlertTriangle, CheckCircle } from 'lucide-react'
+import { Mail, AlertTriangle, CheckCircle, Settings2, BookOpen } from 'lucide-react'
 
 type Tab = 'rules' | 'email' | 'tasks'
 
@@ -225,16 +225,16 @@ export default function SystemSettingsPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <PageHeader 
           title="Cấu hình hệ thống" 
           description="Thiết lập các quy định nghiệp vụ và thông số kỹ thuật."
         />
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
           {saveResult && (
             <div className={cn(
-              'flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-lg',
+              'flex items-center gap-2 text-[11px] sm:text-xs font-bold px-2.5 sm:px-3 py-1.5 rounded-lg order-last sm:order-none',
               saveResult.ok ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700',
             )}>
               {saveResult.ok
@@ -246,7 +246,7 @@ export default function SystemSettingsPage() {
           )}
           <Button
             variant="primary"
-            className="px-8 shadow-glow shadow-amber-500/30"
+            className="w-full sm:w-auto px-6 sm:px-8 shadow-glow shadow-amber-500/30 justify-center"
             onClick={handleSave}
             loading={saving}
           >
@@ -257,31 +257,35 @@ export default function SystemSettingsPage() {
 
       {/* Tabs */}
       <div className="flex gap-1 bg-slate-100 p-1 rounded-2xl overflow-x-auto scrollbar-hide max-w-full w-fit">
-        {[
-          { id: 'rules', label: 'Quy định mượn trả' },
-          { id: 'email', label: 'Cấu hình Email' },
-          { id: 'tasks', label: 'Tác vụ tự động' },
-        ].map(t => (
-          <button
-            key={t.id}
-            onClick={() => { setActiveTab(t.id as Tab); setSaveResult(null) }}
-            className={cn(
-              'px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-200',
-              activeTab === t.id ? 'bg-white text-amber-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-            )}
-          >
-            {t.label}
-          </button>
-        ))}
+        {([
+          { id: 'rules', label: 'Quy định mượn trả', icon: BookOpen },
+          { id: 'email', label: 'Cấu hình Email', icon: Mail },
+          { id: 'tasks', label: 'Tác vụ tự động', icon: Settings2 },
+        ] as const).map(t => {
+          const Icon = t.icon
+          return (
+            <button
+              key={t.id}
+              onClick={() => { setActiveTab(t.id as Tab); setSaveResult(null) }}
+              className={cn(
+                'flex items-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 whitespace-nowrap shrink-0',
+                activeTab === t.id ? 'bg-white text-amber-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              )}
+            >
+              <Icon className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />
+              {t.label}
+            </button>
+          )
+        })}
       </div>
 
       {/* Content */}
       <div className="space-y-6">
         {activeTab === 'rules' && (
           <div className="space-y-6">
-            <Card padding="lg">
-               <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest border-b border-slate-100 pb-3 mb-6">QUY ĐỊNH MƯỢN SÁCH</h3>
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card padding="lg" className="p-4 sm:p-6">
+               <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest border-b border-slate-100 pb-3 mb-4 sm:mb-6">QUY ĐỊNH MƯỢN SÁCH</h3>
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                   <NumberField
                     label="Số sách tối đa / lần mượn"
                     value={rules.maxBooksPerBorrow}
@@ -321,9 +325,9 @@ export default function SystemSettingsPage() {
                </div>
             </Card>
 
-            <Card padding="lg">
-               <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest border-b border-slate-100 pb-3 mb-6">QUY ĐỊNH PHÍ PHẠT</h3>
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card padding="lg" className="p-4 sm:p-6">
+               <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest border-b border-slate-100 pb-3 mb-4 sm:mb-6">QUY ĐỊNH PHÍ PHẠT</h3>
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                   <NumberField
                     label="Phí phạt ngày 1 – 5"
                     value={rules.fineFirst5Days}
@@ -349,9 +353,9 @@ export default function SystemSettingsPage() {
                </div>
             </Card>
 
-            <Card padding="lg">
-               <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest border-b border-slate-100 pb-3 mb-6">QUY ĐỊNH THẺ ĐỘC GIẢ</h3>
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <Card padding="lg" className="p-4 sm:p-6">
+               <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest border-b border-slate-100 pb-3 mb-4 sm:mb-6">QUY ĐỊNH THẺ ĐỘC GIẢ</h3>
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
                   <div className="space-y-4">
                     <NumberField
                       label="Lệ phí làm thẻ mới"
@@ -403,15 +407,18 @@ export default function SystemSettingsPage() {
           </div>
         )}
 
-        {activeTab === 'email' && (            <Card padding="lg" className="space-y-6">
+        {activeTab === 'email' && (            <Card padding="lg" className="space-y-5 sm:space-y-6 p-4 sm:p-6">
              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-100 pb-4 gap-2">
-                <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">CẤU HÌNH SMTP EMAIL</h3>
-                <div className="flex gap-2">
-                   <Button variant="ghost" className="text-[10px] sm:text-xs font-bold text-amber-600">Kiểm tra kết nối (Test)</Button>
+                <div className="flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-amber-500" />
+                  <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">CẤU HÌNH SMTP EMAIL</h3>
+                </div>
+                <div className="flex gap-2 w-full sm:w-auto">
+                   <Button variant="ghost" className="text-[10px] sm:text-xs font-bold text-amber-600 w-full sm:w-auto">Kiểm tra kết nối</Button>
                 </div>
              </div>
              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                <div className="col-span-2">
+                <div className="col-span-1 sm:col-span-2">
                    <Input
                      label="SMTP Host"
                      value={email.smtpHost}
@@ -458,9 +465,9 @@ export default function SystemSettingsPage() {
                   onChange={e => setEmail(prev => ({ ...prev, senderEmail: e.target.value }))}
                 />
              </div>
-             <div className="p-4 rounded-2xl bg-amber-50 border border-amber-100 flex gap-4">
-                <div className="w-10 h-10 rounded-full bg-amber-600 flex items-center justify-center text-white shrink-0 shadow-lg"><Mail className="w-5 h-5" /></div>
-                <p className="text-xs text-amber-800 leading-relaxed">
+             <div className="p-3 sm:p-4 rounded-2xl bg-amber-50 border border-amber-100 flex gap-3 sm:gap-4">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-amber-600 flex items-center justify-center text-white shrink-0 shadow-lg"><Mail className="w-4 h-4 sm:w-5 sm:h-5" /></div>
+                <p className="text-[11px] sm:text-xs text-amber-800 leading-relaxed">
                   Cấu hình này được dùng để gửi thông báo quá hạn, đặt trước, gia hạn thẻ và cấp lại mật khẩu cho nhân viên/độc giả. Đảm bảo thông tin SMTP là chính xác để không bị gián đoạn dịch vụ.
                 </p>
              </div>
@@ -469,47 +476,52 @@ export default function SystemSettingsPage() {
 
         {activeTab === 'tasks' && (
           <Card padding="none" className="overflow-hidden border-none shadow-card">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-               <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">LỊCH TÁC VỤ TỰ ĐỘNG</h3>
-               <Badge className="bg-emerald-50 text-emerald-700">Tất cả đang hoạt động tốt</Badge>
+            <div className="p-4 sm:p-6 border-b border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+               <div className="flex items-center gap-2">
+                 <Settings2 className="w-4 h-4 text-amber-500" />
+                 <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">LỊCH TÁC VỤ TỰ ĐỘNG</h3>
+               </div>
+               <Badge className="bg-emerald-50 text-emerald-700 text-[10px] sm:text-xs">Tất cả đang hoạt động tốt</Badge>
             </div>
-            <table className="w-full text-left">
-              <thead className="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
-                <tr>
-                  <th className="px-6 py-4">Tác vụ</th>
-                  <th className="px-6 py-4">Lịch chạy</th>
-                  <th className="px-6 py-4 text-center">Trạng thái</th>
-                  <th className="px-6 py-4 text-right">Hành động</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50 text-sm">
-                {tasks.map(task => (
-                  <tr key={task.id} className="hover:bg-slate-50/50">
-                    <td className="px-6 py-4 font-bold text-slate-800">{task.name}</td>
-                    <td className="px-6 py-4 text-slate-500 font-medium italic">{task.schedule}</td>
-                    <td className="px-6 py-4 text-center">
-                       <label className="relative inline-flex items-center cursor-pointer">
-                          <input 
-                            type="checkbox" 
-                            className="sr-only peer" 
-                            checked={task.enabled}
-                            onChange={() => {
-                               setTasks(tasks.map(t => t.id === task.id ? { ...t, enabled: !t.enabled } : t))
-                            }}
-                          />
-                          <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
-                       </label>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                       <button className="text-xs font-bold text-amber-600 hover:bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-100 transition-all">
-                          ▶ Chạy ngay
-                       </button>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left min-w-[500px]">
+                <thead className="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
+                  <tr>
+                    <th className="px-4 sm:px-6 py-3 sm:py-4">Tác vụ</th>
+                    <th className="px-4 sm:px-6 py-3 sm:py-4">Lịch chạy</th>
+                    <th className="px-4 sm:px-6 py-3 sm:py-4 text-center">Trạng thái</th>
+                    <th className="px-4 sm:px-6 py-3 sm:py-4 text-right">Hành động</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-            <div className="p-4 bg-slate-50 text-[10px] text-slate-400 font-bold uppercase tracking-widest text-center">
+                </thead>
+                <tbody className="divide-y divide-slate-50 text-sm">
+                  {tasks.map(task => (
+                    <tr key={task.id} className="hover:bg-slate-50/50">
+                      <td className="px-4 sm:px-6 py-3 sm:py-4 font-bold text-slate-800 text-[12px] sm:text-sm">{task.name}</td>
+                      <td className="px-4 sm:px-6 py-3 sm:py-4 text-slate-500 font-medium italic text-[12px] sm:text-sm">{task.schedule}</td>
+                      <td className="px-4 sm:px-6 py-3 sm:py-4 text-center">
+                         <label className="relative inline-flex items-center cursor-pointer">
+                            <input 
+                              type="checkbox" 
+                              className="sr-only peer" 
+                              checked={task.enabled}
+                              onChange={() => {
+                                 setTasks(tasks.map(t => t.id === task.id ? { ...t, enabled: !t.enabled } : t))
+                              }}
+                            />
+                            <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
+                         </label>
+                      </td>
+                      <td className="px-4 sm:px-6 py-3 sm:py-4 text-right">
+                         <button className="text-[11px] sm:text-xs font-bold text-amber-600 hover:bg-amber-50 px-2.5 sm:px-3 py-1.5 rounded-lg border border-amber-100 transition-all whitespace-nowrap">
+                            ▶ Chạy ngay
+                         </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="p-3 sm:p-4 bg-slate-50 text-[10px] text-slate-400 font-bold uppercase tracking-widest text-center">
                Nhật ký tác vụ gần nhất: 11/05/2026 09:00:15 — Thành công
             </div>
           </Card>

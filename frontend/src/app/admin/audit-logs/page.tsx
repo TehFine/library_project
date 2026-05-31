@@ -289,12 +289,12 @@ export default function AuditLogsPage() {
                 <table className="w-full text-left">
                   <thead className="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
                     <tr>
-                      <th className="px-6 py-4">Thời điểm</th>
-                      <th className="px-6 py-4">Người thực hiện</th>
-                      <th className="px-6 py-4">Thao tác</th>
-                      <th className="px-6 py-4">Bảng</th>
-                      <th className="px-6 py-4">Nội dung thay đổi</th>
-                      <th className="px-6 py-4">IP</th>
+                      <th className="px-4 sm:px-6 py-3 sm:py-4">Thời điểm</th>
+                      <th className="px-4 sm:px-6 py-3 sm:py-4">Người thực hiện</th>
+                      <th className="px-4 sm:px-6 py-3 sm:py-4">Thao tác</th>
+                      <th className="px-4 sm:px-6 py-3 sm:py-4">Bảng</th>
+                      <th className="px-4 sm:px-6 py-3 sm:py-4">Nội dung thay đổi</th>
+                      <th className="px-4 sm:px-6 py-3 sm:py-4">IP</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50 text-sm">
@@ -304,16 +304,16 @@ export default function AuditLogsPage() {
                         onClick={() => setSelectedLog(log)}
                         className="hover:bg-amber-50/30 transition-colors cursor-pointer group"
                       >
-                        <td className="px-6 py-4 font-mono text-[11px] text-slate-500 whitespace-nowrap">{formatTime(log.time)}</td>
-                        <td className="px-6 py-4 font-bold text-slate-800">{log.user}</td>
-                        <td className="px-6 py-4">
+                        <td className="px-4 sm:px-6 py-3 sm:py-4 font-mono text-[10px] sm:text-[11px] text-slate-500 whitespace-nowrap">{formatTime(log.time)}</td>
+                        <td className="px-4 sm:px-6 py-3 sm:py-4 font-bold text-slate-800 text-[12px] sm:text-sm whitespace-nowrap">{log.user}</td>
+                        <td className="px-4 sm:px-6 py-3 sm:py-4">
                           <Badge className={`font-mono text-[10px] ${actionBadge(log.action)}`}>
                             {log.action}
                           </Badge>
                         </td>
-                        <td className="px-6 py-4 font-mono text-[11px] text-slate-400">{log.table}</td>
-                        <td className="px-6 py-4 font-medium text-slate-700 max-w-md truncate">{log.content}</td>
-                        <td className="px-6 py-4 font-mono text-[11px] text-slate-400">{log.ip}</td>
+                        <td className="px-4 sm:px-6 py-3 sm:py-4 font-mono text-[10px] sm:text-[11px] text-slate-400">{log.table}</td>
+                        <td className="px-4 sm:px-6 py-3 sm:py-4 font-medium text-slate-700 max-w-[140px] sm:max-w-md truncate text-[12px] sm:text-sm">{log.content}</td>
+                        <td className="px-4 sm:px-6 py-3 sm:py-4 font-mono text-[10px] sm:text-[11px] text-slate-400">{log.ip}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -341,7 +341,7 @@ export default function AuditLogsPage() {
       {/* Log Detail Modal */}
       <Modal open={!!selectedLog} onClose={() => setSelectedLog(null)} title="Chi tiết nhật ký hệ thống" size="md">
         <div className="space-y-6">
-          <div className="grid grid-cols-2 gap-6 p-4 rounded-2xl bg-slate-50 border border-slate-100">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6 p-4 rounded-2xl bg-slate-50 border border-slate-100">
             <div>
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Thời gian</p>
               <p className="text-sm font-bold text-slate-800 mt-1">{selectedLog ? formatTime(selectedLog.time) : ''}</p>
@@ -397,7 +397,7 @@ export default function AuditLogsPage() {
                 Sao chép JSON
               </button>
             </div>
-            <div className="rounded-2xl bg-slate-900 p-6 font-mono text-xs overflow-x-auto shadow-inner leading-relaxed">
+            <div className="rounded-2xl bg-slate-900 p-4 sm:p-6 font-mono text-[10px] sm:text-xs overflow-x-auto shadow-inner leading-relaxed">
               <pre className="text-emerald-400">
 {`{
   "table": "${selectedLog?.table}",

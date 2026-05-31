@@ -106,31 +106,51 @@ export default function AdminDashboard() {
               </button>
             </div>
           </div>
-          
-          <div className="h-64 flex items-end justify-between gap-1 px-4">
-             {stats.borrowStats.length === 0 ? (
-                <div className="w-full text-center text-slate-400 text-sm mb-10">Chưa có dữ liệu mượn sách 30 ngày qua</div>
-             ) : stats.borrowStats.map((b, i) => {
-               const maxCount = Math.max(...stats.borrowStats.map(s => s.count), 1);
-               const h = Math.max(Math.round((b.count / maxCount) * 100), 2);
-               return (
-               <div key={i} className="flex-1 group relative">
-                  <div 
-                    className="w-full bg-amber-500/20 rounded-t-sm group-hover:bg-amber-500 transition-all duration-500 cursor-pointer" 
-                    style={{ height: `${h}%` }}
-                  >
-                     <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none">
-                        {b.count} lượt
-                     </div>
-                  </div>
-               </div>
-             )})}
-          </div>
-          <div className="mt-4 flex justify-between px-4 text-[10px] font-bold text-slate-400 border-t border-slate-100 pt-3 overflow-x-auto whitespace-nowrap gap-4 scrollbar-hide">
-             {stats.borrowStats.map((b, i) => {
-                const date = new Date(b.date);
-                return <span key={i}>{date.getDate()}/{date.getMonth() + 1}</span>;
-             })}
+
+          {/* Wrap bars + date labels in a single scrollable container so they stay in sync */}
+          <div className="overflow-x-auto scrollbar-hide -mx-2 sm:-mx-0">
+            <div className="min-w-[640px]">
+              {/* Bars */}
+              <div className="h-64 flex gap-[3px] px-2">
+                {stats.borrowStats.every(s => s.count === 0) ? (
+                  <div className="w-full text-center text-slate-400 text-sm mb-10 self-center">Chưa có dữ liệu mượn sách trong 30 ngày qua</div>
+                ) : stats.borrowStats.map((b, i) => {
+                  const maxCount = Math.max(...stats.borrowStats.map(s => s.count), 1);
+                  const h = Math.max(Math.round((b.count / maxCount) * 100), 2);
+                  return (
+                    <div key={i} className="flex-1 flex flex-col justify-end group">
+                      <div 
+                        className="w-full rounded-t-sm cursor-pointer transition-all duration-300 hover:opacity-80 relative"
+                        style={{
+                          height: `${h}%`,
+                          background: `linear-gradient(to top, #f59e0b, #fbbf24)`,
+                        }}
+                      >
+                        <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none shadow-lg">
+                          {b.count} lượt
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              {/* Date labels — xen kẽ (cách 1 ngày) để tránh rối, nhưng vẫn giữ đúng vị trí cột */}
+              <div className="mt-3 flex gap-[3px] px-2 text-[9px] sm:text-[10px] font-bold text-slate-400 border-t border-slate-100 pt-2 sm:pt-3">
+                {stats.borrowStats.map((b, i) => {
+                  const date = new Date(b.date);
+                  const show = i % 2 === 0;
+                  return (
+                    <div key={i} className="flex-1 text-center leading-tight">
+                      {show ? (
+                        <span className="block">{date.getDate()}/{date.getMonth() + 1}</span>
+                      ) : (
+                        <span className="block invisible">-</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </Card>
 
