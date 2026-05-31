@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common'
+import { toLocalDateStr } from '@/common/utils/date'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository, DataSource, LessThan, In } from 'typeorm'
 import { BorrowRecord } from './entities/borrow-record.entity'
@@ -36,7 +37,7 @@ export class BorrowRecordsService {
 
         try {
             const card = await this.cardRepo.findOneBy({ id: dto.cardId })
-            if (card && card.status === 'active' && card.expiryDate < new Date().toISOString().split('T')[0]) {
+            if (card && card.status === 'active' && card.expiryDate < toLocalDateStr()) {
                 card.status = 'expired'
                 await this.cardRepo.save(card)
             }
@@ -53,6 +54,30 @@ export class BorrowRecordsService {
                 if (copy.status !== 'available') throw new BadRequestException('Sách không có sẵn để mượn')
             }
 
+            // KIỂM TRA: Người dùng đã mượn cuốn sách này chưa?
+            const existingBorrow = await this.borrowRepo.findOne({
+                where: {
+                    libraryCard: { userId: card.userId },
+                    bookCopy: { bookId: copy.bookId },
+                    status: In(['borrowing', 'overdue'])
+                }
+            })
+            if (existingBorrow) {
+                throw new BadRequestException('Độc giả này đang mượn cuốn sách này rồi, vui lòng trả sách trước khi mượn lại')
+            }
+
+            // KIỂM TRA: Số sách đang mượn có vượt quá giới hạn không?
+            const maxBorrow = parseInt(process.env.MAX_BORROW ?? '3', 10) || 3
+            const activeBorrows = await this.borrowRepo.count({
+                where: {
+                    libraryCard: { userId: card.userId },
+                    status: In(['borrowing', 'overdue'])
+                }
+            })
+            if (activeBorrows >= maxBorrow) {
+                throw new BadRequestException(`Độc giả chỉ được mượn tối đa ${maxBorrow} cuốn cùng lúc. Hiện đang mượn ${activeBorrows} cuốn.`)
+            }
+
             // Tạo phiếu mượn
             const now = new Date()
             const dueDate = new Date()
@@ -62,8 +87,8 @@ export class BorrowRecordsService {
                 libraryCardId: card.id,
                 bookCopyId: copy.id,
                 librarian: { id: librarianId },
-                borrowDate: now.toISOString().split('T')[0],
-                dueDate: dueDate.toISOString().split('T')[0],
+                borrowDate: toLocalDateStr(now),
+                dueDate: toLocalDateStr(dueDate),
                 status: 'borrowing'
             })
 
@@ -111,11 +136,11 @@ export class BorrowRecordsService {
             where: {
                 libraryCard: { userId },
                 bookCopy: { bookId },
-                status: 'borrowing'
+                status: In(['borrowing', 'overdue'])
             }
         })
         if (existingBorrow) {
-            throw new BadRequestException('Bạn đang mượn một bản sao của cuốn sách này rồi')
+            throw new BadRequestException('Bạn đang mượn cuốn sách này rồi, vui lòng trả sách trước khi mượn lại')
         }
 
         // Tìm bản sao có sẵn
@@ -141,7 +166,7 @@ export class BorrowRecordsService {
             if (!record || record.status === 'returned') throw new BadRequestException('Phiếu mượn không hợp lệ')
 
             const now = new Date()
-            record.returnDate = now.toISOString().split('T')[0]
+            record.returnDate = toLocalDateStr(now)
             record.status = 'returned'
             await queryRunner.manager.save(record)
 
@@ -283,7 +308,7 @@ export class BorrowRecordsService {
         const { status, page = 1, limit = 12 } = query
         const skip = (page - 1) * limit
 
-        const today = new Date().toISOString().split('T')[0]
+        const today = toLocalDateStr()
         let where: any = { libraryCard: { userId } }
 
         if (status === 'overdue') {
@@ -455,7 +480,7 @@ export class BorrowRecordsService {
         
         const dueDate = new Date(record.dueDate)
         dueDate.setDate(dueDate.getDate() + 14) // gia hạn 14 ngày
-        record.dueDate = dueDate.toISOString().split('T')[0]
+        record.dueDate = toLocalDateStr(dueDate)
         
         record.renewalCount += 1
         record.renewedAt = new Date()
