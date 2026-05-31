@@ -358,13 +358,25 @@ export class AdminService {
             avgBorrowDays: b.avgDays ? Math.round(Number(b.avgDays) * 10) / 10 : 0,
         }));
 
-        // 2. Stock status — books with available/total copies
+        // 2. Stock status — books with available/total/borrowed copies
+        // Đếm số bản sao đang được mượn (status = 'borrowed') theo từng sách
+        const borrowedCountsRaw = await this.copyRepo
+            .createQueryBuilder('copy')
+            .select('copy.bookId', 'bookId')
+            .addSelect('COUNT(copy.id)', 'count')
+            .where('copy.status = :status', { status: 'borrowed' })
+            .groupBy('copy.bookId')
+            .getRawMany();
+        const borrowedMap = new Map<string, number>(
+            borrowedCountsRaw.map(b => [b.bookId, Number(b.count)])
+        );
+
         const stockBooks = await this.bookRepo.find({
             relations: { category: true },
             order: { title: 'ASC' }
         });
         const stockStatus = stockBooks.map(b => {
-            const borrowedCopies = b.totalCopies - b.availableCopies;
+            const borrowedCopies = borrowedMap.get(b.id) || 0;
             const critical = b.availableCopies === 0;
             let action: string | null = null;
             if (critical && b.totalCopies > 0) {
@@ -408,12 +420,13 @@ export class AdminService {
             suggestion: `Mua thêm ${Math.min(Number(r.queueCount), 10)} bản`,
         }));
 
-        // 4. Disposal — damaged / lost / disposed copies
+        // 4. Disposal — damaged / poor / lost / disposed copies
         const disposedCopies = await this.copyRepo.find({
             where: [
                 { status: 'lost' as any },
                 { status: 'disposed' as any },
                 { condition: 'damaged' as any, status: 'available' as any },
+                { condition: 'poor' as any, status: 'available' as any },
             ],
             relations: { book: true },
             order: { createdAt: 'DESC' },
