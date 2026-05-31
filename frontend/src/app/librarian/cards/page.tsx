@@ -6,14 +6,28 @@ import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
 import Select from '@/components/ui/Select'
 import Modal from '@/components/ui/Modal'
-import { librarianApi, authApi } from '@/lib/api'
+import { librarianApi, cardsApi } from '@/lib/api'
 import { toast } from 'react-hot-toast'
 import { User } from '@/types'
-import { TriangleAlert, Check, CreditCard } from 'lucide-react'
+import { TriangleAlert, Check, CreditCard, X } from 'lucide-react'
+import { cardStatusMap } from '@/lib/utils'
+
+const cardDotColors: Record<string, string> = {
+  active: 'bg-emerald-500',
+  expired: 'bg-yellow-500',
+  suspended: 'bg-red-500',
+  locked: 'bg-red-500',
+  cancelled: 'bg-gray-400',
+  pending: 'bg-amber-500',
+  rejected: 'bg-red-500',
+}
 
 export default function LibrarianCardsPage() {
+  const [activeTab, setActiveTab] = useState<'all' | 'pending'>('all')
   const [cards, setCards] = useState<any[]>([])
+  const [pendingRequests, setPendingRequests] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingPending, setLoadingPending] = useState(false)
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   
@@ -24,13 +38,12 @@ export default function LibrarianCardsPage() {
   const [duration, setDuration] = useState('1y')
   const [renewing, setRenewing] = useState<string | null>(null)
   const [selectedCard, setSelectedCard] = useState<any | null>(null)
+  const [approvingId, setApprovingId] = useState<string | null>(null)
 
   const loadData = useCallback(async () => {
     setLoading(true)
     try {
-      // Vì backend chưa có filter cho cards nên ta dùng search với chuỗi rỗng để lấy list hoặc dùng findAll
       const res = await (search ? librarianApi.searchCards(search) : librarianApi.searchCards(''))
-      // Lọc theo trạng thái trên client nếu có filter
       const filtered = filterStatus !== 'all' 
         ? res.filter((c: any) => c.status === filterStatus)
         : res
@@ -42,9 +55,51 @@ export default function LibrarianCardsPage() {
     }
   }, [search, filterStatus])
 
+  const loadPendingRequests = useCallback(async () => {
+    setLoadingPending(true)
+    try {
+      const res = await cardsApi.getPendingActivations()
+      setPendingRequests(res)
+    } catch (err) {
+      // Silent fail for pending requests
+    } finally {
+      setLoadingPending(false)
+    }
+  }, [])
+
   useEffect(() => {
-    loadData()
-  }, [loadData])
+    if (activeTab === 'all') {
+      loadData()
+    } else {
+      loadPendingRequests()
+    }
+  }, [activeTab, loadData, loadPendingRequests])
+
+  const handleApprove = async (id: string) => {
+    setApprovingId(id)
+    try {
+      await cardsApi.approveActivation(id)
+      toast.success('Đã duyệt cấp thẻ thành công')
+      loadPendingRequests()
+    } catch (err: any) {
+      toast.error(err.message || 'Lỗi khi duyệt thẻ')
+    } finally {
+      setApprovingId(null)
+    }
+  }
+
+  const handleReject = async (id: string) => {
+    setApprovingId(id)
+    try {
+      await cardsApi.rejectActivation(id)
+      toast.success('Đã từ chối yêu cầu cấp thẻ')
+      loadPendingRequests()
+    } catch (err: any) {
+      toast.error(err.message || 'Lỗi khi từ chối')
+    } finally {
+      setApprovingId(null)
+    }
+  }
 
   const handleSearchUser = async () => {
     if (!searchUser) return
@@ -93,82 +148,158 @@ export default function LibrarianCardsPage() {
     <div className="space-y-6">
       <PageHeader title="Quản lý thẻ độc giả" description="Cấp mới, gia hạn, và khóa thẻ thư viện" />
 
-      {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-between items-center bg-white p-3 sm:p-5 rounded-2xl sm:rounded-3xl shadow-sm border border-gray-50">
-        <div className="flex gap-2 sm:gap-3 flex-1 w-full sm:w-auto overflow-x-auto scrollbar-hide px-1 pb-2 pt-1">
-          <Input 
-            placeholder="Tìm thẻ..." 
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="max-w-[150px] sm:max-w-xs rounded-xl sm:rounded-2xl text-xs sm:text-sm"
-          />
-          <Select 
-            value={filterStatus}
-            onChange={e => setFilterStatus(e.target.value)}
-            className="rounded-xl sm:rounded-2xl text-xs sm:text-sm shrink-0"
-          >
-            <option value="all">Tất cả</option>
-            <option value="active">Hoạt động</option>
-            <option value="expired">Hết hạn</option>
-            <option value="suspended">Bị khóa</option>
-          </Select>
-        </div>
-        <Button variant="primary" onClick={() => setShowAddCardModal(true)} className="rounded-xl sm:rounded-2xl px-4 sm:px-6 text-xs sm:text-sm whitespace-nowrap shrink-0">
-          + Cấp thẻ mới
-        </Button>
+      {/* Tabs */}
+      <div className="flex gap-1 bg-slate-50/80 rounded-2xl p-1 w-fit border border-slate-100">
+        <button onClick={() => setActiveTab('all')} className={`px-5 py-2 text-xs font-bold rounded-xl transition-all ${activeTab === 'all' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>Tất cả thẻ</button>
+        <button onClick={() => setActiveTab('pending')} className={`px-5 py-2 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 ${activeTab === 'pending' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>
+          Yêu cầu cấp mới
+          {pendingRequests.length > 0 && (
+            <span className="bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{pendingRequests.length}</span>
+          )}
+        </button>
       </div>
 
-      {/* Main Table */}
-      <Card padding="none" className="rounded-3xl overflow-hidden border-none shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-gray-50/50 border-b border-gray-100 text-[11px] font-bold text-gray-400 uppercase tracking-widest">
-                <th className="py-5 px-6 font-medium">Mã thẻ</th>
-                <th className="py-5 px-6 font-medium">Độc giả</th>
-                <th className="py-5 px-6 font-medium">CCCD</th>
-                <th className="py-5 px-6 font-medium">Hết hạn</th>
-                <th className="py-5 px-6 font-medium">Trạng thái</th>
-                <th className="py-5 px-6 text-right">Thao tác</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50 bg-white">
-              {loading ? (
-                <tr><td colSpan={6} className="py-12 text-center text-gray-400 italic">Đang tải...</td></tr>
-              ) : cards.length === 0 ? (
-                <tr><td colSpan={6} className="py-12 text-center text-gray-400 italic">Không có dữ liệu</td></tr>
-              ) : cards.map(card => (
-                <tr key={card.id} className="hover:bg-gray-50/30 transition-colors group">
-                  <td className="py-4 px-6 text-sm font-bold text-gray-900 font-mono tracking-tighter">{card.cardNumber}</td>
-                  <td className="py-4 px-6">
-                    <div className="flex flex-col">
-                      <span className="text-sm font-bold text-gray-800">{card.user?.fullName || card.user?.username}</span>
-                      <span className="text-[10px] text-gray-400 italic">ID: {card.user?.id.split('-')[0]}...</span>
-                    </div>
-                  </td>
-                  <td className="py-4 px-6 text-xs text-gray-500 font-medium">{card.user?.idCardNumber || '---'}</td>
-                  <td className="py-4 px-6 text-xs font-bold text-gray-600">
-                    {new Date(card.expiryDate) < new Date() ? (
-                      <span className="text-red-500 flex items-center gap-1"><TriangleAlert className="w-3.5 h-3.5" /> {card.expiryDate}</span>
-                    ) : (
-                      card.expiryDate
-                    )}
-                  </td>
-                  <td className="py-4 px-6">
-                     <Badge className={card.status === 'active' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}>
-                        {card.status === 'active' ? <><span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1" />Hoạt động</> : <><span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500 mr-1" />Đã khóa</>}
-                     </Badge>
-                  </td>
-                  <td className="py-4 px-6 text-right space-x-2">
-                    <Button variant="ghost" size="sm" className="rounded-full opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => setSelectedCard(card)}>Chi tiết</Button>
-                    <Button variant="secondary" size="sm" className="rounded-full" loading={renewing === card.id} onClick={() => handleRenewCard(card.id)}>Gia hạn</Button>
-                  </td>
+      {activeTab === 'pending' ? (
+        /* Pending Activation Requests */
+        <Card padding="none" className="rounded-3xl overflow-hidden border-none shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-amber-50/50 border-b border-amber-100 text-[11px] font-bold text-amber-600 uppercase tracking-widest">
+                  <th className="py-5 px-6 font-medium">Độc giả</th>
+                  <th className="py-5 px-6 font-medium">Email</th>
+                  <th className="py-5 px-6 font-medium">CCCD</th>
+                  <th className="py-5 px-6 font-medium">Yêu cầu lúc</th>
+                  <th className="py-5 px-6 text-right">Thao tác</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+              </thead>
+              <tbody className="divide-y divide-gray-50 bg-white">
+                {loadingPending ? (
+                  <tr><td colSpan={5} className="py-12 text-center text-gray-400 italic">Đang tải...</td></tr>
+                ) : pendingRequests.length === 0 ? (
+                  <tr><td colSpan={5} className="py-12 text-center text-gray-400 italic">Không có yêu cầu cấp thẻ mới</td></tr>
+                ) : pendingRequests.map(card => (
+                  <tr key={card.id} className="hover:bg-amber-50/20 transition-colors group">
+                    <td className="py-4 px-6">
+                      <div className="flex flex-col">
+                        <span className="text-sm font-bold text-gray-800">{card.user?.profile?.fullName || card.user?.fullName || card.user?.username}</span>
+                        <span className="text-[10px] text-gray-400 italic">@{card.user?.username}</span>
+                      </div>
+                    </td>
+                    <td className="py-4 px-6 text-xs text-gray-500">{card.user?.email || '---'}</td>
+                    <td className="py-4 px-6 text-xs text-gray-500 font-medium">{card.user?.idCardNumber || '---'}</td>
+                    <td className="py-4 px-6 text-xs text-gray-500">
+                      {new Date(card.createdAt).toLocaleDateString('vi-VN', {
+                        hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric'
+                      })}
+                    </td>
+                    <td className="py-4 px-6 text-right space-x-2">
+                      <Button 
+                        variant="primary" size="sm" className="rounded-full" 
+                        loading={approvingId === card.id}
+                        onClick={() => handleApprove(card.id)}
+                      >
+                        <Check className="w-3.5 h-3.5" /> Duyệt
+                      </Button>
+                      <Button 
+                        variant="ghost" size="sm" className="rounded-full text-red-500 hover:text-red-600 hover:bg-red-50"
+                        loading={approvingId === card.id}
+                        onClick={() => handleReject(card.id)}
+                      >
+                        <X className="w-3.5 h-3.5" /> Từ chối
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      ) : (
+        <>
+          {/* Toolbar */}
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-between items-center bg-white p-3 sm:p-5 rounded-2xl sm:rounded-3xl shadow-sm border border-gray-50">
+            <div className="flex gap-2 sm:gap-3 flex-1 w-full sm:w-auto overflow-x-auto scrollbar-hide px-1 pb-2 pt-1">
+              <Input 
+                placeholder="Tìm thẻ..." 
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="max-w-[150px] sm:max-w-xs rounded-xl sm:rounded-2xl text-xs sm:text-sm"
+              />
+              <Select 
+                value={filterStatus}
+                onChange={e => setFilterStatus(e.target.value)}
+                className="rounded-xl sm:rounded-2xl text-xs sm:text-sm shrink-0"
+              >
+                <option value="all">Tất cả</option>
+                <option value="active">Hoạt động</option>
+                <option value="expired">Hết hạn</option>
+                <option value="suspended">Bị khóa</option>
+                <option value="pending">Chờ duyệt</option>
+                <option value="cancelled">Đã hủy</option>
+                <option value="rejected">Bị từ chối</option>
+              </Select>
+            </div>
+            <Button variant="primary" onClick={() => setShowAddCardModal(true)} className="rounded-xl sm:rounded-2xl px-4 sm:px-6 text-xs sm:text-sm whitespace-nowrap shrink-0">
+              + Cấp thẻ mới
+            </Button>
+          </div>
+
+          {/* Main Table */}
+          <Card padding="none" className="rounded-3xl overflow-hidden border-none shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-gray-50/50 border-b border-gray-100 text-[11px] font-bold text-gray-400 uppercase tracking-widest">
+                    <th className="py-5 px-6 font-medium">Mã thẻ</th>
+                    <th className="py-5 px-6 font-medium">Độc giả</th>
+                    <th className="py-5 px-6 font-medium">CCCD</th>
+                    <th className="py-5 px-6 font-medium">Hết hạn</th>
+                    <th className="py-5 px-6 font-medium">Trạng thái</th>
+                    <th className="py-5 px-6 text-right">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50 bg-white">
+                  {loading ? (
+                    <tr><td colSpan={6} className="py-12 text-center text-gray-400 italic">Đang tải...</td></tr>
+                  ) : cards.length === 0 ? (
+                    <tr><td colSpan={6} className="py-12 text-center text-gray-400 italic">Không có dữ liệu</td></tr>
+                  ) : cards.map(card => (
+                    <tr key={card.id} className="hover:bg-gray-50/30 transition-colors group">
+                      <td className="py-4 px-6 text-sm font-bold text-gray-900 font-mono tracking-tighter">{card.cardNumber}</td>
+                      <td className="py-4 px-6">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-bold text-gray-800">{card.user?.fullName || card.user?.username}</span>
+                          <span className="text-[10px] text-gray-400 italic">ID: {card.user?.id.split('-')[0]}...</span>
+                        </div>
+                      </td>
+                      <td className="py-4 px-6 text-xs text-gray-500 font-medium">{card.user?.idCardNumber || '---'}</td>
+                      <td className="py-4 px-6 text-xs font-bold text-gray-600">
+                        {new Date(card.expiryDate) < new Date() ? (
+                          <span className="text-red-500 flex items-center gap-1"><TriangleAlert className="w-3.5 h-3.5" /> {card.expiryDate}</span>
+                        ) : (
+                          card.expiryDate
+                        )}
+                      </td>
+                      <td className="py-4 px-6">
+                         <Badge className={(cardStatusMap[card.status]?.color || 'bg-gray-100 text-gray-500')}>
+                            <span className={`inline-block w-1.5 h-1.5 rounded-full mr-1 ${cardDotColors[card.status] || 'bg-gray-400'}`} />{cardStatusMap[card.status]?.label || card.status}
+                         </Badge>
+                      </td>
+                      <td className="py-4 px-6 text-right space-x-2">
+                        <Button variant="ghost" size="sm" className="rounded-full opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => setSelectedCard(card)}>Chi tiết</Button>
+                        {(card.status === 'active' || card.status === 'expired') && (
+                          <Button variant="secondary" size="sm" className="rounded-full" loading={renewing === card.id} onClick={() => handleRenewCard(card.id)}>Gia hạn</Button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </>
+      )}
 
       {/* Modal Cấp Thẻ Mới */}
       <Modal open={showAddCardModal} onClose={() => {setShowAddCardModal(false); setFoundUser(null)}} title="Cấp thẻ thư viện mới" size="lg">
@@ -232,8 +363,8 @@ export default function LibrarianCardsPage() {
            <div className="space-y-4 text-sm px-2">
               <div className="flex justify-between items-center border-b border-gray-100 pb-3">
                 <span className="text-gray-400">Trạng thái</span>
-                <Badge className={selectedCard?.status === 'active' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}>
-                   {selectedCard?.status === 'active' ? <><span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1" />Hoạt động</> : <><span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500 mr-1" />Đã khóa</>}
+                <Badge className={(cardStatusMap[selectedCard?.status]?.color || 'bg-gray-100 text-gray-500')}>
+                   <span className={`inline-block w-1.5 h-1.5 rounded-full mr-1 ${cardDotColors[selectedCard?.status] || 'bg-gray-400'}`} />{cardStatusMap[selectedCard?.status]?.label || selectedCard?.status}
                 </Badge>
               </div>
               <div className="flex justify-between items-center border-b border-gray-100 pb-3">

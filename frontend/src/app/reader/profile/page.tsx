@@ -29,7 +29,25 @@ function StatCardSmall({ label, value }: { label: string; value: string }) {
 }
 
 // ── TallLibraryCard ───────────────────────────────────────────────────────────
-function TallLibraryCard({ card }: { card: LibraryCard | null }) {
+function TallLibraryCard({ card, onRequestComplete }: { card: LibraryCard | null; onRequestComplete?: () => void }) {
+  const { toast } = useToast()
+  const [requesting, setRequesting] = useState(false)
+  const [requested, setRequested] = useState(false)
+
+  const handleRequestCard = async () => {
+    setRequesting(true)
+    try {
+      await cardsApi.requestActivation()
+      setRequested(true)
+      toast('Đã gửi yêu cầu cấp thẻ thành công!', 'success')
+      onRequestComplete?.()
+    } catch (err: any) {
+      toast(err?.message || 'Gửi yêu cầu thất bại', 'error')
+    } finally {
+      setRequesting(false)
+    }
+  }
+
   if (!card) {
     return (
       <div className="rounded-3xl bg-gradient-to-br from-amber-50 to-amber-100 text-amber-900 p-8 h-full flex flex-col items-center justify-center text-center shadow-card border border-amber-200/60">
@@ -37,7 +55,45 @@ function TallLibraryCard({ card }: { card: LibraryCard | null }) {
            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5zm6-10.125a1.875 1.875 0 11-3.75 0 1.875 1.875 0 013.75 0zm1.294 6.336a6.721 6.721 0 01-3.17.789 6.721 6.721 0 01-3.168-.789 3.376 3.376 0 016.338 0z" /></svg>
         </div>
         <p className="text-base font-bold text-amber-800">Chưa có thẻ thư viện</p>
-        <p className="text-xs text-amber-600/70 mt-2">Đăng ký thẻ ngay tại trang chi tiết sách để bắt đầu mượn.</p>
+        <p className="text-xs text-amber-600/70 mt-2 mb-4">Đăng ký thẻ ngay để bắt đầu mượn sách.</p>
+        <button
+          onClick={handleRequestCard}
+          disabled={requesting || requested}
+          className="inline-flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm px-6 py-2.5 rounded-xl transition-all disabled:opacity-50"
+        >
+          {requesting ? 'Đang gửi...' : requested ? 'Đã gửi yêu cầu ✓' : 'Yêu cầu cấp thẻ'}
+        </button>
+      </div>
+    )
+  }
+
+  if (card.status === 'pending') {
+    return (
+      <div className="rounded-3xl bg-gradient-to-br from-amber-50 to-amber-100 text-amber-900 p-8 h-full flex flex-col items-center justify-center text-center shadow-card border border-amber-200/60">
+        <div className="w-16 h-16 rounded-full bg-amber-200/40 flex items-center justify-center mb-4 text-amber-500">
+          <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        </div>
+        <p className="text-base font-bold text-amber-800">Đang chờ duyệt</p>
+        <p className="text-xs text-amber-600/70 mt-2">Yêu cầu cấp thẻ của bạn đã được gửi. Vui lòng chờ thủ thư xác nhận.</p>
+      </div>
+    )
+  }
+
+  if (card.status === 'rejected') {
+    return (
+      <div className="rounded-3xl bg-gradient-to-br from-red-50 to-red-100 text-red-900 p-8 h-full flex flex-col items-center justify-center text-center shadow-card border border-red-200/60">
+        <div className="w-16 h-16 rounded-full bg-red-200/40 flex items-center justify-center mb-4 text-red-500">
+          <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M6 18L18 6M6 6l12 12" /></svg>
+        </div>
+        <p className="text-base font-bold text-red-800">Yêu cầu bị từ chối</p>
+        <p className="text-xs text-red-600/70 mt-2 mb-4">Liên hệ thủ thư để biết thêm chi tiết.</p>
+        <button
+          onClick={handleRequestCard}
+          disabled={requesting || requested}
+          className="inline-flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm px-6 py-2.5 rounded-xl transition-all disabled:opacity-50"
+        >
+          {requesting ? 'Đang gửi...' : requested ? 'Đã gửi yêu cầu ✓' : 'Gửi yêu cầu lại'}
+        </button>
       </div>
     )
   }
@@ -227,7 +283,7 @@ export default function ProfilePage() {
       <div className="flex flex-col gap-6">
         <StatCardSmall label="Ngày tham gia" value={formatDate(user.createdAt)} />
         <div className="flex-1 min-h-[360px]">
-          <TallLibraryCard card={card} />
+          <TallLibraryCard card={card} onRequestComplete={loadData} />
         </div>
       </div>
 

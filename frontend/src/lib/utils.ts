@@ -73,6 +73,8 @@ export const cardStatusMap: Record<string, { label: string; color: string }> = {
   suspended: { label: 'Bị khóa',      color: 'bg-red-50 text-red-700'   },
   locked:    { label: 'Bị khóa',      color: 'bg-red-50 text-red-700'   },
   cancelled: { label: 'Đã hủy',       color: 'bg-gray-100 text-gray-500' },
+  pending:   { label: 'Chờ duyệt',    color: 'bg-amber-50 text-amber-700' },
+  rejected:  { label: 'Bị từ chối',   color: 'bg-red-50 text-red-700' },
 }
 
 // ── Book cover URL (only returns stored coverUrl from DB) ────────────────────
