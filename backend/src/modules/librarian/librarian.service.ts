@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common'
+import { toLocalDateStr } from '@/common/utils/date'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository, LessThan, MoreThanOrEqual, In } from 'typeorm'
 import { BorrowRecord } from '../borrow-records/entities/borrow-record.entity'
@@ -20,8 +21,7 @@ export class LibrarianService {
     ) { }
 
     async getStats() {
-        const today = new Date()
-        const todayStr = today.toISOString().split('T')[0]
+        const todayStr = toLocalDateStr()
 
         // Start of today
         const startOfToday = new Date(todayStr)

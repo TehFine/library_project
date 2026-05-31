@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common'
+import { toLocalDateStr } from '@/common/utils/date'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository, LessThan, Between } from 'typeorm'
 import { Fine } from './entities/fine.entity'
@@ -148,8 +149,7 @@ export class FinesService {
         })
 
         // 2. Tìm các phiếu mượn đang quá hạn (cả status 'borrowing' và 'overdue')
-        const today = new Date()
-        const todayStr = today.toISOString().split('T')[0]
+        const todayStr = toLocalDateStr()
         
         const overdueBorrows = await this.borrowRepo.find({
             where: [

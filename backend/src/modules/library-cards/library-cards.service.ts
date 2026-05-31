@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common'
+import { toLocalDateStr } from '@/common/utils/date'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { LibraryCard } from './entities/library-card.entity'
@@ -66,8 +67,8 @@ export class LibraryCardsService {
             throw new BadRequestException('Người dùng này đã có thẻ thư viện. Vui lòng sử dụng chức năng Gia hạn.');
         }
 
-        const issuedDate = dto.issuedDate || new Date().toISOString().split('T')[0]
-        const expiryDate = dto.expiryDate || new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0]
+        const issuedDate = dto.issuedDate || toLocalDateStr()
+        const expiryDate = dto.expiryDate || toLocalDateStr(new Date(new Date().setFullYear(new Date().getFullYear() + 1)))
         const cardNumber = dto.cardNumber || `TV-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`
 
         const card = this.cardRepo.create({
@@ -111,7 +112,7 @@ export class LibraryCardsService {
         newExpiry.setFullYear(newExpiry.getFullYear() + addYears)
         newExpiry.setMonth(newExpiry.getMonth() + addMonths)
 
-        card.expiryDate = newExpiry.toISOString().split('T')[0]
+        card.expiryDate = toLocalDateStr(newExpiry)
         card.status = 'active'
         this.realtime.emit('admin:dashboard-update')
         this.realtime.emit('reader:dashboard-update')
@@ -133,8 +134,8 @@ export class LibraryCardsService {
             if (existing.status === 'rejected') {
                 // Allow re-request by updating the existing pending card
                 existing.status = 'pending'
-                existing.issuedDate = new Date().toISOString().split('T')[0]
-                existing.expiryDate = new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0]
+                existing.issuedDate = toLocalDateStr()
+                existing.expiryDate = toLocalDateStr(new Date(new Date().setFullYear(new Date().getFullYear() + 1)))
                 const saved = await this.cardRepo.save(existing)
                 this.realtime.emit('librarian:dashboard-update')
                 this.realtime.emit('reader:dashboard-update')
@@ -142,8 +143,8 @@ export class LibraryCardsService {
             }
         }
 
-        const issuedDate = new Date().toISOString().split('T')[0]
-        const expiryDate = new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0]
+        const issuedDate = toLocalDateStr()
+        const expiryDate = toLocalDateStr(new Date(new Date().setFullYear(new Date().getFullYear() + 1)))
         const cardNumber = `TV-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`
 
         const card = this.cardRepo.create({
@@ -180,7 +181,7 @@ export class LibraryCardsService {
         if (card.status !== 'pending') throw new BadRequestException('Yêu cầu này đã được xử lý')
 
         card.status = 'active'
-        card.issuedDate = new Date().toISOString().split('T')[0]
+        card.issuedDate = toLocalDateStr()
         card.issuedBy = { id: librarianId } as any
         const saved = await this.cardRepo.save(card)
 
@@ -228,7 +229,7 @@ export class LibraryCardsService {
 
     private async checkAndUpdateStatus<T extends LibraryCard | LibraryCard[]>(data: T): Promise<T> {
         if (!data) return data;
-        const today = new Date().toISOString().split('T')[0];
+        const today = toLocalDateStr();
         const cards = Array.isArray(data) ? data : [data];
 
         for (const card of cards) {

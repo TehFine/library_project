@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common'
+import { toLocalDateStr } from '@/common/utils/date'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository, LessThan } from 'typeorm'
 import { Notification } from './entities/notification.entity'
@@ -23,9 +24,10 @@ export class NotificationsService {
 
     /** Get real counts for each target group */
     async getTargetCounts() {
-        const today = new Date()
-        const todayStr = today.toISOString().split('T')[0]
-        const thirtyDaysLater = new Date(today.getTime() + 30 * 86400000).toISOString().split('T')[0]
+        const todayStr = toLocalDateStr()
+        const thirtyDaysLater = new Date()
+        thirtyDaysLater.setDate(thirtyDaysLater.getDate() + 30)
+        const thirtyDaysLaterStr = toLocalDateStr(thirtyDaysLater)
 
         // All active readers — 'role' is a virtual field, query via roleId instead
         const readerRole = await this.roleRepo.findOneBy({ name: RoleName.READER })
@@ -50,7 +52,7 @@ export class NotificationsService {
         const expiringCards = await this.cardRepo.count({
             where: {
                 status: 'active',
-                expiryDate: LessThan(thirtyDaysLater),
+                expiryDate: LessThan(thirtyDaysLaterStr),
             },
         })
 
@@ -167,7 +169,7 @@ export class NotificationsService {
 
         // ── Overdue readers ──
         if (targetGroup === 'overdue') {
-            const today = new Date().toISOString().split('T')[0]
+            const today = toLocalDateStr()
             const rows = await this.borrowRepo
                 .createQueryBuilder('b')
                 .leftJoin('b.libraryCard', 'lc')
@@ -215,7 +217,7 @@ export class NotificationsService {
 
         // ── Expiring cards ──
         if (targetGroup === 'expiring') {
-            const thirtyDaysLater = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0]
+            const thirtyDaysLater = toLocalDateStr(new Date(Date.now() + 30 * 86400000))
             const cards = await this.cardRepo.find({
                 where: { status: 'active' },
                 relations: { user: { profile: true } },

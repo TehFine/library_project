@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common'
 import { Cron, CronExpression } from '@nestjs/schedule'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository, LessThan } from 'typeorm'
+import { toLocalDateStr } from '@/common/utils/date'
 import { Fine } from './entities/fine.entity'
 import { BorrowRecord } from '@/modules/borrow-records/entities/borrow-record.entity'
 import { RealtimeGateway } from '@/common/websocket/realtime.gateway'
@@ -25,7 +26,7 @@ export class FinesCronService {
     @Cron(CronExpression.EVERY_HOUR)
     async processOverdueFines() {
         try {
-            const todayStr = new Date().toISOString().split('T')[0]
+            const todayStr = toLocalDateStr()
 
             // Tìm tất cả phiếu mượn đang quá hạn
             const overdueBorrows = await this.borrowRepo.find({

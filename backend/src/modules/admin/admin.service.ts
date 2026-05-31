@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { toLocalDateStr } from '@/common/utils/date';
 import { In, LessThan } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -190,7 +191,7 @@ export class AdminService {
             href?: string
         }[] = [];
 
-        const todayStr = new Date().toISOString().split('T')[0];
+        const todayStr = toLocalDateStr();
 
         // Overdue books
         const overdueCount = await this.borrowRepo.count({
@@ -214,7 +215,7 @@ export class AdminService {
         const expiringCount = await this.cardRepo.count({
             where: {
                 status: 'active',
-                expiryDate: LessThan(thirtyDaysLater.toISOString().split('T')[0]),
+                expiryDate: LessThan(toLocalDateStr(thirtyDaysLater)),
             }
         });
         if (expiringCount > 0) {
@@ -292,9 +293,9 @@ export class AdminService {
 
         const borrowStatsRaw = await this.borrowRepo
             .createQueryBuilder('borrow')
-            .select('borrow.borrowDate', 'date')
+            .select('TO_CHAR(borrow.borrowDate, \'YYYY-MM-DD\')', 'date')
             .addSelect('COUNT(borrow.id)', 'count')
-            .where('borrow.borrowDate >= :date', { date: thirtyDaysAgo.toISOString().split('T')[0] })
+            .where('borrow.borrowDate >= :date', { date: toLocalDateStr(thirtyDaysAgo) })
             .groupBy('borrow.borrowDate')
             .orderBy('borrow.borrowDate', 'ASC')
             .getRawMany();
@@ -308,7 +309,7 @@ export class AdminService {
         for (let i = 0; i < 30; i++) {
             const date = new Date(thirtyDaysAgo);
             date.setDate(date.getDate() + i);
-            const dateStr = date.toISOString().split('T')[0];
+            const dateStr = toLocalDateStr(date);
             borrowStats.push({
                 date: dateStr,
                 count: borrowMap.get(dateStr) || 0
@@ -652,7 +653,7 @@ export class AdminService {
 
     async getViolationReports() {
         const today = new Date();
-        const todayStr = today.toISOString().split('T')[0];
+        const todayStr = toLocalDateStr(today);
 
         // 1. Độc giả quá hạn
         const overdueList = await this.borrowRepo.find({
@@ -688,7 +689,7 @@ export class AdminService {
         // 2. Thẻ sắp hết hạn (trong vòng 30 ngày tới)
         const thirtyDaysLater = new Date();
         thirtyDaysLater.setDate(thirtyDaysLater.getDate() + 30);
-        const thirtyDaysLaterStr = thirtyDaysLater.toISOString().split('T')[0];
+        const thirtyDaysLaterStr = toLocalDateStr(thirtyDaysLater);
 
         const expiringCards = await this.cardRepo.find({
             where: {
