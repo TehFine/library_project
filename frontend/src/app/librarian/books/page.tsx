@@ -9,7 +9,7 @@ import Modal from '@/components/ui/Modal'
 import { booksApi, categoriesApi } from '@/lib/api'
 import { Book, Category } from '@/types'
 import { toast } from 'react-hot-toast'
-import { Check } from 'lucide-react'
+import { Check, BookOpen, Pencil, ChevronLeft, ChevronRight, Package, Plus } from 'lucide-react'
 
 export default function LibrarianBooksPage() {
   const [books, setBooks] = useState<Book[]>([])
@@ -207,9 +207,29 @@ export default function LibrarianBooksPage() {
             </thead>
             <tbody className="divide-y divide-gray-50">
               {loading ? (
-                <tr><td colSpan={6} className="py-10 text-center text-gray-400 italic">Đang tải...</td></tr>
+                Array.from({ length: 5 }).map((_, i) => (
+                  <tr key={i}>
+                    {Array.from({ length: 6 }).map((_, j) => (
+                      <td key={j} className="py-4 px-6">
+                        <div className="h-4 bg-gray-100 rounded animate-pulse" style={{ width: j === 0 ? '60%' : j === 1 ? '80%' : j === 5 ? '40%' : '70%' }} />
+                      </td>
+                    ))}
+                  </tr>
+                ))
               ) : books.length === 0 ? (
-                <tr><td colSpan={6} className="py-10 text-center text-gray-400 italic">Không tìm thấy sách</td></tr>
+                <tr>
+                  <td colSpan={6} className="py-16 text-center">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="w-14 h-14 rounded-2xl bg-amber-50 flex items-center justify-center">
+                        <BookOpen className="w-7 h-7 text-amber-300" />
+                      </div>
+                      <div>
+                        <p className="text-gray-400 font-medium">Không tìm thấy sách</p>
+                        <p className="text-gray-300 text-xs mt-1">Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc thể loại</p>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
               ) : books.map(book => (
                 <tr key={book.id} className="hover:bg-gray-50/30 transition-colors group">
                   <td className="py-4 px-6 text-xs font-mono text-gray-400">{book.isbn || '---'}</td>
@@ -232,8 +252,8 @@ export default function LibrarianBooksPage() {
                     )}
                   </td>
                   <td className="py-4 px-6 text-right space-x-2">
-                    <Button variant="ghost" size="sm" onClick={() => handleOpenEditBook(book)} className="rounded-full opacity-0 group-hover:opacity-100 transition-opacity">Sửa</Button>
-                    <Button variant="secondary" size="sm" onClick={() => handleOpenCopies(book)} className="rounded-full px-4">Bản sao</Button>
+                    <Button variant="ghost" size="sm" onClick={() => handleOpenEditBook(book)} className="rounded-full"><Pencil className="w-3.5 h-3.5" /> Sửa</Button>
+                    <Button variant="secondary" size="sm" onClick={() => handleOpenCopies(book)} className="rounded-full px-4"><Package className="w-3.5 h-3.5" /> {book.totalCopies || 0} bản</Button>
                   </td>
                 </tr>
               ))}
@@ -242,11 +262,17 @@ export default function LibrarianBooksPage() {
         </div>
         
         {/* Pagination */}
-        <div className="p-4 border-t border-gray-50 flex justify-between items-center bg-white">
-          <p className="text-xs text-gray-400 font-medium italic">Hiển thị {books.length} / {total} đầu sách</p>
+        <div className="p-4 border-t border-gray-50 flex flex-col sm:flex-row justify-between items-center gap-3 bg-white">
+          <p className="text-xs text-gray-400 font-medium">
+            Hiển thị <span className="font-bold text-gray-600">{books.length}</span> / <span className="font-bold text-gray-600">{total}</span> đầu sách
+          </p>
           <div className="flex gap-2">
-             <Button variant="ghost" size="sm" disabled={page === 1} onClick={() => setPage(p => p - 1)}>Trước</Button>
-             <Button variant="ghost" size="sm" disabled={books.length < 20} onClick={() => setPage(p => p + 1)}>Sau</Button>
+             <Button variant="ghost" size="sm" disabled={page === 1} onClick={() => setPage(p => p - 1)} className="rounded-full">
+               <ChevronLeft className="w-4 h-4" /> Trước
+             </Button>
+             <Button variant="ghost" size="sm" disabled={books.length < 20} onClick={() => setPage(p => p + 1)} className="rounded-full">
+               Sau <ChevronRight className="w-4 h-4" />
+             </Button>
           </div>
         </div>
       </Card>

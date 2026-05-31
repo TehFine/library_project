@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState, ReactNode } from 'react'
-import { Book, BookOpen } from 'lucide-react'
+import { Book, BookOpen, Library, Search, Smartphone } from 'lucide-react'
 
 function FadeIn({ show, children }: { show: boolean; children: ReactNode }) {
   return (
@@ -68,18 +68,21 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
           {/* Features list */}
           <div className="mt-10 grid grid-cols-1 gap-3 w-full max-w-xs">
             {[
-              { icon: '📚', text: 'Quản lý sách thông minh' },
-              { icon: '🔍', text: 'Tra cứu nhanh chóng' },
-              { icon: '📱', text: 'Đặt mượn trực tuyến' },
-            ].map((item, i) => (
-              <div
-                key={i}
-                className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 text-amber-100/90 text-sm"
-              >
-                <span className="text-lg">{item.icon}</span>
-                <span>{item.text}</span>
-              </div>
-            ))}
+              { icon: Library, text: 'Quản lý sách thông minh' },
+              { icon: Search, text: 'Tra cứu nhanh chóng' },
+              { icon: Smartphone, text: 'Đặt mượn trực tuyến' },
+            ].map((item, i) => {
+              const Icon = item.icon
+              return (
+                <div
+                  key={i}
+                  className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 text-amber-100/90 text-sm"
+                >
+                  <Icon className="w-5 h-5 shrink-0" />
+                  <span>{item.text}</span>
+                </div>
+              )
+            })}
           </div>
 
           {/* Footer */}

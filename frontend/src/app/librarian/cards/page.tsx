@@ -9,7 +9,7 @@ import Modal from '@/components/ui/Modal'
 import { librarianApi, cardsApi } from '@/lib/api'
 import { toast } from 'react-hot-toast'
 import { User } from '@/types'
-import { TriangleAlert, Check, CreditCard, X } from 'lucide-react'
+import { TriangleAlert, Check, CreditCard, X, IdCard } from 'lucide-react'
 import { cardStatusMap } from '@/lib/utils'
 
 const cardDotColors: Record<string, string> = {
@@ -175,9 +175,29 @@ export default function LibrarianCardsPage() {
               </thead>
               <tbody className="divide-y divide-gray-50 bg-white">
                 {loadingPending ? (
-                  <tr><td colSpan={5} className="py-12 text-center text-gray-400 italic">Đang tải...</td></tr>
+                  Array.from({ length: 3 }).map((_, i) => (
+                    <tr key={i}>
+                      {Array.from({ length: 5 }).map((_, j) => (
+                        <td key={j} className="py-4 px-6">
+                          <div className="h-4 bg-amber-100/60 rounded animate-pulse" style={{ width: j === 4 ? '40%' : j === 3 ? '50%' : '70%' }} />
+                        </td>
+                      ))}
+                    </tr>
+                  ))
                 ) : pendingRequests.length === 0 ? (
-                  <tr><td colSpan={5} className="py-12 text-center text-gray-400 italic">Không có yêu cầu cấp thẻ mới</td></tr>
+                  <tr>
+                    <td colSpan={5} className="py-16 text-center">
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="w-14 h-14 rounded-2xl bg-amber-50 flex items-center justify-center">
+                          <IdCard className="w-7 h-7 text-amber-300" />
+                        </div>
+                        <div>
+                          <p className="text-gray-400 font-medium">Không có yêu cầu cấp thẻ mới</p>
+                          <p className="text-gray-300 text-xs mt-1">Độc giả gửi yêu cầu cấp thẻ sẽ hiển thị tại đây</p>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
                 ) : pendingRequests.map(card => (
                   <tr key={card.id} className="hover:bg-amber-50/20 transition-colors group">
                     <td className="py-4 px-6">
@@ -261,9 +281,29 @@ export default function LibrarianCardsPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-50 bg-white">
                   {loading ? (
-                    <tr><td colSpan={6} className="py-12 text-center text-gray-400 italic">Đang tải...</td></tr>
+                    Array.from({ length: 4 }).map((_, i) => (
+                      <tr key={i}>
+                        {Array.from({ length: 6 }).map((_, j) => (
+                          <td key={j} className="py-4 px-6">
+                            <div className="h-4 bg-gray-100 rounded animate-pulse" style={{ width: j === 0 ? '55%' : j === 4 ? '45%' : j === 5 ? '40%' : '70%' }} />
+                          </td>
+                        ))}
+                      </tr>
+                    ))
                   ) : cards.length === 0 ? (
-                    <tr><td colSpan={6} className="py-12 text-center text-gray-400 italic">Không có dữ liệu</td></tr>
+                    <tr>
+                      <td colSpan={6} className="py-16 text-center">
+                        <div className="flex flex-col items-center gap-3">
+                          <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center">
+                            <CreditCard className="w-7 h-7 text-gray-300" />
+                          </div>
+                          <div>
+                            <p className="text-gray-400 font-medium">Không có dữ liệu thẻ</p>
+                            <p className="text-gray-300 text-xs mt-1">Danh sách thẻ thư viện sẽ hiển thị tại đây</p>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
                   ) : cards.map(card => (
                     <tr key={card.id} className="hover:bg-gray-50/30 transition-colors group">
                       <td className="py-4 px-6 text-sm font-bold text-gray-900 font-mono tracking-tighter">{card.cardNumber}</td>

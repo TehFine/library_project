@@ -60,18 +60,18 @@ export default function LibrarianReservationsPage() {
       <PageHeader title="Quản lý đặt trước" description="Theo dõi và thông báo cho độc giả khi sách có sẵn" />
 
       {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row gap-3 justify-between items-center bg-white p-4 rounded-3xl shadow-sm border border-gray-50">
-        <div className="flex gap-2 flex-1 w-full overflow-x-auto px-1 pb-2 pt-1">
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-between items-center bg-white p-3 sm:p-5 rounded-2xl sm:rounded-3xl shadow-sm border border-gray-50">
+        <div className="flex gap-2 sm:gap-3 flex-1 w-full sm:w-auto overflow-x-auto scrollbar-hide px-1 pb-2 pt-1">
           <Input 
             placeholder="Tìm sách, độc giả..." 
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="max-w-[180px] sm:max-w-xs rounded-2xl text-sm"
+            className="max-w-[150px] sm:max-w-xs rounded-xl sm:rounded-2xl text-xs sm:text-sm"
           />
           <Select 
             value={status}
             onChange={e => setStatus(e.target.value)}
-            className="rounded-2xl text-sm"
+            className="rounded-xl sm:rounded-2xl text-xs sm:text-sm shrink-0"
           >
             <option value="all">Tất cả</option>
             <option value="waiting">Chờ có sách</option>
@@ -98,9 +98,29 @@ export default function LibrarianReservationsPage() {
             </thead>
             <tbody className="divide-y divide-gray-50 bg-white">
               {loading ? (
-                <tr><td colSpan={6} className="py-12 text-center text-gray-400 italic">Đang tải...</td></tr>
+                Array.from({ length: 4 }).map((_, i) => (
+                  <tr key={i}>
+                    {Array.from({ length: 6 }).map((_, j) => (
+                      <td key={j} className="py-4 px-6">
+                        <div className="h-4 bg-gray-100 rounded animate-pulse" style={{ width: j === 0 ? '70%' : j === 1 ? '60%' : j === 5 ? '50%' : '65%' }} />
+                      </td>
+                    ))}
+                  </tr>
+                ))
               ) : reservations.length === 0 ? (
-                <tr><td colSpan={6} className="py-12 text-center text-gray-400 italic">Không có yêu cầu đặt trước nào</td></tr>
+                <tr>
+                  <td colSpan={6} className="py-16 text-center">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="w-14 h-14 rounded-2xl bg-indigo-50 flex items-center justify-center">
+                        <Book className="w-7 h-7 text-indigo-300" />
+                      </div>
+                      <div>
+                        <p className="text-gray-400 font-medium">Không có yêu cầu đặt trước</p>
+                        <p className="text-gray-300 text-xs mt-1">Các yêu cầu đặt sách từ độc giả sẽ xuất hiện tại đây</p>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
               ) : reservations.map(res => (
                 <tr key={res.id} className="hover:bg-gray-50/30 transition-colors group">
                   <td className="py-4 px-6">

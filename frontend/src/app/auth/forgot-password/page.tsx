@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Mail, KeyRound, Send, Undo2, AlertTriangle } from 'lucide-react'
+import { Mail, KeyRound, Send, Undo2, AlertTriangle, Phone, MapPin, Clock } from 'lucide-react'
 import { authApi } from '@/lib/api'
 import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
@@ -45,9 +45,9 @@ export default function ForgotPasswordPage() {
         <div className="mt-6 p-4 rounded-2xl bg-amber-50/60 border border-amber-100/60 text-left">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Thông tin liên hệ</p>
           <div className="space-y-1.5 text-xs text-gray-400">
-            <p>📞 Hotline: <span className="text-gray-600">(028) 3829 1234</span></p>
-            <p>📍 Địa chỉ: <span className="text-gray-600">123 Nguyễn Văn Cừ, Quận 1, TP.HCM</span></p>
-            <p>🕐 Giờ làm việc: <span className="text-gray-600">Thứ 2 - Thứ 7, 7:30 - 19:30</span></p>
+            <p><Phone className="w-3.5 h-3.5 inline" /> Hotline: <span className="text-gray-600">(028) 3829 1234</span></p>
+            <p><MapPin className="w-3.5 h-3.5 inline" /> Địa chỉ: <span className="text-gray-600">123 Nguyễn Văn Cừ, Quận 1, TP.HCM</span></p>
+            <p><Clock className="w-3.5 h-3.5 inline" /> Giờ làm việc: <span className="text-gray-600">Thứ 2 - Thứ 7, 7:30 - 19:30</span></p>
           </div>
         </div>
         <Button
