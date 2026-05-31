@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { User, Mail, Lock, ShieldCheck, Phone, Calendar, MapPin, CheckCircle, ArrowRight, ArrowLeft, LogIn, AlertTriangle } from "lucide-react";
 import { authApi } from "@/lib/api";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
@@ -111,32 +112,21 @@ export default function RegisterPage() {
 
   if (success) {
     return (
-      <div className="rounded-3xl bg-white/80 backdrop-blur-xl shadow-[0_20px_60px_rgba(180,130,50,0.2)] border border-amber-100/60 p-8 text-center">
-        <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
-          <svg
-            className="w-8 h-8 text-green-600"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
+      <div className="text-center py-8">
+        <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-5">
+          <CheckCircle className="w-8 h-8 text-green-600" />
         </div>
-        <h1 className="text-lg font-bold text-gray-800">Đăng ký thành công!</h1>
-        <p className="mt-2 text-sm text-gray-500">
-          Tài khoản đã được tạo. Vui lòng đến thư viện với CCCD để nhận thẻ mượn
-          sách.
+        <h1 className="text-xl font-bold text-gray-800">Đăng ký thành công! 🎉</h1>
+        <p className="mt-2 text-sm text-gray-500 max-w-sm mx-auto leading-relaxed">
+          Tài khoản đã được tạo. Vui lòng đến thư viện với CCCD để nhận thẻ mượn sách.
         </p>
         <Button
-          className="mt-6"
+          className="mt-8 shadow-lg shadow-primary/25"
           fullWidth
+          size="lg"
           onClick={() => router.push("/auth/login")}
         >
+          <LogIn className="w-5 h-5" />
           Đăng nhập ngay
         </Button>
       </div>
@@ -144,26 +134,13 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="rounded-3xl bg-white/80 backdrop-blur-xl shadow-[0_20px_60px_rgba(180,130,50,0.2)] border border-amber-100/60 p-8">
-      {/* Logo */}
+    <div>
+      {/* Header */}
       <div className="text-center mb-6">
-        <div className="inline-flex w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-primary-dark items-center justify-center shadow-glow mb-3">
-          <svg
-            className="w-6 h-6 text-white"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={1.5}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0118 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"
-            />
-          </svg>
-        </div>
-        <h1 className="text-xl font-bold text-gray-800">Tạo tài khoản</h1>
-        <p className="mt-1 text-sm text-gray-500">Tham gia thư viện Bookly</p>
+        <h1 className="text-2xl font-bold text-gray-900">Tạo tài khoản</h1>
+        <p className="mt-1.5 text-sm text-gray-500">
+          Tham gia thư viện Bookly để khám phá hàng ngàn đầu sách.
+        </p>
       </div>
 
       {/* Step indicator */}
@@ -171,7 +148,7 @@ export default function RegisterPage() {
         {[1, 2].map((s) => (
           <div key={s} className="flex items-center gap-3 flex-1">
             <div
-              className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-all duration-300 ${
+              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 transition-all duration-300 ${
                 step >= s
                   ? "bg-gradient-to-br from-primary to-primary-dark text-white shadow-glow"
                   : "bg-amber-100 text-amber-400"
@@ -196,6 +173,7 @@ export default function RegisterPage() {
             onChange={set("fullName")}
             placeholder="Nguyễn Văn A"
             required
+            leftIcon={<User className="w-4 h-4" />}
           />
           <Input
             label="Email"
@@ -204,6 +182,7 @@ export default function RegisterPage() {
             onChange={set("email")}
             placeholder="you@example.com"
             required
+            leftIcon={<Mail className="w-4 h-4" />}
           />
           <Input
             label="Tên đăng nhập"
@@ -211,6 +190,7 @@ export default function RegisterPage() {
             onChange={set("username")}
             placeholder="nguyenvana"
             required
+            leftIcon={<User className="w-4 h-4" />}
           />
           <Input
             label="Mật khẩu"
@@ -220,6 +200,7 @@ export default function RegisterPage() {
             placeholder="••••••••"
             required
             hint="Tối thiểu 8 ký tự"
+            leftIcon={<Lock className="w-4 h-4" />}
           />
           <Input
             label="Xác nhận mật khẩu"
@@ -228,28 +209,18 @@ export default function RegisterPage() {
             onChange={set("confirmPassword")}
             placeholder="••••••••"
             required
+            leftIcon={<ShieldCheck className="w-4 h-4" />}
           />
 
           {error && (
-            <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-100 rounded-2xl px-4 py-3">
-              <svg
-                className="w-4 h-4 shrink-0"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
-                />
-              </svg>
+            <div className="flex items-center gap-2.5 text-sm text-red-600 bg-red-50/80 border border-red-100 rounded-2xl px-4 py-3 animate-slide-up">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
               {error}
             </div>
           )}
-          <Button type="submit" fullWidth size="lg">
-            Tiếp theo →
+          <Button type="submit" fullWidth size="lg" className="shadow-lg shadow-primary/25">
+            Tiếp theo
+            <ArrowRight className="w-4 h-4" />
           </Button>
         </form>
       ) : (
@@ -262,6 +233,7 @@ export default function RegisterPage() {
             placeholder="VD: 0901234567"
             pattern="(84|0[3|5|7|8|9])+([0-9]{8})\b"
             maxLength={10}
+            leftIcon={<Phone className="w-4 h-4" />}
           />
           <Input
             label="Ngày sinh"
@@ -271,34 +243,24 @@ export default function RegisterPage() {
             required
             hint="Phải từ 18 tuổi trở lên"
             max={maxDate}
+            leftIcon={<Calendar className="w-4 h-4" />}
           />
           <Input
             label="Địa chỉ"
             value={form.address}
             onChange={set("address")}
             placeholder="123 Đường ABC, TP.HCM"
+            leftIcon={<MapPin className="w-4 h-4" />}
           />
 
           {error && (
-            <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-100 rounded-2xl px-4 py-3">
-              <svg
-                className="w-4 h-4 shrink-0"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
-                />
-              </svg>
+            <div className="flex items-center gap-2.5 text-sm text-red-600 bg-red-50/80 border border-red-100 rounded-2xl px-4 py-3 animate-slide-up">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
               {error}
             </div>
           )}
 
-          <div className="flex gap-3">
+          <div className="flex gap-3 pt-2">
             <Button
               type="button"
               variant="secondary"
@@ -308,9 +270,11 @@ export default function RegisterPage() {
               }}
               className="flex-1"
             >
-              ← Quay lại
+              <ArrowLeft className="w-4 h-4" />
+              Quay lại
             </Button>
-            <Button type="submit" loading={loading} className="flex-1">
+            <Button type="submit" loading={loading} className="flex-1 shadow-lg shadow-primary/25">
+              <CheckCircle className="w-5 h-5" />
               Đăng ký
             </Button>
           </div>
@@ -321,7 +285,7 @@ export default function RegisterPage() {
         Đã có tài khoản?{" "}
         <Link
           href="/auth/login"
-          className="text-primary font-bold hover:underline"
+          className="text-primary font-semibold hover:text-primary-dark hover:underline transition-all"
         >
           Đăng nhập
         </Link>

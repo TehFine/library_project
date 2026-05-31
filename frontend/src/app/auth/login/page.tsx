@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { Mail, Lock, LogIn, AlertTriangle } from 'lucide-react'
 import { authApi } from '@/lib/api'
 import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
@@ -31,19 +32,16 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="rounded-3xl bg-white/80 backdrop-blur-xl shadow-[0_20px_60px_rgba(180,130,50,0.2)] border border-amber-100/60 p-8">
-      {/* Logo */}
+    <div>
+      {/* Header */}
       <div className="text-center mb-8">
-        <div className="inline-flex w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary-dark items-center justify-center shadow-glow mb-3">
-          <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0118 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
-          </svg>
-        </div>
-        <h1 className="text-xl font-bold text-gray-800">Bookly</h1>
-        <p className="mt-1 text-sm text-gray-500">Đăng nhập để tiếp tục</p>
+        <h1 className="text-2xl font-bold text-gray-900">Đăng nhập</h1>
+        <p className="mt-1.5 text-sm text-gray-500">
+          Chào mừng trở lại! Vui lòng đăng nhập để tiếp tục.
+        </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-5">
         <Input
           label="Email"
           type="email"
@@ -52,37 +50,69 @@ export default function LoginPage() {
           placeholder="you@example.com"
           required
           autoComplete="email"
+          leftIcon={<Mail className="w-4 h-4" />}
         />
-        <Input
-          label="Mật khẩu"
-          type="password"
-          value={password}
-          onChange={e => setPassword(e.target.value)}
-          placeholder="••••••••"
-          required
-          autoComplete="current-password"
-        />
+        <div>
+          <Input
+            label="Mật khẩu"
+            type="password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            placeholder="••••••••"
+            required
+            autoComplete="current-password"
+            leftIcon={<Lock className="w-4 h-4" />}
+          />
+          <div className="flex justify-end mt-1.5">
+            <Link
+              href="/auth/forgot-password"
+              className="text-xs text-primary hover:text-primary-dark font-medium hover:underline transition-all"
+            >
+              Quên mật khẩu?
+            </Link>
+          </div>
+        </div>
 
         {error && (
-          <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-100 rounded-2xl px-4 py-3">
-            <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-            </svg>
+          <div className="flex items-center gap-2.5 text-sm text-red-600 bg-red-50/80 border border-red-100 rounded-2xl px-4 py-3 animate-slide-up">
+            <AlertTriangle className="w-4 h-4 shrink-0" />
             {error}
           </div>
         )}
 
-        <Button type="submit" loading={loading} fullWidth size="lg" className="mt-2">
+        <Button type="submit" loading={loading} fullWidth size="lg" className="mt-2 shadow-lg shadow-primary/25">
+          <LogIn className="w-5 h-5" />
           Đăng nhập
         </Button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-gray-500">
-        Chưa có tài khoản?{' '}
-        <Link href="/auth/register" className="text-primary font-bold hover:underline">
-          Đăng ký ngay
-        </Link>
-      </p>
+      <div className="mt-8 text-center">
+        <p className="text-sm text-gray-500">
+          Chưa có tài khoản?{' '}
+          <Link href="/auth/register" className="text-primary font-semibold hover:text-primary-dark hover:underline transition-all">
+            Đăng ký ngay
+          </Link>
+        </p>
+      </div>
+
+      {/* Demo accounts hint */}
+      <div className="mt-6 p-4 rounded-2xl bg-amber-50/60 border border-amber-100/60">
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Tài khoản dùng thử</p>
+        <div className="space-y-1.5 text-xs text-gray-400">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-primary/60" />
+            <span><strong className="text-gray-500">Admin:</strong> admin@library.vn / admin123</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-primary/60" />
+            <span><strong className="text-gray-500">Thủ thư:</strong> librarian@library.vn / password123</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-primary/60" />
+            <span><strong className="text-gray-500">Độc giả:</strong> testreader@test.com / password123</span>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
