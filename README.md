@@ -1,211 +1,280 @@
-# 📚 Library Management System (Hệ thống Quản lý Thư viện)
+# 📚 Hệ thống Quản lý Thư viện (Library Management System)
 
-Hệ thống quản lý thư viện toàn diện với 3 vai trò: **Độc giả (Reader)**, **Thủ thư (Librarian)**, và **Quản trị viên (Admin)**.
-
----
-
-## ✨ Tính năng mới
-
-### 🔔 Thông báo hàng loạt (Admin)
-- Gửi thông báo tới độc giả qua nhiều kênh (email, SMS trong hệ thống)
-- Chọn nhóm đối tượng: toàn bộ độc giả, độc giả quá hạn, sắp hết hạn thẻ, đang nợ phí
-- Soạn thảo thông báo dạng nháp (draft) hoặc gửi ngay
-- Xem lịch sử thông báo đã gửi
-
-### 🔄 WebSocket Realtime
-- Cập nhật thông báo realtime cho admin
-- Socket.IO server tích hợp trong NestJS
-
-### 📊 Báo cáo & Thống kê (Admin)
-- **Thống kê sách**: Top sách mượn nhiều, tồn kho, tình trạng bản sao
-- **Tài chính**: Biểu đồ tổng quan thu/phí, lịch sử giao dịch, in biên lai
-- **Vi phạm**: Thống kê vi phạm mượn trả, cảnh cáo, xử lý vi phạm
-
-### 👥 Quản lý người dùng (Admin)
-- Danh sách tài khoản thủ thư & độc giả
-- Thay đổi vai trò, vô hiệu hóa/kích hoạt tài khoản
-- Cấp quyền thủ thư
-
-### 🔐 Nhật ký hoạt động (Admin)
-- Audit log chi tiết: ai, làm gì, lúc nào, IP
-- Bộ lọc theo thời gian, hành động, bảng dữ liệu
-
-### ⚙️ Cấu hình hệ thống (Admin)
-- Cấu hình email server (SMTP)
-- Cấu hình phí phạt, thời gian mượn tối đa
-- Kiểm tra kết nối
-
-### 👨‍💻 Quy trình mượn trả (Librarian)
-- **Cho mượn**: Tìm kiếm độc giả, chọn sách, xác nhận mượn
-- **Yêu cầu mượn**: Duyệt/từ chối yêu cầu mượn từ độc giả
-- **Nhận trả**: Xử lý sách trả, kiểm tra tình trạng, tính phí phạt nếu quá hạn
-- **Quản lý sách**: Thêm/sửa/xoá sách, quản lý bản sao
-- **Thẻ độc giả**: Cấp mới, gia hạn thẻ thư viện
-- **Đặt trước**: Xem và xử lý đơn đặt trước
-- **Phí phạt**: Danh sách phí chưa thu, xoá phí
-
-### 📱 Giao diện đồng bộ
-- Tone màu **cam/vàng ấm** (`#F5E6CC`) thống nhất cho cả 3 vai trò
-- **iOS-style sidebar**: Bo góc `rounded-3xl`, nổi floating panel
-- Ẩn thanh tìm kiếm trên admin (tối giản giao diện)
+Hệ thống quản lý thư viện toàn diện với 3 vai trò: **Độc giả (Reader)**, **Thủ thư (Librarian)**, và **Quản trị viên (Admin)** — được xây dựng bằng NestJS + Next.js.
 
 ---
 
-## 🌟 Tính năng theo vai trò
+## 🛠️ Công nghệ
 
-### 1. Độc giả (Reader)
-- **Dashboard**: Tổng quan sách đang mượn, quá hạn, phí phạt
-- **Tìm kiếm sách**: Tra cứu theo tiêu đề, tác giả, thể loại
-- **Chi tiết sách**: Xem thông tin, bản sao có sẵn, đặt trước
-- **Sách đang mượn**: Danh sách + trạng thái
-- **Đặt trước**: Đặt trước sách đang có người mượn
-- **Phí phạt**: Xem và thanh toán phí
-- **Hồ sơ**: Cập nhật thông tin cá nhân, xem thẻ thư viện
-
-### 2. Thủ thư (Librarian)
-- **Dashboard**: Thống kê nhanh (sách đang mượn, chờ trả, phí chưa thu)
-- **Cho mượn**: Form mượn sách với autocomplete tìm độc giả
-- **Yêu cầu**: Duyệt/từ chối yêu cầu mượn + chọn bản sao
-- **Nhận trả**: Quét/thủ công nhận sách trả + phí phạt
-- **Quản lý sách**: CRUD sách, quản lý bản sao
-- **Thẻ thư viện**: Cấp mới, gia hạn
-- **Đặt trước**: Xem và xử lý
-- **Phí phạt**: Danh sách + xử lý
-
-### 3. Quản trị viên (Admin)
-- **Dashboard**: KPI tổng quan với biểu đồ tròn
-- **Báo cáo sách**: Top sách, tồn kho
-- **Báo cáo tài chính**: Biểu đồ thu/phí, giao dịch, in biên lai
-- **Báo cáo vi phạm**: Thống kê + xử lý
-- **Quản lý tài khoản**: Thay đổi vai trò, vô hiệu hóa
-- **Thông báo hàng loạt**: Soạn thảo + gửi + lịch sử
-- **Nhật ký hoạt động**: Audit log chi tiết
-- **Cấu hình hệ thống**: Email, phí phạt, thời gian mượn
+| Layer | Công nghệ |
+|-------|-----------|
+| **Frontend** | Next.js 16 (App Router), React 19, Tailwind CSS 4, Lucide Icons, Socket.IO Client |
+| **Backend** | NestJS 11, TypeORM, Passport.js + JWT, Socket.IO, class-validator, bcryptjs |
+| **Database** | PostgreSQL (qua Docker) |
+| **Realtime** | WebSocket (Socket.IO) — cập nhật dashboard + thông báo tức thì |
 
 ---
 
-## 🛠️ Công nghệ sử dụng
+## ✨ Tính năng chính
 
-### Frontend
-| Công nghệ | Mục đích |
-|---|---|
-| [Next.js 15+](https://nextjs.org/) (App Router) | Framework React |
-| [Tailwind CSS](https://tailwindcss.com/) | Styling utility |
-| [Lucide React](https://lucide.dev/) | Icon library |
-| [Socket.IO Client](https://socket.io/) | WebSocket realtime |
-| [TypeScript](https://www.typescriptlang.org/) | Ngôn ngữ |
+### 👤 Độc giả (Reader)
+- **Dashboard** — Xem tổng quan sách đang mượn, quá hạn, phí phạt
+- **Tìm kiếm sách** — Tra cứu theo tiêu đề, tác giả, thể loại
+- **Mượn sách** — Tự mượn sách đang có sẵn, theo dõi trạng thái
+- **Đặt trước** — Đặt trước sách đang có người mượn
+- **Gia hạn** — Gia hạn sách đang mượn (tối đa 2 lần)
+- **Phí phạt** — Xem và thanh toán phí
+- **Hồ sơ** — Cập nhật thông tin cá nhân, xem thẻ thư viện
 
-### Backend
-| Công nghệ | Mục đích |
-|---|---|
-| [NestJS](https://nestjs.com/) | Framework Node.js |
-| [TypeORM](https://typeorm.io/) | ORM — PostgreSQL |
-| [Passport.js + JWT](https://www.passportjs.org/) | Authentication |
-| [Socket.IO](https://socket.io/) | WebSocket server |
-| [class-validator](https://github.com/typestack/class-validator) | Validation |
-| [bcryptjs](https://github.com/dcodeIO/bcrypt.js) | Mã hóa mật khẩu |
+### 👨‍💻 Thủ thư (Librarian)
+- **Dashboard** — Thống kê sách đang mượn, chờ trả, phí chưa thu
+- **Cho mượn** — Tạo phiếu mượn, chọn bản sao, xác nhận
+- **Yêu cầu mượn** — Duyệt/từ chối yêu cầu từ độc giả
+- **Nhận trả** — Nhận sách trả, kiểm tra tình trạng, tính phí phạt
+- **Quản lý sách** — Thêm/sửa/xoá sách, quản lý bản sao
+- **Thẻ độc giả** — Cấp mới, gia hạn thẻ thư viện
+- **Đặt trước** — Xem và xử lý đơn đặt trước
+- **Phí phạt** — Danh sách phí chưa thu, thu phí
 
----
+### 🔐 Quản trị viên (Admin)
+- **Dashboard** — KPI tổng quan với biểu đồ mượn sách 30 ngày
+- **Báo cáo sách** — Top sách mượn nhiều, tồn kho, tình trạng
+- **Báo cáo tài chính** — Biểu đồ thu/phí, lịch sử giao dịch, in biên lai
+- **Báo cáo vi phạm** — Thống kê vi phạm, cảnh cáo
+- **Quản lý tài khoản** — Thay đổi vai trò, vô hiệu hóa/kích hoạt
+- **Thông báo hàng loạt** — Soạn thảo + gửi email hàng loạt (theo nhóm)
+- **Nhật ký hoạt động** — Audit log chi tiết (ai, làm gì, IP)
+- **Cấu hình hệ thống** — SMTP, phí phạt, thời gian mượn
 
-## 📂 Cấu trúc dự án
-
-```text
-Library_project/
-├── backend/                    # NestJS API
-│   ├── src/
-│   │   ├── main.ts             # Entry point
-│   │   ├── app.module.ts       # Root module
-│   │   ├── common/
-│   │   │   ├── database/       # Database module + seeds
-│   │   │   ├── guards/         # JWT auth guard
-│   │   │   ├── strategies/     # JWT strategy
-│   │   │   └── websocket/      # WebSocket gateway (realtime)
-│   │   └── modules/
-│   │       ├── admin/          # Dashboard, báo cáo, audit log
-│   │       ├── auth/           # Đăng nhập, JWT
-│   │       ├── books/          # Sách + bản sao
-│   │       ├── borrow-records/ # Mượn/trả sách
-│   │       ├── borrow-requests/# Yêu cầu mượn
-│   │       ├── categories/     # Thể loại
-│   │       ├── fines/          # Phí phạt
-│   │       ├── librarian/      # Dashboard thủ thư
-│   │       ├── library-cards/  # Thẻ thư viện
-│   │       ├── notifications/  # Thông báo hàng loạt
-│   │       ├── reservations/   # Đặt trước sách
-│   │       └── users/          # Người dùng + vai trò
-│   └── seed-*.sql              # Seed data
-│
-├── frontend/                   # Next.js Web App
-│   ├── src/
-│   │   ├── app/
-│   │   │   ├── admin/          # Trang quản trị
-│   │   │   ├── auth/           # Đăng nhập/đăng ký
-│   │   │   ├── librarian/      # Trang thủ thư
-│   │   │   └── reader/         # Trang độc giả
-│   │   ├── components/
-│   │   │   ├── books/          # BookCard
-│   │   │   ├── borrows/        # BorrowCard, RequestCard, ReservationCard
-│   │   │   ├── layout/         # Sidebar, TopBar, MobileNav
-│   │   │   ├── profile/        # SharedProfile
-│   │   │   └── ui/             # Button, Input, Modal, Toast, ...
-│   │   ├── hooks/              # useAuth, useToast, useWebSocket
-│   │   ├── lib/                # API client, utils
-│   │   └── types/              # TypeScript types
-│   └── tailwind.config.ts
-│
-├── docker-compose.yml          # PostgreSQL
-└── README.md
-```
+### ⚙️ Ràng buộc mượn sách
+- **Không mượn trùng sách** — Độc giả đang mượn (hoặc quá hạn) cuốn nào thì không thể mượn lại cuốn đó
+- **Giới hạn số lượng** — Mặc định tối đa **3 cuốn** cùng lúc (cấu hình qua `MAX_BORROW` trong `.env`)
+- **Thời gian mượn** — Mặc định 14 ngày (có thể gia hạn thêm 2 lần, mỗi lần 14 ngày)
 
 ---
 
-## 🚀 Hướng dẫn cài đặt
+## 🚀 Cài đặt
 
 ### Yêu cầu
 - **Node.js** 18+
-- **PostgreSQL** (hoặc dùng Docker)
-- **npm** hoặc **yarn**
+- **Docker Desktop** (cho PostgreSQL)
+- **npm**
 
-### 1. Khởi động Database (Docker)
-```bash
-docker-compose up -d
+### 1. Cấu hình môi trường
+
+Backend sử dụng **biến môi trường** cho kết nối database. Tạo file `backend/.env` với nội dung sau:
+
+```env
+# === Database ===
+DB_HOST=localhost
+DB_PORT=5433
+DB_USERNAME=postgres
+DB_PASSWORD=postgres
+DB_DATABASE=library
+
+# === Backend ===
+PORT=3001
+
+# === Giới hạn mượn sách ===
+# Số cuốn tối đa một độc giả được giữ cùng lúc (mặc định: 3)
+MAX_BORROW=3
 ```
 
-### 2. Backend
+> **Lưu ý:** File `backend/.env` đã được liệt kê trong `.gitignore`, không bao giờ commit file này lên GitHub vì chứa thông tin nhạy cảm.
+
+### 2. Khởi động Database
+
+```bash
+# Docker Desktop cần được mở trước
+docker compose up -d
+```
+
+PostgreSQL sẽ chạy tại **`localhost:5433`** với database `library`.
+
+### 3. Backend
+
 ```bash
 cd backend
 npm install
-# Seed dữ liệu mẫu (nếu cần)
-npm run seed
 npm run start:dev
 ```
-API chạy tại: `http://localhost:3001`
 
-### 3. Frontend
+API chạy tại: **`http://localhost:3001`**
+
+### 4. Seed dữ liệu mẫu
+
+Sau khi backend đã chạy, chạy các script seed (tuỳ chọn):
+
+```bash
+cd backend
+
+# Seed chính — dữ liệu mẫu cho database PostgreSQL
+node seed-reports-data.sql      # Dữ liệu báo cáo và thống kê
+node seed-borrow-stats.js       # Dữ liệu mượn trả mẫu
+node seed-more-overdue.sql      # Thêm dữ liệu quá hạn
+node seed-fix-fines.sql         # Sửa dữ liệu phí phạt
+node seed-check.sql             # Kiểm tra dữ liệu
+node seed-verify.sql            # Xác minh dữ liệu đã seed
+```
+
+> **Lưu ý:** Backend có cơ chế in-memory seed sẵn qua `MockDB` khi khởi động. Các script SQL ở trên dùng để bổ sung dữ liệu real cho PostgreSQL.
+
+### 5. Frontend
+
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-Web app chạy tại: `http://localhost:3000`
 
-### Tài khoản mẫu
-| Vai trò | Email | Mật khẩu |
-|---|---|---|
-| Admin | `admin@library.vn` | `admin123` |
-| Thủ thư | `librarian@library.vn` | `lib123` |
-| Độc giả | `reader@library.vn` | `reader123` |
+Web app chạy tại: **`http://localhost:3000`**
+
+---
+
+## 🔑 Tài khoản mẫu
+
+Tất cả tài khoản đều có mật khẩu **`password123`**:
+
+| Vai trò | Email | Họ tên |
+|---------|-------|--------|
+| 🔐 **Admin** | `admin@library.vn` | Quản trị viên |
+| 👨‍💻 **Librarian** | `librarian@library.vn` | Nguyễn Thị Lan |
+| 👤 **Reader** | `reader@example.com` | Trần Văn Minh |
+| 👤 **Reader 2** | `reader2@example.com` | Lê Thị Hoa |
+
+---
+
+## 📂 Cấu trúc dự án
+
+```
+Library_project/
+├── backend/                       # NestJS API
+│   ├── src/
+│   │   ├── main.ts                # Entry point (set timezone VN)
+│   │   ├── app.module.ts          # Root module
+│   │   ├── common/
+│   │   │   ├── database/          # Database module + seeds (MockDB)
+│   │   │   ├── guards/            # JWT auth guard
+│   │   │   ├── strategies/        # JWT strategy
+│   │   │   ├── utils/             # Hàm tiện ích (toLocalDateStr)
+│   │   │   └── websocket/         # WebSocket gateway (realtime)
+│   │   └── modules/
+│   │       ├── admin/             # Dashboard, báo cáo, audit log
+│   │       ├── auth/              # Đăng nhập, JWT, quên mật khẩu
+│   │       ├── books/             # Sách + bản sao
+│   │       ├── borrow-records/    # Mượn/trả sách + ràng buộc
+│   │       ├── borrow-requests/   # Yêu cầu mượn
+│   │       ├── categories/        # Thể loại
+│   │       ├── fines/             # Phí phạt
+│   │       ├── librarian/         # Dashboard thủ thư
+│   │       ├── library-cards/     # Thẻ thư viện
+│   │       ├── notifications/     # Thông báo hàng loạt
+│   │       ├── reservations/      # Đặt trước sách
+│   │       └── users/             # Người dùng + vai trò
+│   ├── .env                       # Biến môi trường (không commit)
+│   ├── seed-*.sql                 # Script seed dữ liệu
+│   └── docker-compose.yml         # PostgreSQL container
+│
+├── frontend/                      # Next.js Web App
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── admin/             # Trang quản trị
+│   │   │   ├── auth/              # Đăng nhập/đăng ký
+│   │   │   ├── librarian/         # Trang thủ thư
+│   │   │   └── reader/            # Trang độc giả
+│   │   ├── components/
+│   │   │   ├── books/             # BookCard
+│   │   │   ├── borrows/           # BorrowCard, RequestCard, ReservationCard
+│   │   │   ├── layout/            # Sidebar, TopBar, MobileNav
+│   │   │   ├── profile/           # SharedProfile
+│   │   │   └── ui/                # Button, Input, Modal, Toast, ...
+│   │   ├── hooks/                 # useAuth, useToast, useWebSocket
+│   │   ├── lib/                   # API client, utils, export
+│   │   └── types/                 # TypeScript types
+│   └── tailwind.config.ts
+│
+├── docker-compose.yml             # PostgreSQL container
+└── README.md
+```
+
+---
+
+## 🌐 API Endpoints chính
+
+### Auth
+| Method | Endpoint | Mô tả |
+|--------|----------|-------|
+| POST | `/api/auth/login` | Đăng nhập |
+| POST | `/api/auth/register` | Đăng ký |
+| POST | `/api/auth/forgot-password` | Quên mật khẩu |
+| POST | `/api/auth/reset-password` | Đặt lại mật khẩu |
+
+### Sách
+| Method | Endpoint | Mô tả |
+|--------|----------|-------|
+| GET | `/api/books` | Danh sách sách (phân trang) |
+| GET | `/api/books/:id` | Chi tiết sách |
+| POST | `/api/books` | Thêm sách (librarian) |
+
+### Mượn trả
+| Method | Endpoint | Mô tả |
+|--------|----------|-------|
+| POST | `/api/borrow-records` | Tạo phiếu mượn (librarian) |
+| GET | `/api/borrow-records/mine` | Phiếu mượn của tôi (reader) |
+| POST | `/api/borrow-records/return/:id` | Trả sách |
+| POST | `/api/borrow-records/:id/renew` | Gia hạn |
+
+### Admin
+| Method | Endpoint | Mô tả |
+|--------|----------|-------|
+| GET | `/api/admin/dashboard/stats` | Thống kê dashboard |
+| GET | `/api/admin/users` | Danh sách người dùng |
+| GET | `/api/admin/audit-logs` | Nhật ký hoạt động |
+
+### WebSocket
+| Event | Mô tả |
+|-------|-------|
+| `admin:dashboard-update` | Dashboard admin thay đổi |
+| `librarian:dashboard-update` | Dashboard thủ thư thay đổi |
+| `reader:dashboard-update` | Dashboard độc giả thay đổi |
+| `reader:request-update` | Yêu cầu mượn thay đổi |
+
+---
+
+## 🧪 Phát triển
+
+### Timezone
+Dự án sử dụng **Asia/Ho_Chi_Minh (UTC+7)**. Timezone được thiết lập tự động trong `backend/src/main.ts`:
+```typescript
+process.env.TZ = 'Asia/Ho_Chi_Minh'
+```
+
+Hàm `toLocalDateStr()` trong `backend/src/common/utils/date.ts` dùng để chuyển đổi ngày tháng chính xác theo giờ Việt Nam.
+
+### Ràng buộc mượn sách
+Hai ràng buộc được kiểm tra trong `BorrowRecordsService`:
+1. **Trùng sách** — Kiểm tra độc giả đã mượn cuốn sách đó chưa (status: `borrowing` hoặc `overdue`)
+2. **Giới hạn số lượng** — Đếm tổng số phiếu đang mượn + quá hạn, so với `MAX_BORROW`
+
+### Realtime
+Dashboard tự động cập nhật khi có sự kiện mượn/trả nhờ WebSocket.
 
 ---
 
 ## 📝 Roadmap
 
-- [x] WebSocket realtime cho thông báo
-- [x] Thông báo hàng loạt (Admin)
-- [x] Báo cáo & thống kê (Admin)
-- [x] Nhật ký hoạt động (Admin)
-- [x] Giao diện đồng bộ tone cam/vàng
-- [x] iOS-style sidebar floating panel
+- [x] JWT Authentication + 3 vai trò
+- [x] CRUD sách + quản lý bản sao
+- [x] Mượn/trả sách + ràng buộc
+- [x] Yêu cầu mượn + duyệt
+- [x] Đặt trước sách
+- [x] Phí phạt tự động
+- [x] Dashboard + báo cáo
+- [x] Thông báo hàng loạt
+- [x] WebSocket realtime
+- [x] Audit log
+- [x] Giao diện responsive
+- [x] Timezone Việt Nam
 - [ ] Gửi email thật (SMTP)
 - [ ] Kênh SMS cho thông báo
 - [ ] Upload ảnh bìa sách
