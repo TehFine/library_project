@@ -3,15 +3,17 @@ import Link from 'next/link'
 import SearchBar from '@/components/ui/SearchBar'
 import UserAvatar from '@/components/ui/UserAvatar'
 import { User } from '@/types'
+import { cn } from '@/lib/utils'
 
 interface TopBarProps {
   user: User | null
   isGuest?: boolean
   hideSearch?: boolean
+  hideMobileAvatar?: boolean
   onMenuToggle?: () => void
 }
 
-export default function TopBar({ user, isGuest, hideSearch, onMenuToggle }: TopBarProps) {
+export default function TopBar({ user, isGuest, hideSearch, hideMobileAvatar, onMenuToggle }: TopBarProps) {
   return (
     <>
       <header className="h-14 shrink-0 flex items-center gap-3 sm:gap-4 px-2 sm:px-4">
@@ -35,26 +37,11 @@ export default function TopBar({ user, isGuest, hideSearch, onMenuToggle }: TopB
           </div>
         )}
 
-        {/* Spacer on mobile when search is hidden */}
-        {hideSearch && <div className="flex-1 md:hidden" />}
+        {/* Spacer — đẩy avatar/login sang phải trên mobile */}
+      <div className="flex-1 sm:hidden" />
 
-        {/* User info — desktop only (inline in flow) */}
-        <div className="hidden md:block shrink-0">
-          {isGuest ? (
-            <Link 
-              href="/auth/login"
-              className="px-5 py-2 rounded-full bg-primary text-white text-sm font-semibold shadow-glow hover:scale-105 transition-transform"
-            >
-              Đăng nhập
-            </Link>
-          ) : (
-            <UserAvatar user={user} />
-          )}
-        </div>
-      </header>
-
-      {/* Mobile: avatar / login floating at top-right corner */}
-      <div className="md:hidden fixed top-3 right-3 z-50">
+      {/* Mobile: avatar / login — gọn trong header, không fixed */}
+      <div className={cn('sm:hidden transition-opacity duration-300', hideMobileAvatar && 'opacity-0 pointer-events-none')}>
         {isGuest ? (
           <Link 
             href="/auth/login"
@@ -66,6 +53,21 @@ export default function TopBar({ user, isGuest, hideSearch, onMenuToggle }: TopB
           <UserAvatar user={user} />
         )}
       </div>
+
+      {/* User info — desktop only (inline in flow) */}
+      <div className="hidden md:block shrink-0">
+        {isGuest ? (
+          <Link 
+            href="/auth/login"
+            className="px-5 py-2 rounded-full bg-primary text-white text-sm font-semibold shadow-glow hover:scale-105 transition-transform"
+          >
+            Đăng nhập
+          </Link>
+        ) : (
+          <UserAvatar user={user} />
+        )}
+      </div>
+      </header>
     </>
   )
 }

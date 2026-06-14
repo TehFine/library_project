@@ -47,7 +47,7 @@ export default function ReaderLayout({ children }: { children: React.ReactNode }
     if (!user) return
     // Only show toast if this notification is targeted at the current user
     if (data?.targetUserIds && !data.targetUserIds.includes(user.id)) return
-    toast(data?.title || '📬 Bạn có thông báo mới từ thư viện', 'info')
+    toast(data?.title || 'Bạn có thông báo mới từ thư viện', 'info')
     // Refetch unread count to keep badge in sync
     fetchUnreadCount()
     // Dispatch a window event so the notifications page (if open) can refresh without a separate socket connection
@@ -109,7 +109,7 @@ export default function ReaderLayout({ children }: { children: React.ReactNode }
       <div className="flex-1 flex flex-col min-w-0 gap-2 sm:gap-3">
 
         {/* TopBar lives on the amber background */}
-        <TopBar user={user} isGuest={isGuest} onMenuToggle={() => setDrawerOpen(v => !v)} />
+        <TopBar user={user} isGuest={isGuest} onMenuToggle={() => setDrawerOpen(v => !v)} hideMobileAvatar={drawerOpen} />
 
         {/*
          * Main content card — white, rounded, takes all remaining height.
