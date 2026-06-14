@@ -319,8 +319,9 @@ export default function BookReportsPage() {
         <>
           {/* Content - Top Borrowed */}
           {activeTab === 'top' && (
-            <Card padding="none" className="overflow-hidden border border-slate-100 shadow-sm rounded-3xl">
-              <table className="w-full text-left border-collapse">
+            <Card padding="none" className="border border-slate-100 shadow-sm rounded-3xl overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse min-w-[600px]">
                 <thead className="bg-slate-50/50 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
                   <tr>
                     <th className="px-6 py-4">#</th>
@@ -368,6 +369,7 @@ export default function BookReportsPage() {
                   )}
                 </tbody>
               </table>
+            </div>
             </Card>
           )}
 
@@ -402,8 +404,9 @@ export default function BookReportsPage() {
               </Card>
 
               {/* Stock table */}
-              <Card padding="none" className="overflow-hidden border border-slate-100 shadow-sm rounded-3xl">
-                <table className="w-full text-left">
+              <Card padding="none" className="border border-slate-100 shadow-sm rounded-3xl overflow-hidden">
+                <div className="overflow-x-auto">
+                <table className="w-full text-left min-w-[600px]">
                   <thead className="bg-slate-50/50 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
                     <tr>
                       <th className="px-6 py-4">Tên sách</th>
@@ -460,14 +463,16 @@ export default function BookReportsPage() {
                     )}
                   </tbody>
                 </table>
+                </div>
               </Card>
             </div>
           )}
 
           {/* Content - Replenishment */}
           {activeTab === 'replenish' && (
-            <Card padding="none" className="overflow-hidden border border-slate-100 shadow-sm rounded-3xl">
-              <table className="w-full text-left">
+            <Card padding="none" className="border border-slate-100 shadow-sm rounded-3xl overflow-hidden">
+              <div className="overflow-x-auto">
+              <table className="w-full text-left min-w-[500px]">
                 <thead className="bg-slate-50/50 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
                   <tr>
                     <th className="px-6 py-4">Tên sách</th>
@@ -495,15 +500,16 @@ export default function BookReportsPage() {
                       </tr>
                     ))
                   )}
-                </tbody>
-              </table>
+                </tbody>                </table>
+                </div>
             </Card>
           )}
 
           {/* Content - Disposal */}
           {activeTab === 'disposal' && (
-            <Card padding="none" className="overflow-hidden border border-slate-100 shadow-sm rounded-3xl">
-              <table className="w-full text-left text-sm">
+            <Card padding="none" className="border border-slate-100 shadow-sm rounded-3xl overflow-hidden">
+              <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm min-w-[500px]">
                 <thead className="bg-slate-50/50 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
                   <tr>
                     <th className="px-6 py-4">Tên sách</th>
@@ -535,8 +541,8 @@ export default function BookReportsPage() {
                       </tr>
                     ))
                   )}
-                </tbody>
-              </table>
+                </tbody>                </table>
+                </div>
             </Card>
           )}
         </>

@@ -193,11 +193,12 @@ export default function AdminDashboard() {
         <Card padding="lg">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-bold text-slate-800 text-sm sm:text-base">Top sách mượn nhiều nhất</h3>
-            <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-5 h-5 text-amber-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
             </svg>
           </div>
-          <table className="w-full">
+          <div className="overflow-x-auto -mx-2 sm:mx-0 px-2 sm:px-0">
+            <table className="w-full min-w-[400px]">
             <thead className="text-[10px] font-bold text-slate-400 uppercase border-b border-slate-100">
               <tr>
                 <th className="pb-2 text-left">#</th>
@@ -215,6 +216,7 @@ export default function AdminDashboard() {
               ))}
             </tbody>
           </table>
+          </div>
           <Link href="/admin/reports/books" className="block w-full text-center mt-4 text-xs font-bold text-amber-600 hover:text-amber-700 hover:bg-amber-50 py-2 rounded-lg transition-all">
             Xem báo cáo đầy đủ →
           </Link>
