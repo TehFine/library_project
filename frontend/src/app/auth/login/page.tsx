@@ -101,7 +101,7 @@ export default function LoginPage() {
         <div className="space-y-1.5 text-xs text-gray-400">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-primary/60" />
-            <span><strong className="text-gray-500">Admin:</strong> admin@library.vn / admin123</span>
+            <span><strong className="text-gray-500">Admin:</strong> admin@library.vn / password123</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-primary/60" />
@@ -109,7 +109,7 @@ export default function LoginPage() {
           </div>
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-primary/60" />
-            <span><strong className="text-gray-500">Độc giả:</strong> testreader@test.com / password123</span>
+            <span><strong className="text-gray-500">Độc giả:</strong> reader@example.com / password123</span>
           </div>
         </div>
       </div>
