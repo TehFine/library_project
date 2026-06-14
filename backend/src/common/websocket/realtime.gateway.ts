@@ -6,10 +6,14 @@ import {
 } from '@nestjs/websockets'
 import { Server, Socket } from 'socket.io'
 
+const wsCorsOrigins = process.env.CORS_ORIGINS
+    ? process.env.CORS_ORIGINS.split(',').map(s => s.trim())
+    : ['http://localhost:3000', 'http://127.0.0.1:3000']
+
 @WebSocketGateway({
     namespace: '/events',
     cors: {
-        origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
+        origin: wsCorsOrigins,
         credentials: true,
     },
 })

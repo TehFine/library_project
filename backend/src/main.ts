@@ -10,25 +10,35 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api')
 
+  const corsOrigins = process.env.CORS_ORIGINS
+    ? process.env.CORS_ORIGINS.split(',').map(s => s.trim())
+    : ['http://localhost:3000', 'http://127.0.0.1:3000']
+
   app.enableCors({
-    origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
+    origin: corsOrigins,
     credentials: true,
   })
 
   app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }))
 
   // ── Swagger ────────────────────────────────────────────────────────
-  const config = new DocumentBuilder()
+  const swaggerBuilder = new DocumentBuilder()
     .setTitle('Library Management System API')
     .setDescription('API quản lý thư viện với 3 vai trò: Reader, Librarian, Admin')
     .setVersion('1.0')
     .addServer(`http://localhost:${process.env.PORT ?? 3001}`, 'Local')
+
+  if (process.env.RENDER_URL) {
+    swaggerBuilder.addServer(process.env.RENDER_URL, 'Render')
+  }
+
+  const swaggerConfig = swaggerBuilder
     .addBearerAuth(
       { type: 'http', scheme: 'bearer', bearerFormat: 'JWT', description: 'Nhập JWT token nhận được từ /api/auth/login' },
       'JWT-auth',
     )
     .build()
-  const document = SwaggerModule.createDocument(app, config)
+  const document = SwaggerModule.createDocument(app, swaggerConfig)
   SwaggerModule.setup('api/docs', app, document, {
     swaggerOptions: { persistAuthorization: true },
   })
