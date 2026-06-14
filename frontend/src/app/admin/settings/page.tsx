@@ -6,7 +6,7 @@ import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import Select from '@/components/ui/Select'
 import { cn } from '@/lib/utils'
-import { Mail, AlertTriangle, CheckCircle, Settings2, BookOpen } from 'lucide-react'
+import { Mail, AlertTriangle, CheckCircle, Settings2, BookOpen, Play } from 'lucide-react'
 
 type Tab = 'rules' | 'email' | 'tasks'
 
@@ -513,7 +513,7 @@ export default function SystemSettingsPage() {
                       </td>
                       <td className="px-4 sm:px-6 py-3 sm:py-4 text-right">
                          <button className="text-[11px] sm:text-xs font-bold text-amber-600 hover:bg-amber-50 px-2.5 sm:px-3 py-1.5 rounded-lg border border-amber-100 transition-all whitespace-nowrap">
-                            ▶ Chạy ngay
+                            <Play className="w-3.5 h-3.5" /> Chạy ngay
                          </button>
                       </td>
                     </tr>

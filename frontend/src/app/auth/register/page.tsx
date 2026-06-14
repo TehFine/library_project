@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { User, Mail, Lock, ShieldCheck, Phone, Calendar, MapPin, CheckCircle, ArrowRight, ArrowLeft, LogIn, AlertTriangle } from "lucide-react";
+import { User, Mail, Lock, ShieldCheck, Phone, Calendar, MapPin, CheckCircle, ArrowRight, ArrowLeft, LogIn, AlertTriangle, PartyPopper } from "lucide-react";
 import { authApi } from "@/lib/api";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
@@ -116,7 +116,7 @@ export default function RegisterPage() {
         <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-5">
           <CheckCircle className="w-8 h-8 text-green-600" />
         </div>
-        <h1 className="text-xl font-bold text-gray-800">Đăng ký thành công! 🎉</h1>
+        <h1 className="text-xl font-bold text-gray-800 flex items-center justify-center gap-2">Đăng ký thành công! <PartyPopper className="w-6 h-6 text-amber-500" /></h1>
         <p className="mt-2 text-sm text-gray-500 max-w-sm mx-auto leading-relaxed">
           Tài khoản đã được tạo. Vui lòng đến thư viện với CCCD để nhận thẻ mượn sách.
         </p>

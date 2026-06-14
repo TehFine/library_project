@@ -38,7 +38,7 @@ export default function ForgotPasswordPage() {
         <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-5">
           <Mail className="w-8 h-8 text-primary" />
         </div>
-        <h1 className="text-xl font-bold text-gray-800">Yêu cầu đã được gửi! 📨</h1>
+        <h1 className="text-xl font-bold text-gray-800 flex items-center justify-center gap-2">Yêu cầu đã được gửi! <Send className="w-6 h-6 text-primary" /></h1>
         <p className="mt-3 text-sm text-gray-500 max-w-sm mx-auto leading-relaxed">
           Yêu cầu đặt lại mật khẩu của bạn đã được ghi nhận. Vui lòng liên hệ trực tiếp với thủ thư tại thư viện để được hỗ trợ đặt lại mật khẩu.
         </p>

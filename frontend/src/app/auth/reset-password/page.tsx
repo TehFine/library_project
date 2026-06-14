@@ -2,7 +2,7 @@
 import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { Lock, KeyRound, CheckCircle, AlertTriangle, Undo2 } from 'lucide-react'
+import { Lock, KeyRound, CheckCircle, AlertTriangle, Undo2, PartyPopper } from 'lucide-react'
 import { authApi } from '@/lib/api'
 import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
@@ -51,7 +51,7 @@ function ResetPasswordForm() {
         <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-5">
           <CheckCircle className="w-8 h-8 text-green-600" />
         </div>
-        <h1 className="text-xl font-bold text-gray-800">Đặt lại mật khẩu thành công! 🎉</h1>
+        <h1 className="text-xl font-bold text-gray-800 flex items-center justify-center gap-2">Đặt lại mật khẩu thành công! <PartyPopper className="w-6 h-6 text-amber-500" /></h1>
         <p className="mt-3 text-sm text-gray-500 max-w-sm mx-auto leading-relaxed">
           Mật khẩu của bạn đã được cập nhật. Vui lòng đăng nhập với mật khẩu mới.
         </p>
