@@ -286,7 +286,7 @@ export default function AuditLogsPage() {
             ) : (
               <>
                 <div className="overflow-x-auto">
-                <table className="w-full text-left">
+                <table className="w-full text-left min-w-[700px]">
                   <thead className="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
                     <tr>
                       <th className="px-4 sm:px-6 py-3 sm:py-4">Thời điểm</th>
