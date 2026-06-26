@@ -8,10 +8,11 @@ import { LibraryCard } from '@/modules/library-cards/entities/library-card.entit
 import { Book } from '@/modules/books/entities/book.entity'
 import { Reservation } from '@/modules/reservations/entities/reservation.entity'
 import { Fine } from '@/modules/fines/entities/fine.entity'
+import { SystemConfig } from '@/modules/admin/entities/system-config.entity'
 
 @Module({
     imports: [
-        TypeOrmModule.forFeature([BorrowRecord, BookCopy, LibraryCard, Book, Reservation, Fine])
+        TypeOrmModule.forFeature([BorrowRecord, BookCopy, LibraryCard, Book, Reservation, Fine, SystemConfig])
     ],
     controllers: [BorrowRecordsController],
     providers: [BorrowRecordsService],

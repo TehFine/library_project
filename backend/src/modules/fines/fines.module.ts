@@ -4,10 +4,11 @@ import { FinesController } from './fines.controller'
 import { FinesService } from './fines.service'
 import { Fine } from './entities/fine.entity'
 import { BorrowRecord } from '@/modules/borrow-records/entities/borrow-record.entity'
+import { SystemConfig } from '@/modules/admin/entities/system-config.entity'
 import { FinesCronService } from './fines-cron.service'
 
 @Module({
-    imports: [TypeOrmModule.forFeature([Fine, BorrowRecord])],
+    imports: [TypeOrmModule.forFeature([Fine, BorrowRecord, SystemConfig])],
     controllers: [FinesController],
     providers: [FinesService, FinesCronService],
     exports: [FinesService]

@@ -9,6 +9,7 @@ import { Book } from '@/modules/books/entities/book.entity'
 import { Reservation } from '@/modules/reservations/entities/reservation.entity'
 import { BorrowRequest } from '@/modules/borrow-requests/entities/borrow-request.entity'
 import { Fine } from '@/modules/fines/entities/fine.entity'
+import { SystemConfig } from '@/modules/admin/entities/system-config.entity'
 import { RealtimeGateway } from '@/common/websocket/realtime.gateway'
 
 @Injectable()
@@ -26,9 +27,30 @@ export class BorrowRecordsService {
         private resRepo: Repository<Reservation>,
         @InjectRepository(Fine)
         private fineRepo: Repository<Fine>,
+        @InjectRepository(SystemConfig)
+        private configRepo: Repository<SystemConfig>,
         private dataSource: DataSource,
         private realtime: RealtimeGateway,
     ) { }
+
+    private async getFineRates(): Promise<{ first5: number; fromDay6: number }> {
+        const defaults = { first5: 1000, fromDay6: 3000 }
+        try {
+            const configs = await this.configRepo.find({
+                where: [
+                    { key: 'fine_first_5_days' },
+                    { key: 'fine_from_day_6' },
+                ]
+            })
+            const map = new Map(configs.map(c => [c.key, c.value]))
+            return {
+                first5: parseInt(map.get('fine_first_5_days') ?? '', 10) || defaults.first5,
+                fromDay6: parseInt(map.get('fine_from_day_6') ?? '', 10) || defaults.fromDay6,
+            }
+        } catch {
+            return defaults
+        }
+    }
 
     async borrow(dto: { cardId: string; copyId: string; requestId?: string }, librarianId: string, isReservation: boolean = false) {
         const queryRunner = this.dataSource.createQueryRunner()
@@ -219,17 +241,14 @@ export class BorrowRecordsService {
             const overdue = diffDays > 0
 
             // Tự động tạo/cập nhật phí phạt nếu quá hạn (trong transaction)
-            // Rates: 1000đ/ngày cho 5 ngày đầu, 3000đ/ngày từ ngày thứ 6
-            // TODO: Đọc rates động từ system_config table
-            const rateFirst5 = 1000
-            const rateFrom6 = 3000
+            const rates = await this.getFineRates()
             let fineAmount = 0
             if (overdue) {
                 let amount: number
                 if (diffDays <= 5) {
-                    amount = diffDays * rateFirst5
+                    amount = diffDays * rates.first5
                 } else {
-                    amount = 5 * rateFirst5 + (diffDays - 5) * rateFrom6
+                    amount = 5 * rates.first5 + (diffDays - 5) * rates.fromDay6
                 }
                 fineAmount = amount
 

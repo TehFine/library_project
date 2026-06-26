@@ -162,9 +162,9 @@ export default function ViolationsReportPage() {
         'Mã thẻ': row.cardNumber,
       }
       if (activeTab === 'overdue') {
-        base['Số sách QH'] = row.overdueCount
-        base['Danh sách sách'] = (row.books || []).map((b: any) => b.bookTitle).join(', ')
-        base['QH nhất'] = `${row.maxOverdueDays} ngày`
+        base['Sách'] = row.bookTitle
+        base['Quá hạn'] = `${row.overdueDays} ngày`
+        base['Hạn trả'] = formatDate(row.dueDate)
       } else if (activeTab === 'frequent') {
         base['Số lần quá hạn'] = row.violationCount
         base['Lần cuối'] = formatDate(row.lastViolation)
@@ -194,8 +194,8 @@ export default function ViolationsReportPage() {
     let rows: (string | number)[][]
 
     if (activeTab === 'overdue') {
-      headers = ['Độc giả', 'Mã thẻ', 'Số sách QH', 'Danh sách sách', 'QH nhất']
-      rows = list.map((r: any) => [r.name, r.cardNumber, r.overdueCount, (r.books || []).map((b: any) => b.bookTitle).join(', '), `${r.maxOverdueDays} ngày`])
+      headers = ['Độc giả', 'Mã thẻ', 'Sách', 'Quá hạn', 'Hạn trả']
+      rows = list.map((r: any) => [r.name, r.cardNumber, r.bookTitle, `${r.overdueDays} ngày`, formatDate(r.dueDate)])
     } else if (activeTab === 'frequent') {
       headers = ['Độc giả', 'Mã thẻ', 'Số lần quá hạn', 'Lần cuối']
       rows = list.map((r: any) => [r.name, r.cardNumber, r.violationCount, formatDate(r.lastViolation)])
@@ -366,7 +366,7 @@ export default function ViolationsReportPage() {
                     />
                   ) : (
                     currentList.map((row: any, i: number) => (
-                      <tr key={row.userId || row.id || i} className="hover:bg-slate-50/50 transition-colors group">
+                      <tr key={row.id || i} className="hover:bg-slate-50/50 transition-colors group">
                         {/* Độc giả */}
                         <td className="px-4 sm:px-6 py-4">
                           <div className="flex items-center gap-2 sm:gap-3">
@@ -411,27 +411,13 @@ export default function ViolationsReportPage() {
 
                         {activeTab === 'overdue' && (
                           <>
-                            <td className="px-4 sm:px-6 py-4">
-                              <div className="text-slate-600 text-sm space-y-0.5">
-                                <span className="font-bold">{row.overdueCount} cuốn</span>
-                                <div className="text-[10px] text-slate-400 space-y-0.5 mt-1">
-                                  {row.books?.slice(0, 3).map((b: any, bi: number) => (
-                                    <div key={bi} className="truncate max-w-[160px] sm:max-w-[220px]">
-                                      • {b.bookTitle} (QH {b.overdueDays}n)
-                                    </div>
-                                  ))}
-                                  {row.overdueCount > 3 && (
-                                    <div className="text-slate-300 italic">+{row.overdueCount - 3} cuốn khác</div>
-                                  )}
-                                </div>
-                              </div>
-                            </td>
+                            <td className="px-4 sm:px-6 py-4 text-slate-600 text-sm max-w-[120px] sm:max-w-[180px] truncate">{row.bookTitle}</td>
                             <td className="px-4 sm:px-6 py-4 text-center">
                               <Badge className={cn(
                                 "whitespace-nowrap",
-                                row.maxOverdueDays > 5 ? "bg-red-50 text-red-700 border-red-100" : "bg-amber-50 text-amber-700 border-amber-100"
+                                row.overdueDays > 5 ? "bg-red-50 text-red-700 border-red-100" : "bg-amber-50 text-amber-700 border-amber-100"
                               )}>
-                                QH nhất {row.maxOverdueDays} ngày
+                                Quá hạn {row.overdueDays} ngày
                               </Badge>
                             </td>
                           </>

@@ -5,6 +5,7 @@ import { Repository, LessThan } from 'typeorm'
 import { toLocalDateStr } from '@/common/utils/date'
 import { Fine } from './entities/fine.entity'
 import { BorrowRecord } from '@/modules/borrow-records/entities/borrow-record.entity'
+import { SystemConfig } from '@/modules/admin/entities/system-config.entity'
 import { RealtimeGateway } from '@/common/websocket/realtime.gateway'
 
 @Injectable()
@@ -16,8 +17,29 @@ export class FinesCronService {
         private fineRepo: Repository<Fine>,
         @InjectRepository(BorrowRecord)
         private borrowRepo: Repository<BorrowRecord>,
+        @InjectRepository(SystemConfig)
+        private configRepo: Repository<SystemConfig>,
         private realtime: RealtimeGateway,
     ) { }
+
+    private async getFineRates(): Promise<{ first5: number; fromDay6: number }> {
+        const defaults = { first5: 1000, fromDay6: 3000 }
+        try {
+            const configs = await this.configRepo.find({
+                where: [
+                    { key: 'fine_first_5_days' },
+                    { key: 'fine_from_day_6' },
+                ]
+            })
+            const map = new Map(configs.map(c => [c.key, c.value]))
+            return {
+                first5: parseInt(map.get('fine_first_5_days') ?? '', 10) || defaults.first5,
+                fromDay6: parseInt(map.get('fine_from_day_6') ?? '', 10) || defaults.fromDay6,
+            }
+        } catch {
+            return defaults
+        }
+    }
 
     /**
      * Chạy mỗi giờ để tự động cập nhật phí phạt cho sách quá hạn.
@@ -51,6 +73,9 @@ export class FinesCronService {
             const changedFines: Fine[] = []
             const now = new Date()
 
+            // Đọc rates động từ system_config
+            const rates = await this.getFineRates()
+
             for (const record of overdueBorrows) {
                 const dueDate = new Date(record.dueDate)
                 dueDate.setHours(0, 0, 0, 0)
@@ -59,14 +84,11 @@ export class FinesCronService {
                 const diffTime = todayDate.getTime() - dueDate.getTime()
                 const diffDays = Math.max(1, Math.floor(diffTime / (1000 * 60 * 60 * 24)))
 
-                // Rates: 1000đ/ngày cho 5 ngày đầu, 3000đ/ngày từ ngày thứ 6
-                const rateFirst5 = 1000
-                const rateFrom6 = 3000
                 let amount: number
                 if (diffDays <= 5) {
-                    amount = diffDays * rateFirst5
+                    amount = diffDays * rates.first5
                 } else {
-                    amount = 5 * rateFirst5 + (diffDays - 5) * rateFrom6
+                    amount = 5 * rates.first5 + (diffDays - 5) * rates.fromDay6
                 }
 
                 const existing = existingFines.get(record.id)

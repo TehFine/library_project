@@ -4,6 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { Repository, LessThan, Between } from 'typeorm'
 import { Fine } from './entities/fine.entity'
 import { BorrowRecord } from '@/modules/borrow-records/entities/borrow-record.entity'
+import { SystemConfig } from '@/modules/admin/entities/system-config.entity'
 import { RealtimeGateway } from '@/common/websocket/realtime.gateway'
 
 @Injectable()
@@ -13,8 +14,29 @@ export class FinesService {
         private fineRepo: Repository<Fine>,
         @InjectRepository(BorrowRecord)
         private borrowRepo: Repository<BorrowRecord>,
+        @InjectRepository(SystemConfig)
+        private configRepo: Repository<SystemConfig>,
         private realtime: RealtimeGateway,
     ) { }
+
+    private async getFineRates(): Promise<{ first5: number; fromDay6: number }> {
+        const defaults = { first5: 1000, fromDay6: 3000 }
+        try {
+            const configs = await this.configRepo.find({
+                where: [
+                    { key: 'fine_first_5_days' },
+                    { key: 'fine_from_day_6' },
+                ]
+            })
+            const map = new Map(configs.map(c => [c.key, c.value]))
+            return {
+                first5: parseInt(map.get('fine_first_5_days') ?? '', 10) || defaults.first5,
+                fromDay6: parseInt(map.get('fine_from_day_6') ?? '', 10) || defaults.fromDay6,
+            }
+        } catch {
+            return defaults
+        }
+    }
 
     async findAll() {
         return this.fineRepo.find({
@@ -142,6 +164,9 @@ export class FinesService {
         const { page = 1, limit = 12, status } = query
         const skip = (page - 1) * limit
 
+        // Đọc rates động từ system_config
+        const rates = await this.getFineRates()
+
         // 1. Lấy phí phạt thật trong DB
         const realFines = await this.fineRepo.find({
             where: {
@@ -192,7 +217,7 @@ export class FinesService {
                     borrowRecordId: b.id,
                     fineType: 'overdue',
                     overdueDays: totalDiffDays,
-                    amount: this.calculateOverdueFine(totalDiffDays),
+                    amount: this.calculateOverdueFine(totalDiffDays, rates.first5, rates.fromDay6),
                     status: 'pending',
                     createdAt: new Date(),
                     isVirtual: true
