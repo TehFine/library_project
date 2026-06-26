@@ -11,10 +11,12 @@ import { Reservation } from '../reservations/entities/reservation.entity';
 import { User } from '../users/entities/user.entity';
 import { Role } from '../users/entities/role.entity';
 import { LibraryCard } from '../library-cards/entities/library-card.entity';
+import { Notification } from '../notifications/entities/notification.entity';
+import { SystemConfig } from './entities/system-config.entity';
 
 @Module({
     imports: [
-        TypeOrmModule.forFeature([BorrowRecord, Fine, Book, BookCopy, Reservation, User, Role, LibraryCard]),
+        TypeOrmModule.forFeature([BorrowRecord, Fine, Book, BookCopy, Reservation, User, Role, LibraryCard, Notification, SystemConfig]),
         UsersModule,
     ],
     controllers: [AdminController],

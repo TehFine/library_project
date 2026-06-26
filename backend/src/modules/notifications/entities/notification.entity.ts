@@ -7,7 +7,7 @@ export class Notification {
     id: string
 
     @Column()
-    notificationType: string  // 'bulk' | 'test'
+    notificationType: string  // 'bulk' | 'test' | 'individual' | 'account_lock'
 
     @Column()
     title: string

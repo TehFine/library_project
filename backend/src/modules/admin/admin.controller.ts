@@ -1,13 +1,16 @@
-import { Controller, Get, Patch, Param, Body, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiBody } from '@nestjs/swagger';
+import { Controller, Get, Patch, Put, Param, Body, Query, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiBody, ApiQuery } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { RolesGuard } from '@/common/guards/roles.guard';
+import { Roles } from '@/common/decorators/roles.decorator';
 import { RoleName } from '../users/entities/role.entity';
 import { AdminService } from './admin.service';
 
 @ApiTags('Admin - Quản trị')
 @ApiBearerAuth('JWT-auth')
 @Controller('admin')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(RoleName.LIBRARY_ADMIN)
 export class AdminController {
     constructor(private readonly adminService: AdminService) {}
 
@@ -19,8 +22,17 @@ export class AdminController {
 
     @Get('reports/books')
     @ApiOperation({ summary: 'Báo cáo sách' })
-    getBookReports() {
-        return this.adminService.getBookReports();
+    @ApiQuery({ name: 'fromDate', required: false, description: 'Lọc từ ngày (YYYY-MM-DD)' })
+    @ApiQuery({ name: 'toDate', required: false, description: 'Lọc đến ngày (YYYY-MM-DD)' })
+    @ApiQuery({ name: 'categoryId', required: false, description: 'Lọc theo thể loại' })
+    @ApiQuery({ name: 'search', required: false, description: 'Tìm kiếm theo tên sách hoặc tác giả' })
+    getBookReports(
+        @Query('fromDate') fromDate?: string,
+        @Query('toDate') toDate?: string,
+        @Query('categoryId') categoryId?: string,
+        @Query('search') search?: string,
+    ) {
+        return this.adminService.getBookReports({ fromDate, toDate, categoryId, search });
     }
 
     @Get('audit-logs')
@@ -50,8 +62,25 @@ export class AdminController {
 
     @Patch('users/:id/status')
     @ApiOperation({ summary: 'Kích hoạt/vô hiệu hoá người dùng' })
-    @ApiBody({ schema: { example: { isActive: false } } })
-    toggleUserStatus(@Param('id') id: string, @Body('isActive') isActive: boolean) {
-        return this.adminService.toggleUserStatus(id, isActive);
+    @ApiBody({ schema: { example: { isActive: false, reason: 'Vi phạm chính sách mượn sách nhiều lần' } } })
+    toggleUserStatus(
+        @Param('id') id: string,
+        @Body('isActive') isActive: boolean,
+        @Body('reason') reason?: string,
+    ) {
+        return this.adminService.toggleUserStatus(id, isActive, reason);
+    }
+
+    @Get('settings')
+    @ApiOperation({ summary: 'Lấy cấu hình hệ thống' })
+    getSettings() {
+        return this.adminService.getSettings();
+    }
+
+    @Put('settings')
+    @ApiOperation({ summary: 'Cập nhật cấu hình hệ thống' })
+    @ApiBody({ schema: { example: { fineFirst5Days: '1000', fineFromDay6: '3000', maxBooksPerBorrow: '3' } } })
+    updateSettings(@Body() body: Record<string, string>) {
+        return this.adminService.updateSettings(body);
     }
 }

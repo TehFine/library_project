@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { toLocalDateStr } from '@/common/utils/date';
 import { In, LessThan } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -11,6 +11,8 @@ import { BorrowRecord } from '../borrow-records/entities/borrow-record.entity';
 import { Reservation } from '../reservations/entities/reservation.entity';
 import { Fine } from '../fines/entities/fine.entity';
 import { LibraryCard } from '../library-cards/entities/library-card.entity';
+import { Notification } from '../notifications/entities/notification.entity';
+import { SystemConfig } from './entities/system-config.entity';
 import { RealtimeGateway } from '@/common/websocket/realtime.gateway';
 import { UsersService } from '../users/users.service';
 
@@ -25,9 +27,25 @@ export class AdminService {
         @InjectRepository(Fine) private fineRepo: Repository<Fine>,
         @InjectRepository(Role) private roleRepo: Repository<Role>,
         @InjectRepository(LibraryCard) private cardRepo: Repository<LibraryCard>,
+        @InjectRepository(Notification) private notifRepo: Repository<Notification>,
+        @InjectRepository(SystemConfig) private configRepo: Repository<SystemConfig>,
         private usersService: UsersService,
         private realtime: RealtimeGateway,
     ) {}
+
+    // ── Default system config values ───────────────────────────────────
+    private readonly DEFAULT_CONFIG: Record<string, string> = {
+        fine_first_5_days: '1000',
+        fine_from_day_6: '3000',
+        max_books_per_borrow: '3',
+        max_borrow_days: '14',
+        max_renewals: '2',
+        renewal_days: '14',
+        new_card_fee: '5000',
+        default_card_duration: '1y',
+        auto_deactivate_months: '3',
+        auto_lock_days: '30',
+    }
 
     async getDashboardStats() {
         const readerRole = await this.roleRepo.findOneBy({ name: RoleName.READER });
@@ -329,9 +347,9 @@ export class AdminService {
         };
     }
 
-    async getBookReports() {
+    async getBookReports(filters?: { fromDate?: string; toDate?: string; categoryId?: string; search?: string }) {
         // 1. Top borrowed books
-        const topBorrowedRaw = await this.borrowRepo
+        const topQuery = this.borrowRepo
             .createQueryBuilder('borrow')
             .leftJoin('borrow.bookCopy', 'copy')
             .leftJoin('copy.book', 'book')
@@ -341,7 +359,24 @@ export class AdminService {
             .addSelect('book.author', 'author')
             .addSelect('category.name', 'category')
             .addSelect('COUNT(borrow.id)', 'totalBorrows')
-            .addSelect('AVG(COALESCE(borrow.returnDate, CURRENT_DATE) - borrow.borrowDate)', 'avgDays')
+            .addSelect('AVG(COALESCE(borrow.returnDate, CURRENT_DATE) - borrow.borrowDate)', 'avgDays');
+
+        // Apply filters
+        if (filters?.fromDate) {
+            topQuery.andWhere('borrow.borrowDate >= :fromDate', { fromDate: filters.fromDate });
+        }
+        if (filters?.toDate) {
+            topQuery.andWhere('borrow.borrowDate <= :toDate', { toDate: filters.toDate });
+        }
+        if (filters?.categoryId) {
+            topQuery.andWhere('book.categoryId = :categoryId', { categoryId: Number(filters.categoryId) });
+        }
+        if (filters?.search) {
+            const q = `%${filters.search}%`;
+            topQuery.andWhere('(book.title ILIKE :search OR book.author ILIKE :search)', { search: q });
+        }
+
+        const topBorrowedRaw = await topQuery
             .groupBy('book.id')
             .addGroupBy('book.title')
             .addGroupBy('book.author')
@@ -825,12 +860,140 @@ export class AdminService {
         return this.usersService.findOne(userId);
     }
 
-    async toggleUserStatus(userId: string, isActive: boolean) {
-        await this.userRepo.update(userId, { isActive });
-        
+    async toggleUserStatus(userId: string, isActive: boolean, reason?: string) {
+        const user = await this.userRepo.findOne({
+            where: { id: userId },
+            relations: { profile: true },
+        });
+        if (!user) throw new NotFoundException('User not found');
+
+        if (!isActive) {
+            // ── Khóa tài khoản ─────────────────────────────────────────────────
+            const lockReason = reason || 'Vi phạm chính sách thư viện';
+
+            // 1. Cập nhật DB: isActive + lockedReason
+            await this.userRepo.update(userId, { isActive: false, lockedReason: lockReason });
+
+            // 2. Gửi notification cho reader trước khi force-logout
+            const readerName = user.profile?.fullName || user.username || 'Bạn';
+            const notifContent = `Tài khoản thư viện của ${readerName} đã bị khóa.
+
+Lý do: ${lockReason}
+
+Vui lòng liên hệ thủ thư hoặc quản trị viên để được hỗ trợ và mở khóa tài khoản.`;
+
+            const notification = this.notifRepo.create({
+                notificationType: 'account_lock',
+                title: '🔒 Tài khoản đã bị khóa',
+                content: notifContent,
+                userId,
+                read: false,
+                status: 'sent',
+                sentAt: new Date(),
+                createdById: userId,
+            });
+            await this.notifRepo.save(notification);
+
+            // 3. Emit realtime notification đến reader
+            this.realtime.emitToUser(userId, 'reader:notification', {
+                id: notification.id,
+                title: notification.title,
+                content: '🔒 Tài khoản của bạn đã bị khóa. Vui lòng xem chi tiết trong trang Thông báo.',
+                createdAt: notification.createdAt,
+            });
+
+            // 4. Force logout user qua WebSocket kèm lý do
+            this.realtime.emitToUser(userId, 'force-logout', { reason: lockReason });
+        } else {
+            // ── Mở khóa tài khoản ───────────────────────────────────────────────
+            await this.userRepo.update(userId, { isActive: true, lockedReason: null });
+
+            // Gửi notification thông báo đã mở khóa
+            const readerName = user.profile?.fullName || user.username || 'Bạn';
+            const notifContent = `Tài khoản thư viện của ${readerName} đã được mở khóa! Bạn có thể đăng nhập và sử dụng dịch vụ thư viện như bình thường.`;
+
+            const notification = this.notifRepo.create({
+                notificationType: 'account_lock',
+                title: '✅ Tài khoản đã được mở khóa',
+                content: notifContent,
+                userId,
+                read: false,
+                status: 'sent',
+                sentAt: new Date(),
+                createdById: userId,
+            });
+            await this.notifRepo.save(notification);
+
+            this.realtime.emitToUser(userId, 'reader:notification', {
+                id: notification.id,
+                title: notification.title,
+                content: '✅ Tài khoản của bạn đã được mở khóa!',
+                createdAt: notification.createdAt,
+            });
+        }
+
         this.realtime.emit('admin:dashboard-update');
         this.realtime.emit('admin:user-update');
-        
+
         return this.usersService.findOne(userId);
     }
+
+    async getSettings(): Promise<Record<string, string>> {
+        // Lấy tất cả config từ DB
+        const configs = await this.configRepo.find();
+        const dbMap = new Map(configs.map(c => [c.key, c.value]));
+
+        // Merge: DB value ghi đè default, giữ lại default nếu chưa có trong DB
+        const result: Record<string, string> = {}
+        for (const [key, defaultVal] of Object.entries(this.DEFAULT_CONFIG)) {
+            result[key] = dbMap.get(key) ?? defaultVal
+        }
+        return result
+    }
+
+    async updateSettings(body: Record<string, string>): Promise<Record<string, string>> {
+        const allowedKeys = Object.keys(this.DEFAULT_CONFIG)
+
+        for (const [key, value] of Object.entries(body)) {
+            if (!allowedKeys.includes(key)) {
+                throw new BadRequestException(`Không hỗ trợ cấu hình: ${key}`)
+            }
+            // Validate numeric values
+            if (['fine_first_5_days', 'fine_from_day_6', 'max_books_per_borrow', 'max_borrow_days', 'max_renewals', 'renewal_days', 'new_card_fee', 'auto_deactivate_months', 'auto_lock_days'].includes(key)) {
+                const num = Number(value)
+                if (isNaN(num) || num < 0) {
+                    throw new BadRequestException(`Giá trị không hợp lệ cho ${key}: ${value}`)
+                }
+            }
+
+            // Upsert
+            let config = await this.configRepo.findOneBy({ key })
+            if (config) {
+                config.value = value
+            } else {
+                config = this.configRepo.create({ key, value, description: this.getConfigDescription(key) })
+            }
+            await this.configRepo.save(config)
+        }
+
+        this.realtime.emit('admin:dashboard-update')
+
+        return this.getSettings()
+    }
+
+    private getConfigDescription(key: string): string {
+        const descs: Record<string, string> = {
+            fine_first_5_days: 'Phí phạt 5 ngày đầu (đ/ngày)',
+            fine_from_day_6: 'Phí phạt từ ngày thứ 6 (đ/ngày)',
+            max_books_per_borrow: 'Số sách tối đa mỗi lần mượn',
+            max_borrow_days: 'Số ngày mượn tối đa',
+            max_renewals: 'Số lần gia hạn tối đa',
+            renewal_days: 'Số ngày gia hạn thêm',
+            new_card_fee: 'Lệ phí làm thẻ mới',
+            default_card_duration: 'Thời hạn thẻ mặc định (6m/1y/2y)',
+            auto_deactivate_months: 'Tự động hủy thẻ sau (tháng)',
+            auto_lock_days: 'Tự động khóa thẻ khi quá hạn (ngày)',
+        }
+        return descs[key] ?? ''
+    }    
 }
