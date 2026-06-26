@@ -45,8 +45,8 @@ export default function middleware(request: NextRequest) {
     if (token && role) {
       return NextResponse.redirect(new URL(getDashboardPath(role), request.url))
     }
-    // Khách vào trang gốc => chuyển đến danh sách sách
-    return NextResponse.redirect(new URL('/reader/books', request.url))
+    // Khách vào trang gốc => hiển thị trang Landing Page
+    return NextResponse.next()
   }
 
   // 2. Protect Admin routes

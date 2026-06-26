@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { authApi } from '@/lib/api'
 import { User } from '@/types'
 import { getDashboardPath } from '@/lib/auth-utils'
+import { io, Socket } from 'socket.io-client'
 
 interface AuthContextValue {
   user: User | null
@@ -14,6 +15,38 @@ interface AuthContextValue {
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
+
+const WS_URL = process.env.NEXT_PUBLIC_API_URL
+  ? process.env.NEXT_PUBLIC_API_URL.replace('/api', '')
+  : 'http://localhost:3001'
+
+function useForceLogout(userId: string | null, onForceLogout: (reason?: string) => void) {
+  useEffect(() => {
+    if (!userId) return
+
+    const query: Record<string, string> = { userId }
+    const socket = io(`${WS_URL}/events`, {
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 3000,
+      query,
+    })
+
+    socket.on('connect', () => {
+      console.log(`[WS ForceLogout] Connected as user:${userId}`)
+    })
+
+    socket.on('force-logout', (data: any) => {
+      console.log('[WS ForceLogout] Received force-logout:', data)
+      onForceLogout(data?.reason || '')
+    })
+
+    return () => {
+      socket.disconnect()
+    }
+  }, [userId, onForceLogout])
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser]       = useState<User | null>(null)
@@ -34,6 +67,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { refresh() }, [refresh])
 
+  const handleForceLogout = useCallback((reason?: string) => {
+    localStorage.removeItem('access_token')
+    document.cookie = 'access_token=; path=/; max-age=0'
+    setUser(null)
+    const params = new URLSearchParams({ reason: 'locked' })
+    if (reason) params.set('message', reason)
+    router.push(`/auth/login?${params.toString()}`)
+  }, [router])
+
+  // Lắng nghe force-logout từ WebSocket
+  useForceLogout(user?.id ?? null, handleForceLogout)
+
   async function login(email: string, password: string) {
     const res = await authApi.login(email, password)
     // Lưu vào cả localStorage (cho API client) và cookie (cho middleware)
@@ -47,7 +92,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem('access_token')
     document.cookie = 'access_token=; path=/; max-age=0'
     setUser(null)
-    router.push('/login')
+    router.push('/reader/books')
   }
 
   return (

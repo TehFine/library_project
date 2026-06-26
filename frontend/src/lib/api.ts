@@ -163,6 +163,8 @@ export const finesApi = {
     request<any>(`/fines/${id}/waive`, { method: 'PATCH', body: JSON.stringify({ reason }) }),
   simulatePayOnline: (id: string) =>
     request<any>(`/fines/${id}/simulate-pay`, { method: 'POST' }),
+  pay: (id: string, method: string) =>
+    request<any>(`/fines/${id}/pay`, { method: 'PATCH', body: JSON.stringify({ method }) }),
   getAdminStats: (params?: { from?: string; to?: string; status?: string; fineType?: string }) =>
     request<{ summary: AdminFineSummary; transactions: AdminFineTransaction[] }>(
       `/fines/admin-stats${buildQueryString((params as any) ?? {})}`
@@ -360,11 +362,14 @@ export interface ViolationReportData {
 
 export const adminApi = {
   getDashboardStats: () => request<AdminDashboardStats>('/admin/dashboard/stats'),
-  getBookReports: () => request<BookReportData>('/admin/reports/books'),
+  getBookReports: (params?: { fromDate?: string; toDate?: string; categoryId?: string; search?: string }) =>
+    request<BookReportData>(`/admin/reports/books${buildQueryString((params as any) ?? {})}`),
   getAuditLogs: () => request<AuditLogEntry[]>('/admin/audit-logs'),
   getViolationReports: () => request<ViolationReportData>('/admin/reports/violations'),
   getAllUsers: () => request<User[]>('/admin/users'),
-  updateUserRole: (id: string, role: string) => request<User>(`/admin/users/${id}/role`, { method: 'PATCH', body: JSON.stringify({ role }) }),    toggleUserStatus: (id: string, isActive: boolean) => request<User>(`/admin/users/${id}/status`, { method: 'PATCH', body: JSON.stringify({ isActive }) }),
+  updateUserRole: (id: string, role: string) => request<User>(`/admin/users/${id}/role`, { method: 'PATCH', body: JSON.stringify({ role }) }),    toggleUserStatus: (id: string, isActive: boolean, reason?: string) => request<User>(`/admin/users/${id}/status`, { method: 'PATCH', body: JSON.stringify({ isActive, reason }) }),
+  getSettings: () => request<Record<string, string>>('/admin/settings'),
+  updateSettings: (data: Record<string, string>) => request<Record<string, string>>('/admin/settings', { method: 'PUT', body: JSON.stringify(data) }),
 }
 
 // ── Notifications ──────────────────────────────────────────────────────────────
