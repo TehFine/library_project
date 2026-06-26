@@ -68,7 +68,7 @@ export class ReservationsService {
         return saved
     }
 
-    private async syncReservationsStatus() {
+    async syncReservationsStatus() {
         // 1. Xử lý quá hạn
         const expiredReservations = await this.resRepo.find({
             where: { status: 'notified', expiresAt: LessThan(new Date()) }
@@ -83,10 +83,7 @@ export class ReservationsService {
                 if (copy && copy.status === 'reserved') {
                     copy.status = 'available'
                     await this.copyRepo.save(copy)
-
-                    const book = copy.book
-                    book.availableCopies += 1
-                    await this.bookRepo.save(book)
+                    // BookCopySubscriber tự động cập nhật availableCopies
                 }
             }
         }
@@ -106,10 +103,7 @@ export class ReservationsService {
                 // Đặt bản sao này thành reserved
                 availableCopy.status = 'reserved'
                 await this.copyRepo.save(availableCopy)
-
-                const book = availableCopy.book
-                book.availableCopies -= 1
-                await this.bookRepo.save(book)
+                // BookCopySubscriber tự động cập nhật availableCopies
 
                 // Cập nhật reservation thành notified
                 res.status = 'notified'

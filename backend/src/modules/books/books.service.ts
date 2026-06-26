@@ -4,6 +4,7 @@ import { Repository, ILike } from 'typeorm'
 import { Book } from './entities/book.entity'
 import { BookCopy } from './entities/book-copy.entity'
 import { RealtimeGateway } from '@/common/websocket/realtime.gateway'
+import { ReservationsService } from '@/modules/reservations/reservations.service'
 
 @Injectable()
 export class BooksService {
@@ -13,6 +14,7 @@ export class BooksService {
         @InjectRepository(BookCopy)
         private bookCopiesRepository: Repository<BookCopy>,
         private realtime: RealtimeGateway,
+        private reservationsService: ReservationsService,
     ) { }
 
     async findAll(params?: {
@@ -112,6 +114,10 @@ export class BooksService {
         })
         // BookCopySubscriber tự động cập nhật totalCopies và availableCopies
         const saved = await this.bookCopiesRepository.save(copy)
+        
+        // Kiểm tra và gán bản sao mới cho reservation đang chờ (nếu có)
+        await this.reservationsService.syncReservationsStatus()
+        
         this.realtime.emit('admin:dashboard-update')
         return saved as unknown as BookCopy
     }
@@ -129,6 +135,12 @@ export class BooksService {
         Object.assign(copy, dto)
         // BookCopySubscriber tự động cập nhật totalCopies và availableCopies
         const saved = await this.bookCopiesRepository.save(copy)
+        
+        // Nếu bản sao được chuyển sang 'available', kiểm tra reservation đang chờ
+        if (dto.status === 'available') {
+            await this.reservationsService.syncReservationsStatus()
+        }
+        
         this.realtime.emit('admin:dashboard-update')
         return saved as unknown as BookCopy
     }

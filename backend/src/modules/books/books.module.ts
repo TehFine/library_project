@@ -5,9 +5,13 @@ import { BooksService } from './books.service'
 import { Book } from './entities/book.entity'
 import { BookCopy } from './entities/book-copy.entity'
 import { BookCopySubscriber } from './subscribers/book-copy.subscriber'
+import { ReservationsModule } from '@/modules/reservations/reservations.module'
 
 @Module({
-    imports: [TypeOrmModule.forFeature([Book, BookCopy])],
+    imports: [
+        TypeOrmModule.forFeature([Book, BookCopy]),
+        ReservationsModule,
+    ],
     controllers: [BooksController],
     providers: [BooksService, BookCopySubscriber],
     exports: [BooksService],
