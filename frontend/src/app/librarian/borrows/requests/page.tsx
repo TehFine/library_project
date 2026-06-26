@@ -127,8 +127,8 @@ export default function LibrarianRequestsPage() {
       setRejectTarget(null)
       setRejectReason('')
       loadData()
-    } catch (err) {
-      toast.error('Lỗi khi từ chối yêu cầu')
+    } catch (err: any) {
+      toast.error(err?.message || 'Lỗi khi từ chối yêu cầu')
     } finally {
       setIsRejecting(false)
     }

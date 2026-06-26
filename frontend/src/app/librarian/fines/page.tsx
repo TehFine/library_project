@@ -55,8 +55,8 @@ export default function LibrarianFinesPage() {
       toast.success('Đã thanh toán phí phạt thành công')
       setSelectedFine(null)
       loadData()
-    } catch (err) {
-      toast.error('Lỗi khi thanh toán')
+    } catch (err: any) {
+      toast.error(err?.message || 'Lỗi khi thanh toán')
     }
   }
 

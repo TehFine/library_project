@@ -115,8 +115,8 @@ export default function LibrarianBooksPage() {
       setSelectedBookForCopies(detailedBook)
       loadData() // Refresh list to update available copies count
       toast.success('Đã thêm bản sao mới')
-    } catch (err) {
-      toast.error('Lỗi khi thêm bản sao')
+    } catch (err: any) {
+      toast.error(err?.message || 'Lỗi khi thêm bản sao')
     } finally {
       setAddingCopy(false)
     }
@@ -342,6 +342,7 @@ export default function LibrarianBooksPage() {
                      <option value="good">Tốt (Good)</option>
                      <option value="fair">Khá (Fair)</option>
                      <option value="poor">Kém/Cũ (Poor)</option>
+                     <option value="damaged">Hư hỏng nặng (Damaged)</option>
                   </Select>
                </div>
                <div>
@@ -353,7 +354,8 @@ export default function LibrarianBooksPage() {
                   >
                      <option value="available">Có sẵn</option>
                      <option value="lost">Đã mất</option>
-                     <option value="damaged">Thanh lý (Damaged)</option>
+                     <option value="disposed">Đã thanh lý</option>
+                     <option value="reserved">Đã đặt trước</option>
                   </Select>
                </div>
             </div>

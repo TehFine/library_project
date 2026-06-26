@@ -86,8 +86,8 @@ export default function NewBorrowPage() {
 
         // 4. Chuyển tới bước xác nhận
         if (!cancelled) setStep(3)
-      } catch (err) {
-        toast.error('Không thể tự động điền thông tin từ yêu cầu mượn')
+      } catch (err: any) {
+        toast.error(err?.message || 'Không thể tự động điền thông tin từ yêu cầu mượn')
       }
     }
 
@@ -104,8 +104,8 @@ export default function NewBorrowPage() {
       if (res.length === 1) {
         handleSelectReader(res[0].id)
       }
-    } catch (err) {
-      toast.error('Lỗi khi tìm kiếm độc giả')
+    } catch (err: any) {
+      toast.error(err?.message || 'Lỗi khi tìm kiếm độc giả')
     } finally {
       setIsSearchingReader(false)
     }
@@ -126,8 +126,8 @@ export default function NewBorrowPage() {
         reason: details.status !== 'active' ? 'Thẻ đang bị khóa hoặc hết hạn' : overdueCount > 0 ? 'Độc giả đang có sách quá hạn' : ''
       })
       setSearchResults([])
-    } catch (err) {
-      toast.error('Lỗi khi lấy thông tin chi tiết thẻ')
+    } catch (err: any) {
+      toast.error(err?.message || 'Lỗi khi lấy thông tin chi tiết thẻ')
     }
   }
 
@@ -143,8 +143,8 @@ export default function NewBorrowPage() {
       if (books.length === 0) {
         toast.error('Không tìm thấy sách nào')
       }
-    } catch (err) {
-      toast.error('Lỗi khi tìm kiếm sách')
+    } catch (err: any) {
+      toast.error(err?.message || 'Lỗi khi tìm kiếm sách')
     } finally {
       setIsSearchingBookTitle(false)
     }
@@ -162,8 +162,8 @@ export default function NewBorrowPage() {
         setSelectedBookForCopies(null)
       }
       setAvailableCopies(copies)
-    } catch (err) {
-      toast.error('Lỗi khi lấy danh sách bản sao')
+    } catch (err: any) {
+      toast.error(err?.message || 'Lỗi khi lấy danh sách bản sao')
       setSelectedBookForCopies(null)
     } finally {
       setLoadingCopies(false)
@@ -198,8 +198,8 @@ export default function NewBorrowPage() {
       }
       setSelectedBooks([...selectedBooks, book])
       setSearchBook('')
-    } catch (err) {
-      toast.error('Không tìm thấy mã sách này')
+    } catch (err: any) {
+      toast.error(err?.message || 'Không tìm thấy mã sách này')
     } finally {
       setIsSearchingBook(false)
     }

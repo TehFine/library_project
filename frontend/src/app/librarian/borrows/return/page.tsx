@@ -58,7 +58,7 @@ export default function ReturnBorrowPage() {
               if (today > dueDate) {
                 const diffTime = today.getTime() - dueDate.getTime()
                 daysOverdue = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-                fine = daysOverdue * 1000
+                fine = daysOverdue <= 5 ? daysOverdue * 1000 : 5000 + (daysOverdue - 5) * 3000
               }
               if (!cancelled) {
                 setSelectedRecord({ ...record, fine, daysOverdue })
@@ -83,7 +83,7 @@ export default function ReturnBorrowPage() {
                 if (today > dueDate) {
                   const diffTime = today.getTime() - dueDate.getTime()
                   daysOverdue = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-                  fine = daysOverdue * 1000
+                  fine = daysOverdue <= 5 ? daysOverdue * 1000 : 5000 + (daysOverdue - 5) * 3000
                 }
                 if (!cancelled) {
                   setSelectedRecord({ ...record, fine, daysOverdue })
@@ -91,13 +91,13 @@ export default function ReturnBorrowPage() {
               } else {
                 toast.error('Không tìm thấy phiếu mượn')
               }
-            } catch (err) {
-              toast.error('Lỗi khi tìm kiếm phiếu mượn')
+            } catch (err: any) {
+              toast.error(err?.message || 'Lỗi khi tìm kiếm phiếu mượn')
             }
           }
         }
-      } catch (err) {
-        toast.error('Lỗi xử lý dữ liệu từ yêu cầu trả')
+      } catch (err: any) {
+        toast.error(err?.message || 'Lỗi xử lý dữ liệu từ yêu cầu trả')
       }
     }
     doPrefill()
@@ -122,13 +122,13 @@ export default function ReturnBorrowPage() {
       if (today > dueDate) {
         const diffTime = today.getTime() - dueDate.getTime()
         daysOverdue = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-        fine = daysOverdue * 1000
+        fine = daysOverdue <= 5 ? daysOverdue * 1000 : 5000 + (daysOverdue - 5) * 3000
       }
 
       setSelectedRecord({ ...record, fine, daysOverdue })
       setTitleSearchResults([])
-    } catch (err) {
-      toast.error('Lỗi khi tìm kiếm phiếu mượn')
+    } catch (err: any) {
+      toast.error(err?.message || 'Lỗi khi tìm kiếm phiếu mượn')
     } finally {
       setIsSearching(false)
     }
@@ -145,8 +145,8 @@ export default function ReturnBorrowPage() {
       if (!results || results.length === 0) {
         toast.error('Không tìm thấy phiếu mượn nào phù hợp')
       }
-    } catch (err) {
-      toast.error('Lỗi khi tìm kiếm sách')
+    } catch (err: any) {
+      toast.error(err?.message || 'Lỗi khi tìm kiếm sách')
     } finally {
       setIsSearchingTitle(false)
     }
@@ -160,7 +160,7 @@ export default function ReturnBorrowPage() {
     if (today > dueDate) {
       const diffTime = today.getTime() - dueDate.getTime()
       daysOverdue = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-      fine = daysOverdue * 1000
+      fine = daysOverdue <= 5 ? daysOverdue * 1000 : 5000 + (daysOverdue - 5) * 3000
     }
     setSelectedRecord({ ...record, fine, daysOverdue })
     setTitleSearchResults([])
