@@ -2,26 +2,41 @@
 import { useEffect, useState, useCallback } from 'react'
 import { notificationApi, ReaderNotification } from '@/lib/api'
 import { Card, EmptyState, Skeleton } from '@/components/ui'
-import { Bell, Check, Clock, Mail, MailOpen } from 'lucide-react'
+import { Bell, Check, Clock, Lock, ShieldCheck, Mail, MailOpen } from 'lucide-react'
 import { formatDate, cn } from '@/lib/utils'
 
 function NotificationItem({ notif, onMarkRead }: { notif: ReaderNotification; onMarkRead: (id: string) => void }) {
-  return (
-    <div
-      className={cn(
-        'flex items-start gap-4 px-6 py-4 transition-colors border-b border-slate-50 last:border-none',
-        notif.read ? 'bg-white' : 'bg-amber-50/40',
-      )}
-    >
-      {/* Icon */}
-      <div
+  return (    <div
         className={cn(
-          'w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5',
-          notif.read ? 'bg-slate-100 text-slate-400' : 'bg-amber-100 text-amber-600',
+          'flex items-start gap-4 px-6 py-4 transition-colors border-b border-slate-50 last:border-none',
+          notif.read ? 'bg-white' : 'bg-amber-50/40',
         )}
       >
-        {notif.read ? <MailOpen className="w-5 h-5" /> : <Mail className="w-5 h-5" />}
-      </div>
+        {/* Icon */}
+        <div
+          className={cn(
+            'w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5',
+            notif.notificationType === 'account_lock'
+              ? notif.read
+                ? 'bg-red-50 text-red-400'
+                : 'bg-red-100 text-red-600'
+              : notif.read
+                ? 'bg-slate-100 text-slate-400'
+                : 'bg-amber-100 text-amber-600',
+          )}
+        >
+          {notif.notificationType === 'account_lock' ? (
+            notif.title.includes('mở khóa') ? (
+              <ShieldCheck className="w-5 h-5" />
+            ) : (
+              <Lock className="w-5 h-5" />
+            )
+          ) : notif.read ? (
+            <MailOpen className="w-5 h-5" />
+          ) : (
+            <Mail className="w-5 h-5" />
+          )}
+        </div>
 
       {/* Content */}
       <div className="flex-1 min-w-0">

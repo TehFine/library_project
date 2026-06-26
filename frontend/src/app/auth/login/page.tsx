@@ -15,6 +15,11 @@ export default function LoginPage() {
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState('')
 
+  // Lấy lý do khóa tài khoản từ URL params (redirect từ force-logout)
+  const lockedReason = typeof window !== 'undefined'
+    ? new URLSearchParams(window.location.search).get('message')
+    : null
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
@@ -40,6 +45,26 @@ export default function LoginPage() {
           Chào mừng trở lại! Vui lòng đăng nhập để tiếp tục.
         </p>
       </div>
+
+      {/* Locked account banner */}
+      {lockedReason && (
+        <div className="mb-6 p-4 rounded-2xl bg-red-50 border border-red-200 shadow-sm">
+          <div className="flex gap-3 items-start">
+            <div className="w-9 h-9 rounded-xl bg-red-100 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-5 h-5 text-red-600" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-red-800">Tài khoản đã bị khóa</p>
+              <p className="text-xs text-red-600 mt-1 leading-relaxed">
+                {lockedReason}
+              </p>
+              <p className="text-xs text-red-500 mt-2 font-medium">
+                Vui lòng liên hệ thủ thư hoặc quản trị viên để được hỗ trợ.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-5">
         <Input

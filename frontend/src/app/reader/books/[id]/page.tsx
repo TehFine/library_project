@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { authApi, booksApi, reservationsApi, cardsApi, borrowRequestsApi } from '@/lib/api'
+import { authApi, booksApi, reservationsApi, cardsApi, borrowRequestsApi, borrowsApi } from '@/lib/api'
 import { Book, User, LibraryCard } from '@/types'
 import { Badge, Card, Skeleton } from '@/components/ui'
 import Button from '@/components/ui/Button'
@@ -21,6 +21,7 @@ export default function BookDetailPage() {
   const [borrowing, setBorrowing] = useState(false)
   const [reserved, setReserved]   = useState(false)
   const [borrowed, setBorrowed]   = useState(false)
+  const [isCurrentlyBorrowed, setIsCurrentlyBorrowed] = useState(false)
   const [error, setError]         = useState('')
   const [coverError, setCoverError] = useState(false)
   const cover = useBookCover(book?.isbn, book?.coverUrl)
@@ -45,8 +46,27 @@ export default function BookDetailPage() {
       setBook(b)
       setUser(u)
       if (u) {
-        const userCards = await cardsApi.mine()
+        const [userCards, myRequests, myBorrows] = await Promise.all([
+          cardsApi.mine(),
+          borrowRequestsApi.mine().catch(() => []),
+          borrowsApi.mine({ status: 'borrowing', limit: 100 }).catch(() => ({ data: [] }))
+        ])
         setCards(userCards)
+        // Kiểm tra nếu đã có yêu cầu mượn đang chờ xử lý cho cuốn sách này
+        const hasPendingRequest = myRequests.some(
+          (r: any) => r.bookId === id && r.status === 'pending'
+        )
+        if (hasPendingRequest) {
+          setBorrowed(true)
+        }
+        // Kiểm tra nếu đang mượn cuốn sách này
+        const activeBorrows = Array.isArray(myBorrows) ? myBorrows : (myBorrows as any)?.data ?? []
+        const hasActiveBorrow = activeBorrows.some(
+          (r: any) => r.bookCopy?.bookId === id
+        )
+        if (hasActiveBorrow) {
+          setIsCurrentlyBorrowed(true)
+        }
       }
     } finally {
       setLoading(false)
@@ -182,14 +202,30 @@ export default function BookDetailPage() {
           {/* CTA */}
           <div className="mt-6 flex flex-col gap-3 max-w-xs">
             {borrowed ? (
-              <Card className="bg-emerald-50 border-emerald-200">
-                <p className="text-sm text-emerald-700 font-medium">Đã gửi yêu cầu mượn!</p>
-                <p className="text-xs text-emerald-600 mt-1">Vui lòng chờ thủ thư duyệt yêu cầu của bạn.</p>
+              <Card className="bg-amber-50 border-amber-200">
+                <p className="text-sm text-amber-700 font-medium flex items-center gap-2">
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500" />
+                  </span>
+                  Đang xử lý
+                </p>
+                <p className="text-xs text-amber-600 mt-2">Yêu cầu mượn của bạn đang chờ thủ thư duyệt.</p>
               </Card>
             ) : reserved ? (
               <Card className="bg-green-50 border-green-200">
                 <p className="text-sm text-green-700 font-medium">Đặt trước thành công!</p>
                 <p className="text-xs text-green-600 mt-1">Chúng tôi sẽ thông báo khi sách có sẵn.</p>
+              </Card>
+            ) : isCurrentlyBorrowed ? (
+              <Card className="bg-blue-50 border-blue-200">
+                <p className="text-sm text-blue-700 font-medium flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                  </svg>
+                  Đang mượn sách này
+                </p>
+                <p className="text-xs text-blue-600 mt-2">Bạn đang mượn cuốn sách này. Vui lòng trả sách trước khi mượn lại.</p>
               </Card>
             ) : !user ? (
               <Card className="bg-amber-50 border-amber-200">

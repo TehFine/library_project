@@ -9,6 +9,7 @@ import { formatDate, cardStatusMap, cn } from '@/lib/utils'
 import { useToast } from '@/hooks/useToast'
 import { useRealtimeRefresh } from '@/hooks/useWebSocket'
 
+import { Check } from 'lucide-react'
 import { AvatarCard, AccordionPersonalInfo, SecurityCard } from '@/components/profile/SharedProfile'
 
 // ── StatCardSmall (replaced: đang mượn & phí phạt) ────────────────────────────
@@ -61,7 +62,7 @@ function TallLibraryCard({ card, onRequestComplete }: { card: LibraryCard | null
           disabled={requesting || requested}
           className="inline-flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm px-6 py-2.5 rounded-xl transition-all disabled:opacity-50"
         >
-          {requesting ? 'Đang gửi...' : requested ? 'Đã gửi yêu cầu ✓' : 'Yêu cầu cấp thẻ'}
+          {requesting ? 'Đang gửi...' : requested ? <><Check className="w-4 h-4" /> Đã gửi yêu cầu</> : 'Yêu cầu cấp thẻ'}
         </button>
       </div>
     )
@@ -92,7 +93,7 @@ function TallLibraryCard({ card, onRequestComplete }: { card: LibraryCard | null
           disabled={requesting || requested}
           className="inline-flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm px-6 py-2.5 rounded-xl transition-all disabled:opacity-50"
         >
-          {requesting ? 'Đang gửi...' : requested ? 'Đã gửi yêu cầu ✓' : 'Gửi yêu cầu lại'}
+          {requesting ? 'Đang gửi...' : requested ? <><Check className="w-4 h-4" /> Đã gửi yêu cầu</> : 'Gửi yêu cầu lại'}
         </button>
       </div>
     )
