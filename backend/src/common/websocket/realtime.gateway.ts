@@ -25,6 +25,21 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
 
     handleConnection(client: Socket) {
         this.connectedClients.set(client.id, client)
+
+        // Lắng nghe sự kiện 'auth' từ client để join room userId
+        const userId = client.handshake.query?.userId as string | undefined
+        if (userId) {
+            client.join(`user:${userId}`)
+            console.log(`[WS] Client ${client.id} joined room user:${userId}`)
+        }
+
+        client.on('auth', (data: { userId?: string }) => {
+            if (data?.userId) {
+                client.join(`user:${data.userId}`)
+                console.log(`[WS] Client ${client.id} joined room user:${data.userId}`)
+            }
+        })
+
         console.log(`[WS] Client connected: ${client.id}`)
     }
 
@@ -33,9 +48,14 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
         console.log(`[WS] Client disconnected: ${client.id}`)
     }
 
-    /** Emit an event to all connected librarian clients */
+    /** Emit an event to all connected clients */
     emit(event: string, data?: any) {
         this.server.emit(event, data)
+    }
+
+    /** Emit an event to a specific user by userId */
+    emitToUser(userId: string, event: string, data?: any) {
+        this.server.to(`user:${userId}`).emit(event, data)
     }
 
     get connectedCount(): number {
