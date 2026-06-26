@@ -1,6 +1,7 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, ManyToOne } from 'typeorm'
 import { BorrowRecord } from '@/modules/borrow-records/entities/borrow-record.entity'
 import { User } from '@/modules/users/entities/user.entity'
+import { ColumnNumericTransformer } from '@/common/utils/column-numeric-transformer'
 
 @Entity('fines')
 export class Fine {
@@ -23,7 +24,7 @@ export class Fine {
     @Column({ default: 0 })
     overdueDays: number
 
-    @Column({ type: 'decimal', precision: 10, scale: 2 })
+    @Column({ type: 'decimal', precision: 10, scale: 2, transformer: ColumnNumericTransformer })
     amount: number
 
     @Column({
