@@ -2,6 +2,9 @@ import { Controller, Get, Post, Body, Param, UseGuards, Req, Patch, Query } from
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { FinesService } from './fines.service'
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard'
+import { RolesGuard } from '@/common/guards/roles.guard'
+import { Roles } from '@/common/decorators/roles.decorator'
+import { RoleName } from '../users/entities/role.entity'
 
 @ApiTags('Fines - Phí phạt')
 @ApiBearerAuth('JWT-auth')
@@ -11,12 +14,16 @@ export class FinesController {
     constructor(private readonly service: FinesService) { }
 
     @Get()
+    @UseGuards(RolesGuard)
+    @Roles(RoleName.LIBRARIAN, RoleName.LIBRARY_ADMIN)
     @ApiOperation({ summary: 'Tất cả phí phạt', description: 'Lấy danh sách tất cả phí phạt (admin/librarian)' })
     findAll() {
         return this.service.findAll()
     }
 
     @Get('admin-stats')
+    @UseGuards(RolesGuard)
+    @Roles(RoleName.LIBRARY_ADMIN)
     @ApiOperation({ summary: 'Thống kê phí', description: 'Thống kê phí phạt cho admin (dashboard + báo cáo)' })
     @ApiQuery({ name: 'from', required: false, example: '2026-01-01' })
     @ApiQuery({ name: 'to', required: false, example: '2026-06-01' })
@@ -38,6 +45,8 @@ export class FinesController {
     }
 
     @Patch(':id/pay')
+    @UseGuards(RolesGuard)
+    @Roles(RoleName.LIBRARIAN, RoleName.LIBRARY_ADMIN)
     @ApiOperation({ summary: 'Thanh toán phí', description: 'Thanh toán một khoản phí phạt' })
     @ApiParam({ name: 'id', description: 'ID phí phạt' })
     @ApiBody({ schema: { example: { method: 'cash' } } })
@@ -53,6 +62,8 @@ export class FinesController {
     }
 
     @Patch(':id/waive')
+    @UseGuards(RolesGuard)
+    @Roles(RoleName.LIBRARIAN, RoleName.LIBRARY_ADMIN)
     @ApiOperation({ summary: 'Xoá phí', description: 'Xoá/miễn một khoản phí phạt (librarian)' })
     @ApiParam({ name: 'id', description: 'ID phí phạt' })
     @ApiBody({ schema: { example: { reason: 'Sách bị hỏng do thư viện' } } })

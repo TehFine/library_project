@@ -2,6 +2,9 @@ import { Controller, Get, Post, Body, UseGuards } from '@nestjs/common'
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { CategoriesService } from './categories.service'
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard'
+import { RolesGuard } from '@/common/guards/roles.guard'
+import { Roles } from '@/common/decorators/roles.decorator'
+import { RoleName } from '../users/entities/role.entity'
 
 @ApiTags('Categories - Thể loại')
 @Controller('categories')
@@ -15,7 +18,8 @@ export class CategoriesController {
     }
 
     @Post()
-    @UseGuards(JwtAuthGuard)
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(RoleName.LIBRARIAN, RoleName.LIBRARY_ADMIN)
     @ApiBearerAuth('JWT-auth')
     @ApiOperation({ summary: 'Thêm thể loại', description: 'Thêm thể loại sách mới' })
     @ApiBody({ schema: { example: { name: 'Khoa học viễn tưởng' } } })

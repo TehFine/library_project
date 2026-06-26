@@ -2,6 +2,9 @@ import { Controller, Get, Post, Body, Param, UseGuards, Req, Delete, Query } fro
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery, ApiBody } from '@nestjs/swagger'
 import { ReservationsService } from './reservations.service'
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard'
+import { RolesGuard } from '@/common/guards/roles.guard'
+import { Roles } from '@/common/decorators/roles.decorator'
+import { RoleName } from '../users/entities/role.entity'
 
 @ApiTags('Reservations - Đặt chỗ sách')
 @ApiBearerAuth('JWT-auth')
@@ -11,6 +14,8 @@ export class ReservationsController {
     constructor(private readonly service: ReservationsService) { }
 
     @Get()
+    @UseGuards(RolesGuard)
+    @Roles(RoleName.LIBRARIAN, RoleName.LIBRARY_ADMIN)
     @ApiOperation({ summary: 'Tất cả đặt chỗ (admin/thủ thư)' })
     findAll() {
         return this.service.findAll()
@@ -36,12 +41,16 @@ export class ReservationsController {
     }
 
     @Post(':id/notify')
+    @UseGuards(RolesGuard)
+    @Roles(RoleName.LIBRARIAN, RoleName.LIBRARY_ADMIN)
     @ApiOperation({ summary: 'Thông báo sách đã sẵn sàng cho độc giả' })
     notify(@Param('id') id: string) {
         return this.service.notify(id)
     }
 
     @Post(':id/fulfill')
+    @UseGuards(RolesGuard)
+    @Roles(RoleName.LIBRARIAN, RoleName.LIBRARY_ADMIN)
     @ApiOperation({ summary: 'Hoàn thành đặt chỗ (thủ thư xác nhận đã lấy sách)' })
     fulfill(@Param('id') id: string, @Req() req: any) {
         return this.service.fulfill(id, req.user.userId)

@@ -1,6 +1,9 @@
 import { Controller, Get, Patch, Req, Body, UseGuards, BadRequestException, Query } from '@nestjs/common'
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery, ApiBody } from '@nestjs/swagger'
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard'
+import { RolesGuard } from '@/common/guards/roles.guard'
+import { Roles } from '@/common/decorators/roles.decorator'
+import { RoleName } from '../users/entities/role.entity'
 import { UsersService } from './users.service'
 import * as bcrypt from 'bcryptjs'
 
@@ -12,6 +15,8 @@ export class UsersController {
     constructor(private readonly usersService: UsersService) { }
 
     @Get('search')
+    @UseGuards(RolesGuard)
+    @Roles(RoleName.LIBRARIAN, RoleName.LIBRARY_ADMIN)
     @ApiOperation({ summary: 'Tìm kiếm người dùng theo tên, email, hoặc số thẻ' })
     @ApiQuery({ name: 'q', description: 'Từ khoá tìm kiếm', example: 'Nguyen Van A' })
     async search(@Query('q') q: string) {

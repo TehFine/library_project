@@ -19,6 +19,9 @@ export class User {
     @Column({ default: true })
     isActive: boolean
 
+    @Column({ type: 'text', nullable: true })
+    lockedReason: string | null
+
     @Column({ type: 'timestamp', nullable: true })
     lastLogin: Date
 

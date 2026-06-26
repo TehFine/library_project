@@ -1,6 +1,9 @@
 import { Controller, Get, Post, Patch, Param, Body, UseGuards, Req } from '@nestjs/common'
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiBody } from '@nestjs/swagger'
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard'
+import { RolesGuard } from '@/common/guards/roles.guard'
+import { Roles } from '@/common/decorators/roles.decorator'
+import { RoleName } from '../users/entities/role.entity'
 import { NotificationsService } from './notifications.service'
 import { Notification } from './entities/notification.entity'
 
@@ -14,24 +17,32 @@ export class NotificationsController {
     // ── Admin endpoints ──
 
     @Get('admin/notifications/target-counts')
+    @UseGuards(RolesGuard)
+    @Roles(RoleName.LIBRARY_ADMIN)
     @ApiOperation({ summary: 'Thống kê số lượng người trong từng nhóm mục tiêu' })
     getTargetCounts() {
         return this.notifService.getTargetCounts()
     }
 
     @Get('admin/notifications')
+    @UseGuards(RolesGuard)
+    @Roles(RoleName.LIBRARY_ADMIN)
     @ApiOperation({ summary: 'Lấy danh sách thông báo admin (lịch sử)' })
     list() {
         return this.notifService.list()
     }
 
     @Get('admin/notifications/:id')
+    @UseGuards(RolesGuard)
+    @Roles(RoleName.LIBRARY_ADMIN)
     @ApiOperation({ summary: 'Chi tiết thông báo theo ID' })
     findOne(@Param('id') id: string) {
         return this.notifService.findOne(id)
     }
 
     @Post('admin/notifications')
+    @UseGuards(RolesGuard)
+    @Roles(RoleName.LIBRARY_ADMIN)
     @ApiOperation({ summary: 'Tạo thông báo mới (draft hoặc gửi)' })
     @ApiBody({ schema: { example: { title: '[Bookly] Nhắc trả sách', content: 'Kính gửi {{tên_độc_giả}},...', targetGroup: 'overdue', status: 'draft' } } })
     create(@Body() dto: {
@@ -49,12 +60,16 @@ export class NotificationsController {
     }
 
     @Post('admin/notifications/:id/send-test')
+    @UseGuards(RolesGuard)
+    @Roles(RoleName.LIBRARY_ADMIN)
     @ApiOperation({ summary: 'Gửi thông báo thử nghiệm đến admin' })
     sendTest(@Param('id') id: string) {
         return this.notifService.sendTest(id)
     }
 
     @Patch('admin/notifications/:id/draft')
+    @UseGuards(RolesGuard)
+    @Roles(RoleName.LIBRARY_ADMIN)
     @ApiOperation({ summary: 'Cập nhật thông báo nháp' })
     updateDraft(@Param('id') id: string, @Body() dto: Partial<{
         title: string

@@ -1,12 +1,16 @@
 import { Controller, Get, UseGuards } from '@nestjs/common'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard'
+import { RolesGuard } from '@/common/guards/roles.guard'
+import { Roles } from '@/common/decorators/roles.decorator'
+import { RoleName } from '../users/entities/role.entity'
 import { LibrarianService } from './librarian.service'
 
 @ApiTags('Librarian - Thủ thư')
 @ApiBearerAuth('JWT-auth')
 @Controller('librarian')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(RoleName.LIBRARIAN, RoleName.LIBRARY_ADMIN)
 export class LibrarianController {
     constructor(private readonly librarianService: LibrarianService) { }
 
