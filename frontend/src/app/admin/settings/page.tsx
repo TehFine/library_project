@@ -1,12 +1,13 @@
 'use client'
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import PageHeader from '@/components/layout/PageHeader'
 import { Card, Badge } from '@/components/ui'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import Select from '@/components/ui/Select'
+import { adminApi } from '@/lib/api'
 import { cn } from '@/lib/utils'
-import { Mail, AlertTriangle, CheckCircle, Settings2, BookOpen, Play } from 'lucide-react'
+import { Mail, AlertTriangle, CheckCircle, Settings2, BookOpen, Play, RefreshCw } from 'lucide-react'
 
 type Tab = 'rules' | 'email' | 'tasks'
 
@@ -104,11 +105,14 @@ export default function SystemSettingsPage() {
   const [saving, setSaving] = useState(false)
   const [saveResult, setSaveResult] = useState<{ ok: boolean; message: string } | null>(null)
 
+  // ── Loading state ───────────────────────────────────────────────────
+  const [loadingSettings, setLoadingSettings] = useState(true)
+
   // ── Rule settings state ─────────────────────────────────────────────
-  const [rules, setRules] = useState<RuleSettings>({
+  const defaultRules: RuleSettings = {
     maxBooksPerBorrow: 3,
     maxBorrowDays: 14,
-    maxRenewals: 1,
+    maxRenewals: 2,
     renewalDays: 14,
     fineFirst5Days: 1000,
     fineFromDay6: 3000,
@@ -116,7 +120,8 @@ export default function SystemSettingsPage() {
     defaultCardDuration: '1y',
     autoDeactivateMonths: 3,
     autoLockDays: 30,
-  })
+  }
+  const [rules, setRules] = useState<RuleSettings>(defaultRules)
   const [ruleErrors, setRuleErrors] = useState<RuleErrors>({})
 
   // ── Email settings state ────────────────────────────────────────────
@@ -153,8 +158,39 @@ export default function SystemSettingsPage() {
     })
   }, [])
 
+  // ── Load settings from API ─────────────────────────────────────────
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      setLoadingSettings(true)
+      try {
+        const apiData = await adminApi.getSettings()
+        if (cancelled) return
+        setRules({
+          maxBooksPerBorrow: Number(apiData.max_books_per_borrow ?? 3),
+          maxBorrowDays: Number(apiData.max_borrow_days ?? 14),
+          maxRenewals: Number(apiData.max_renewals ?? 2),
+          renewalDays: Number(apiData.renewal_days ?? 14),
+          fineFirst5Days: Number(apiData.fine_first_5_days ?? 1000),
+          fineFromDay6: Number(apiData.fine_from_day_6 ?? 3000),
+          newCardFee: Number(apiData.new_card_fee ?? 5000),
+          defaultCardDuration: apiData.default_card_duration ?? '1y',
+          autoDeactivateMonths: Number(apiData.auto_deactivate_months ?? 3),
+          autoLockDays: Number(apiData.auto_lock_days ?? 30),
+        })
+      } catch (err) {
+        // Fallback to defaults
+        setRules(defaultRules)
+      } finally {
+        if (!cancelled) setLoadingSettings(false)
+      }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [])
+
   // ── Lưu thay đổi ────────────────────────────────────────────────────
-  const handleSave = useCallback(() => {
+  const handleSave = useCallback(async () => {
     setSaving(true)
     setSaveResult(null)
 
@@ -167,11 +203,28 @@ export default function SystemSettingsPage() {
       return
     }
 
-    setTimeout(() => {
+    try {
+      // Map frontend keys to backend keys
+      await adminApi.updateSettings({
+        max_books_per_borrow: String(rules.maxBooksPerBorrow),
+        max_borrow_days: String(rules.maxBorrowDays),
+        max_renewals: String(rules.maxRenewals),
+        renewal_days: String(rules.renewalDays),
+        fine_first_5_days: String(rules.fineFirst5Days),
+        fine_from_day_6: String(rules.fineFromDay6),
+        new_card_fee: String(rules.newCardFee),
+        default_card_duration: rules.defaultCardDuration,
+        auto_deactivate_months: String(rules.autoDeactivateMonths),
+        auto_lock_days: String(rules.autoLockDays),
+      })
       setSaveResult({ ok: true, message: 'Đã lưu cấu hình thành công' })
-      setSaving(false)
       toast('Đã lưu cấu hình thành công', 'success')
-    }, 600)
+    } catch (err: any) {
+      setSaveResult({ ok: false, message: err?.message || 'Lỗi khi lưu cấu hình' })
+      toast(err?.message || 'Lỗi khi lưu cấu hình', 'error')
+    } finally {
+      setSaving(false)
+    }
   }, [rules])
 
   // ── Helper: Input số với validation tích hợp ────────────────────────

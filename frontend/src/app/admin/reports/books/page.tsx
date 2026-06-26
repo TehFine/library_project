@@ -4,12 +4,13 @@ import PageHeader from '@/components/layout/PageHeader'
 import { Card, Badge } from '@/components/ui'
 import Button from '@/components/ui/Button'
 import Select from '@/components/ui/Select'
+import Modal from '@/components/ui/Modal'
 import { cn } from '@/lib/utils'
-import { adminApi, BookReportData } from '@/lib/api'
+import { adminApi, booksApi, librarianApi, BookReportData } from '@/lib/api'
 import { exportToExcel, exportToPDF } from '@/lib/export'
 import { useRealtimeRefresh } from '@/hooks/useWebSocket'
 import toast from 'react-hot-toast'
-import { CheckCircle, XCircle, AlertTriangle, TrendingUp, Warehouse, RefreshCw, Trash2, Calendar, Filter, Download, FileText, BookOpen, Medal, BarChart3, type LucideIcon } from 'lucide-react'
+import { CheckCircle, XCircle, AlertTriangle, TrendingUp, Warehouse, RefreshCw, Trash2, Calendar, Filter, Download, FileText, BookOpen, Medal, BarChart3, Search, RotateCcw, Loader2, type LucideIcon } from 'lucide-react'
 
 type Tab = 'top' | 'stock' | 'replenish' | 'disposal'
 
@@ -50,6 +51,15 @@ function EmptyState({ icon: Icon, title, description }: { icon: LucideIcon; titl
   )
 }
 
+function buildFilterParams(fromDate: string, toDate: string, categoryId: string, search: string) {
+  const params: Record<string, string> = {}
+  if (fromDate) params.fromDate = fromDate
+  if (toDate) params.toDate = toDate
+  if (categoryId) params.categoryId = categoryId
+  if (search.trim()) params.search = search.trim()
+  return Object.keys(params).length > 0 ? params : undefined
+}
+
 export default function BookReportsPage() {
   const [activeTab, setActiveTab] = useState<Tab>('top')
   const [loading, setLoading] = useState(true)
@@ -58,14 +68,17 @@ export default function BookReportsPage() {
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('')
-  const [filteredBooks, setFilteredBooks] = useState<BookReportData['topBorrowed']>([])
+  const [searchQuery, setSearchQuery] = useState('')
+  const [filterApplied, setFilterApplied] = useState(false)
+  const [disposalLoading, setDisposalLoading] = useState<string | null>(null)
+  const [confirmDisposal, setConfirmDisposal] = useState<BookReportData['disposal'][number] | null>(null)
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (filters?: { fromDate?: string; toDate?: string; categoryId?: string; search?: string }) => {
     setLoading(true)
     try {
-      const data = await adminApi.getBookReports()
+      const data = await adminApi.getBookReports(filters)
       setReportData(data)
-      setFilteredBooks(data.topBorrowed)
+      setFilterApplied(!!filters)
     } catch {
       toast.error('Không thể tải dữ liệu báo cáo sách')
     } finally {
@@ -77,27 +90,51 @@ export default function BookReportsPage() {
   useRealtimeRefresh('admin:dashboard-update', fetchData)
 
   const applyFilter = () => {
-    if (!reportData) return
-    let result = reportData.topBorrowed
-    if (selectedCategory) {
-      const categoryMap: Record<string, string> = {
-        '1': 'Kỹ năng',
-        '2': 'Tiểu thuyết',
-        '3': 'Lịch sử',
+    const params = buildFilterParams(fromDate, toDate, selectedCategory, searchQuery)
+    fetchData(params)
+  }
+
+  const clearFilter = () => {
+    setFromDate('')
+    setToDate('')
+    setSelectedCategory('')
+    setSearchQuery('')
+    fetchData()
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') applyFilter()
+  }
+
+  const handleDisposalConfirm = async () => {
+    const d = confirmDisposal
+    if (!d) return
+    setDisposalLoading(d.copyCode)
+    setConfirmDisposal(null)
+    try {
+      if (d.action === 'Xóa khỏi hệ thống') {
+        const res = await librarianApi.findCopyByCode(d.copyCode)
+        await booksApi.deleteCopy(res.id)
+        toast.success('Đã xóa bản sao khỏi hệ thống')
+      } else if (d.action === 'Thanh lý') {
+        const res = await librarianApi.findCopyByCode(d.copyCode)
+        await booksApi.updateCopy(res.id, { status: 'disposed', condition: 'damaged' })
+        toast.success('Đã thanh lý bản sao')
       }
-      const catLabel = categoryMap[selectedCategory]
-      if (catLabel) {
-        result = result.filter(b => b.category === catLabel)
-      }
+      fetchData()
+    } catch (err: any) {
+      toast.error(err?.message || 'Lỗi khi xử lý bản sao')
+    } finally {
+      setDisposalLoading(null)
     }
-    setFilteredBooks(result)
   }
 
   const handleExportExcel = () => {
     if (!reportData) return
+    const topBooks = reportData.topBorrowed
     if (activeTab === 'top') {
       exportToExcel(
-        filteredBooks.map((b, i) => ({ '#': i + 1, 'Ten sach': b.title, 'Tac gia': b.author, 'The loai': b.category, 'Luot muon': b.totalBorrows, 'TB muon (ngay)': b.avgBorrowDays })),
+        topBooks.map((b, i) => ({ '#': i + 1, 'Ten sach': b.title, 'Tac gia': b.author, 'The loai': b.category, 'Luot muon': b.totalBorrows, 'TB muon (ngay)': b.avgBorrowDays })),
         'Top_Sach_Muon_Nhieu', 'BaoCaoSach'
       )
     } else if (activeTab === 'stock') {
@@ -120,10 +157,11 @@ export default function BookReportsPage() {
 
   const handleExportPDF = () => {
     if (!reportData) return
+    const topBooks = reportData.topBorrowed
     if (activeTab === 'top') {
       exportToPDF(
         ['#', 'Ten sach', 'Tac gia', 'The loai', 'Luot muon', 'TB muon'],
-        filteredBooks.map((b, i) => [i + 1, b.title, b.author, b.category, b.totalBorrows, b.avgBorrowDays]),
+        topBooks.map((b, i) => [i + 1, b.title, b.author, b.category, b.totalBorrows, b.avgBorrowDays]),
         'Top Sach Muon Nhieu Nhat', 'Top_Sach_Muon_Nhieu'
       )
     } else if (activeTab === 'stock') {
@@ -161,6 +199,8 @@ export default function BookReportsPage() {
     : 0
 
   const displayReplenishment = reportData?.replenishment || []
+
+  const showFilterSummary = filterApplied && (fromDate || toDate || selectedCategory || searchQuery)
 
   return (
     <div className="space-y-6">
@@ -203,40 +243,79 @@ export default function BookReportsPage() {
 
       {/* Filters (only for top tab) */}
       {activeTab === 'top' && (
-        <Card padding="md" className="flex flex-col sm:flex-row sm:items-end gap-3 sm:gap-4 bg-white">
-          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap w-full sm:w-auto">
-            <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
-            <input
-              type="date"
-              className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium outline-none flex-1 sm:flex-none min-w-0 focus:border-amber-300 focus:ring-2 focus:ring-amber-100 transition-all"
-              value={fromDate}
-              onChange={e => setFromDate(e.target.value)}
-              placeholder="Từ ngày"
-            />
-            <span className="text-slate-300 text-xs">→</span>
-            <input
-              type="date"
-              className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium outline-none flex-1 sm:flex-none min-w-0 focus:border-amber-300 focus:ring-2 focus:ring-amber-100 transition-all"
-              value={toDate}
-              onChange={e => setToDate(e.target.value)}
-              placeholder="Đến ngày"
-            />
+        <Card padding="md" className="space-y-4 bg-white">
+          {/* Row 1: Search */}
+          <div className="w-full">
+            <div className="relative">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm font-medium outline-none focus:border-amber-300 focus:ring-2 focus:ring-amber-100 transition-all"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Tìm kiếm theo tên sách hoặc tác giả..."
+              />
+            </div>
           </div>
-          <div className="w-full sm:w-44">
-            <Select
-              placeholder="Tất cả thể loại"
-              value={selectedCategory}
-              onChange={e => setSelectedCategory(e.target.value)}
-              className="rounded-xl text-xs"
-            >
-              <option value="1">Kỹ năng</option>
-              <option value="2">Tiểu thuyết</option>
-              <option value="3">Lịch sử</option>
-            </Select>
+          {/* Row 2: Date range + Category + Buttons */}
+          <div className="flex flex-col sm:flex-row sm:items-end gap-3 sm:gap-4">
+            <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap w-full sm:w-auto">
+              <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
+              <input
+                type="date"
+                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium outline-none flex-1 sm:flex-none min-w-0 focus:border-amber-300 focus:ring-2 focus:ring-amber-100 transition-all"
+                value={fromDate}
+                onChange={e => setFromDate(e.target.value)}
+                placeholder="Từ ngày"
+              />
+              <span className="text-slate-300 text-xs">→</span>
+              <input
+                type="date"
+                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium outline-none flex-1 sm:flex-none min-w-0 focus:border-amber-300 focus:ring-2 focus:ring-amber-100 transition-all"
+                value={toDate}
+                onChange={e => setToDate(e.target.value)}
+                placeholder="Đến ngày"
+              />
+            </div>
+            <div className="w-full sm:w-44">
+              <Select
+                placeholder="Tất cả thể loại"
+                value={selectedCategory}
+                onChange={e => setSelectedCategory(e.target.value)}
+                className="rounded-xl text-xs"
+              >
+                <option value="1">Kỹ năng</option>
+                <option value="2">Tiểu thuyết</option>
+                <option value="3">Lịch sử</option>
+              </Select>
+            </div>
+            <div className="flex gap-2 w-full sm:w-auto">
+              <Button variant="primary" size="sm" className="rounded-xl px-5 font-bold flex-1 sm:flex-none" onClick={applyFilter}>
+                <Filter className="w-3.5 h-3.5" /> {filterApplied ? 'Áp dụng lại' : 'Áp dụng'}
+              </Button>
+              {filterApplied && (
+                <Button variant="ghost" size="sm" className="rounded-xl px-4 font-bold border border-slate-200" onClick={clearFilter}>
+                  <RotateCcw className="w-3.5 h-3.5" /> Xóa lọc
+                </Button>
+              )}
+            </div>
           </div>
-          <Button variant="primary" size="sm" className="rounded-xl px-5 font-bold w-full sm:w-auto" onClick={applyFilter}>
-            <Filter className="w-3.5 h-3.5" /> Áp dụng
-          </Button>
+          {/* Filter summary */}
+          {showFilterSummary && (
+            <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-500 border-t border-slate-100 pt-3">
+              <Filter className="w-3 h-3 text-amber-500" />
+              <span className="font-medium text-slate-600">Đang lọc:</span>
+              {fromDate && <Badge className="bg-amber-50 text-amber-700 border-amber-200">Từ {fromDate}</Badge>}
+              {toDate && <Badge className="bg-amber-50 text-amber-700 border-amber-200">Đến {toDate}</Badge>}
+              {selectedCategory && (
+                <Badge className="bg-amber-50 text-amber-700 border-amber-200">
+                  {selectedCategory === '1' ? 'Kỹ năng' : selectedCategory === '2' ? 'Tiểu thuyết' : 'Lịch sử'}
+                </Badge>
+              )}
+              {searchQuery && <Badge className="bg-amber-50 text-amber-700 border-amber-200">Tìm: &quot;{searchQuery}&quot;</Badge>}
+            </div>
+          )}
         </Card>
       )}
 
@@ -310,7 +389,7 @@ export default function BookReportsPage() {
             </div>
             <p className="text-slate-500 font-medium">Không thể tải dữ liệu</p>
             <p className="text-slate-300 text-xs">Vui lòng kiểm tra kết nối và thử lại</p>
-            <Button variant="secondary" size="sm" className="mt-3 rounded-xl" onClick={fetchData}>
+            <Button variant="secondary" size="sm" className="mt-3 rounded-xl" onClick={() => fetchData()}>
               <RefreshCw className="w-3.5 h-3.5" /> Thử lại
             </Button>
           </div>
@@ -332,11 +411,11 @@ export default function BookReportsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
-                  {filteredBooks.length === 0 ? (
+                  {reportData.topBorrowed.length === 0 ? (
                     <EmptyState icon={BookOpen} title="Không có dữ liệu phù hợp với bộ lọc" description="Thử thay đổi khoảng thời gian hoặc thể loại" />
                   ) : (
-                    filteredBooks.map((b, i) => (
-                      <tr key={b.rank} className="hover:bg-slate-50/50 transition-colors group">
+                    reportData.topBorrowed.map((b, i) => (
+                      <tr key={`${b.rank}-${i}`} className="hover:bg-slate-50/50 transition-colors group">
                         <td className="px-6 py-5">
                           <div className="flex items-center gap-2">
                             {b.rank <= 3 ? (
@@ -523,7 +602,9 @@ export default function BookReportsPage() {
                   {reportData.disposal.length === 0 ? (
                     <EmptyState icon={CheckCircle} title="Không có sách cần thanh lý" description="Tất cả sách đều trong tình trạng tốt" />
                   ) : (
-                    reportData.disposal.map((d, i) => (
+                    reportData.disposal.map((d, i) => {
+                      const isProcessing = disposalLoading === d.copyCode
+                      return (
                       <tr key={d.copyCode} className="hover:bg-slate-50/50 transition-colors">
                         <td className="px-6 py-5 font-bold text-slate-800">{d.title}</td>
                         <td className="px-6 py-5 font-mono text-xs text-slate-500">{d.copyCode}</td>
@@ -534,17 +615,76 @@ export default function BookReportsPage() {
                         </td>
                         <td className="px-6 py-5 text-slate-500 font-medium">{d.importedAt}</td>
                         <td className="px-6 py-5 text-right">
-                          <Button variant="danger" size="sm" className="rounded-lg text-[10px] font-bold">
+                          <Button
+                            variant="danger"
+                            size="sm"
+                            className="rounded-lg text-[10px] font-bold"
+                            disabled={isProcessing}
+                            onClick={() => setConfirmDisposal(d)}
+                          >
+                            {isProcessing ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
                             {d.action}
                           </Button>
                         </td>
                       </tr>
-                    ))
+                      )
+                    })
                   )}
                 </tbody>                </table>
                 </div>
             </Card>
           )}
+
+          {/* Confirmation Modal for Disposal */}
+          <Modal
+            open={!!confirmDisposal}
+            onClose={() => setConfirmDisposal(null)}
+            title={confirmDisposal?.action === 'Xóa khỏi hệ thống' ? 'Xác nhận xóa bản sao' : 'Xác nhận thanh lý'}
+            description={confirmDisposal?.action === 'Xóa khỏi hệ thống'
+              ? 'Bản sao sẽ bị xóa vĩnh viễn khỏi hệ thống. Hành động này không thể hoàn tác.'
+              : 'Bản sao sẽ được đánh dấu là đã thanh lý và không còn khả dụng.'
+            }
+            footer={
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="rounded-xl font-bold border border-slate-200"
+                  onClick={() => setConfirmDisposal(null)}
+                >
+                  Hủy
+                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  className="rounded-xl font-bold"
+                  onClick={handleDisposalConfirm}
+                >
+                  {confirmDisposal?.action === 'Xóa khỏi hệ thống' ? 'Xác nhận xóa' : 'Xác nhận thanh lý'}
+                </Button>
+              </>
+            }
+          >
+            <div className="space-y-3 text-sm">
+              <div className="flex items-start gap-3 p-3 bg-red-50 rounded-xl">
+                <Trash2 className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-bold text-slate-800">{confirmDisposal?.title}</p>
+                  <p className="text-slate-500 text-xs mt-0.5">Mã: <span className="font-mono">{confirmDisposal?.copyCode}</span></p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-slate-50 rounded-xl p-3">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Tình trạng</p>
+                  <p className="font-bold text-slate-700 mt-1">{confirmDisposal?.condition}</p>
+                </div>
+                <div className="bg-slate-50 rounded-xl p-3">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Ngày nhập</p>
+                  <p className="font-bold text-slate-700 mt-1">{confirmDisposal?.importedAt}</p>
+                </div>
+              </div>
+            </div>
+          </Modal>
         </>
       )}
     </div>

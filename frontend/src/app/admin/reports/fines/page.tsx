@@ -129,8 +129,8 @@ export default function FinancialReportsPage() {
       setShowWaiveModal(null)
       setWaiveReason('')
       applyFilter()
-    } catch {
-      toast.error('Lỗi khi miễn giảm phí phạt')
+    } catch (err: any) {
+      toast.error(err?.message || 'Lỗi khi miễn giảm phí phạt')
     } finally {
       setWaiveLoading(false)
     }
@@ -140,17 +140,12 @@ export default function FinancialReportsPage() {
     if (!showPayModal) return
     setPayLoading(true)
     try {
-      const res = await fetch(`/api/fines/${showPayModal.id}/pay`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('access_token')}` },
-        body: JSON.stringify({ method: payMethod })
-      })
-      if (!res.ok) throw new Error()
+      await finesApi.pay(showPayModal.id, payMethod)
       toast.success('Thu phí thành công')
       setShowPayModal(null)
       applyFilter()
-    } catch {
-      toast.error('Lỗi khi thu phí')
+    } catch (err: any) {
+      toast.error(err?.message || 'Lỗi khi thu phí')
     } finally {
       setPayLoading(false)
     }

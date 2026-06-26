@@ -54,6 +54,8 @@ export default function UsersManagementPage() {
   const [fetchError, setFetchError] = useState(false)
 
   const [showLockModal, setShowLockModal] = useState<User | null>(null)
+  const [lockReason, setLockReason] = useState('')
+  const [lockLoading, setLockLoading] = useState(false)
   const [showRoleModal, setShowRoleModal] = useState<User | null>(null)
   const [selectedRole, setSelectedRole] = useState<Role>('reader')
 
@@ -78,14 +80,33 @@ export default function UsersManagementPage() {
   useEffect(() => { fetchUsers() }, [fetchUsers])
   useRealtimeRefresh('admin:user-update', fetchUsers)
 
-  const handleToggleStatus = async (user: User) => {
+  const handleLockAccount = async () => {
+    if (!showLockModal) return
+    if (!lockReason.trim()) {
+      toast.error('Vui lòng nhập lý do khóa tài khoản')
+      return
+    }
+    setLockLoading(true)
     try {
-      await adminApi.toggleUserStatus(user.id, !user.isActive)
-      toast.success(user.isActive ? 'Đã khóa tài khoản' : 'Đã mở khóa tài khoản')
+      await adminApi.toggleUserStatus(showLockModal.id, false, lockReason.trim())
+      toast.success('Đã khóa tài khoản')
       setShowLockModal(null)
+      setLockReason('')
       fetchUsers()
-    } catch {
-      toast.error('Lỗi khi thay đổi trạng thái')
+    } catch (err: any) {
+      toast.error(err?.message || 'Lỗi khi khóa tài khoản')
+    } finally {
+      setLockLoading(false)
+    }
+  }
+
+  const handleUnlockAccount = async (user: User) => {
+    try {
+      await adminApi.toggleUserStatus(user.id, true)
+      toast.success('Đã mở khóa tài khoản')
+      fetchUsers()
+    } catch (err: any) {
+      toast.error(err?.message || 'Lỗi khi mở khóa tài khoản')
     }
   }
 
@@ -96,8 +117,8 @@ export default function UsersManagementPage() {
       toast.success('Đã cập nhật vai trò')
       setShowRoleModal(null)
       fetchUsers()
-    } catch {
-      toast.error('Lỗi khi cập nhật vai trò')
+    } catch (err: any) {
+      toast.error(err?.message || 'Lỗi khi cập nhật vai trò')
     }
   }
 
@@ -241,7 +262,7 @@ export default function UsersManagementPage() {
                         </button>
                         {user.isActive ? (
                           <button
-                            onClick={() => setShowLockModal(user)}
+                            onClick={() => { setShowLockModal(user); setLockReason('') }}
                             className="text-[10px] sm:text-xs font-bold text-red-600 hover:bg-red-50 px-2 sm:px-3 py-1.5 rounded-lg transition-colors inline-flex items-center gap-1"
                           >
                             <Lock className="w-3 h-3" />
@@ -250,7 +271,7 @@ export default function UsersManagementPage() {
                           </button>
                         ) : (
                           <button
-                            onClick={() => handleToggleStatus(user)}
+                            onClick={() => handleUnlockAccount(user)}
                             className="text-[10px] sm:text-xs font-bold text-emerald-600 hover:bg-emerald-50 px-2 sm:px-3 py-1.5 rounded-lg transition-colors inline-flex items-center gap-1"
                           >
                             <Unlock className="w-3 h-3" />
@@ -295,15 +316,29 @@ export default function UsersManagementPage() {
       </Modal>
 
       {/* Lock Modal */}
-      <Modal open={!!showLockModal} onClose={() => setShowLockModal(null)} title={`Khóa tài khoản ${showLockModal?.fullName || showLockModal?.username}?`} size="sm">
+      <Modal open={!!showLockModal} onClose={() => { setShowLockModal(null); setLockReason('') }} title={`Khóa tài khoản ${showLockModal?.fullName || showLockModal?.username}?`} size="md">
         <div className="space-y-4">
           <div className="p-4 rounded-xl bg-red-50 border border-red-100 flex gap-3 text-red-800 text-xs items-start">
             <AlertTriangle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
-            <p>Người dùng này sẽ bị đăng xuất khỏi tất cả thiết bị và không thể đăng nhập lại cho đến khi được mở khóa.</p>
+            <p>Người dùng này sẽ bị đăng xuất khỏi tất cả thiết bị và không thể đăng nhập lại cho đến khi được mở khóa. Một thông báo kèm lý do sẽ được gửi đến người dùng trước khi khóa.</p>
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-slate-600 mb-1.5">
+              Lý do khóa tài khoản <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              value={lockReason}
+              onChange={e => setLockReason(e.target.value)}
+              placeholder="Ví dụ: Vi phạm chính sách mượn sách nhiều lần, sách trả quá hạn nhiều lần..."
+              rows={3}
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium outline-none focus:border-amber-300 focus:ring-2 focus:ring-amber-100 transition-all resize-none placeholder:text-slate-400"
+            />
           </div>
           <div className="flex flex-col sm:flex-row justify-end gap-3 pt-2">
-            <Button variant="ghost" className="justify-center" onClick={() => setShowLockModal(null)}>Hủy</Button>
-            <Button variant="danger" className="justify-center" onClick={() => showLockModal && handleToggleStatus(showLockModal)}>Xác nhận khóa</Button>
+            <Button variant="ghost" className="justify-center" onClick={() => { setShowLockModal(null); setLockReason('') }}>Hủy</Button>
+            <Button variant="danger" className="justify-center" loading={lockLoading} onClick={handleLockAccount}>
+              <Lock className="w-4 h-4" /> Xác nhận khóa
+            </Button>
           </div>
         </div>
       </Modal>

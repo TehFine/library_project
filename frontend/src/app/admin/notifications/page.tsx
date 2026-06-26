@@ -205,8 +205,8 @@ export default function BulkNotificationsPage() {
       })
       toast.success(`Đã gửi thông báo thành công đến nhóm "${TARGET_LABELS[target]}".`)
       fetchHistory()
-    } catch {
-      toast.error('Lỗi khi gửi thông báo')
+    } catch (err: any) {
+      toast.error(err?.message || 'Lỗi khi gửi thông báo')
     } finally {
       setSending(false)
     }
@@ -225,8 +225,8 @@ export default function BulkNotificationsPage() {
       })
       toast.success('Đã lưu nháp thông báo.')
       fetchHistory()
-    } catch {
-      toast.error('Lỗi khi lưu nháp')
+    } catch (err: any) {
+      toast.error(err?.message || 'Lỗi khi lưu nháp')
     }
   }
 
@@ -244,8 +244,8 @@ export default function BulkNotificationsPage() {
       await notificationApi.sendTest(notif.id)
       toast.success('Đã gửi thông báo thử nghiệm đến email của bạn.')
       setShowPreview(false)
-    } catch {
-      toast.error('Lỗi khi gửi thử')
+    } catch (err: any) {
+      toast.error(err?.message || 'Lỗi khi gửi thử')
     } finally {
       setSendingTest(false)
     }
