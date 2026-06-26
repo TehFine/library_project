@@ -323,12 +323,12 @@ export interface AuditLogEntry {
 
 export interface ViolationReportData {
   overdueReaders: {
-    id: string
+    userId: string
     name: string
     cardNumber: string
-    bookTitle: string
-    dueDate: string
-    overdueDays: number
+    overdueCount: number
+    books: { id: string; bookTitle: string; dueDate: string; overdueDays: number }[]
+    maxOverdueDays: number
     status: 'critical' | 'warning'
   }[]
   expiringCards: {

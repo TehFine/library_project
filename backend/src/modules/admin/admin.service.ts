@@ -690,7 +690,7 @@ export class AdminService {
         const today = new Date();
         const todayStr = toLocalDateStr(today);
 
-        // 1. Độc giả quá hạn
+        // 1. Độc giả quá hạn (gộp theo user)
         const overdueList = await this.borrowRepo.find({
             where: {
                 status: In(['borrowing', 'overdue']),
@@ -703,23 +703,50 @@ export class AdminService {
             order: { dueDate: 'ASC' }
         });
 
-        const overdueReaders = overdueList.map(b => {
-            const due = new Date(b.dueDate);
-            due.setHours(0, 0, 0, 0);
-            const todayMidnight = new Date();
-            todayMidnight.setHours(0, 0, 0, 0);
-            const diffTime = todayMidnight.getTime() - due.getTime();
-            const diffDays = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
-            return {
+        // Gộp các phiếu mượn quá hạn theo độc giả
+        const userOverdueMap = new Map<string, {
+            userId: string
+            name: string
+            cardNumber: string
+            books: { id: string; bookTitle: string; dueDate: string; overdueDays: number }[]
+            maxOverdueDays: number
+        }>();
+
+        for (const b of overdueList) {
+            const userId = b.libraryCard?.userId || 'unknown'
+            if (!userOverdueMap.has(userId)) {
+                userOverdueMap.set(userId, {
+                    userId,
+                    name: b.libraryCard?.user?.profile?.fullName || b.libraryCard?.user?.username || '—',
+                    cardNumber: b.libraryCard?.cardNumber || '—',
+                    books: [],
+                    maxOverdueDays: 0,
+                })
+            }
+            const entry = userOverdueMap.get(userId)!
+            const due = new Date(b.dueDate)
+            due.setHours(0, 0, 0, 0)
+            const todayMidnight = new Date()
+            todayMidnight.setHours(0, 0, 0, 0)
+            const diffTime = todayMidnight.getTime() - due.getTime()
+            const diffDays = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)))
+
+            entry.books.push({
                 id: b.id,
-                name: b.libraryCard?.user?.profile?.fullName || b.libraryCard?.user?.username || '—',
-                cardNumber: b.libraryCard?.cardNumber || '—',
                 bookTitle: b.bookCopy?.book?.title || '—',
                 dueDate: b.dueDate,
                 overdueDays: diffDays,
-                status: diffDays > 5 ? 'critical' : 'warning',
-            };
-        });
+            })
+            entry.maxOverdueDays = Math.max(entry.maxOverdueDays, diffDays)
+        }
+
+        const overdueReaders = Array.from(userOverdueMap.values())
+            .map(entry => ({
+                ...entry,
+                overdueCount: entry.books.length,
+                status: entry.maxOverdueDays > 5 ? 'critical' as const : 'warning' as const,
+            }))
+            .sort((a, b) => b.maxOverdueDays - a.maxOverdueDays);
 
         // 2. Thẻ sắp hết hạn (trong vòng 30 ngày tới)
         const thirtyDaysLater = new Date();
@@ -744,8 +771,12 @@ export class AdminService {
         }));
 
         // 3. Độc giả quá hạn nhiều lần (có > 1 lần quá hạn)
+        // Dùng cùng logic với tab "Đang quá hạn": tất cả phiếu mượn có dueDate < today
         const allBorrows = await this.borrowRepo.find({
-            where: { status: 'overdue' },
+            where: {
+                status: In(['borrowing', 'overdue']),
+                dueDate: LessThan(todayStr),
+            },
             relations: { libraryCard: { user: { profile: true } } },
             order: { createdAt: 'DESC' }
         });
