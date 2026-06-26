@@ -8,6 +8,7 @@ import { RealtimeGateway } from '@/common/websocket/realtime.gateway'
 import { UsersService } from '../users/users.service'
 import { RoleName } from '../users/entities/role.entity'
 import { PasswordReset } from './entities/password-reset.entity'
+import { RegisterDto } from './dto/register.dto'
 
 @Injectable()
 export class AuthService {
@@ -39,7 +40,7 @@ export class AuthService {
     return { accessToken, user: safeUser }
   }
 
-  async register(dto: any) {
+  async register(dto: RegisterDto) {
     const exists = await this.usersService.findByEmailOrUsername(dto.email) ||
                    await this.usersService.findByEmailOrUsername(dto.username)
 
@@ -53,10 +54,10 @@ export class AuthService {
       isActive: true,
       roleName: RoleName.READER,
       profile: {
-        fullName: dto.fullName ?? null,
-        phone: dto.phone ?? null,
-        dateOfBirth: dto.dateOfBirth ?? null,
-        address: dto.address ?? null,
+        fullName: dto.fullName,
+        phone: dto.phone,
+        dateOfBirth: dto.dateOfBirth,
+        address: dto.address,
       },
     })
 
