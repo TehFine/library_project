@@ -33,6 +33,7 @@ export class FinesService {
     async payFine(id: string, librarianId: string, method: string) {
         const fine = await this.fineRepo.findOneBy({ id })
         if (!fine) throw new NotFoundException('Fine record not found')
+        if (fine.status !== 'pending') throw new BadRequestException('Khoản phí này đã được xử lý')
 
         fine.status = 'paid'
         fine.paidAt = new Date()
@@ -52,6 +53,8 @@ export class FinesService {
     async waiveFine(id: string, librarianId: string, reason: string) {
         const fine = await this.fineRepo.findOneBy({ id })
         if (!fine) throw new NotFoundException('Fine record not found')
+        if (fine.status !== 'pending') throw new BadRequestException('Khoản phí này đã được xử lý')
+
         fine.status = 'waived'
         fine.collectedBy = { id: librarianId } as any
         fine.paymentMethod = reason
@@ -128,11 +131,11 @@ export class FinesService {
         }
     }
 
-    calculateOverdueFine(days: number): number {
+    calculateOverdueFine(days: number, rateFirst5Days: number = 1000, rateFromDay6: number = 3000): number {
         if (days <= 0) return 0
-        // Mẫu quy định: 1000đ/ngày cho 5 ngày đầu, 3000đ từ ngày thứ 6
-        if (days <= 5) return days * 1000
-        return 5000 + (days - 5) * 3000
+        // Mẫu quy định: rateFirst5Days/ngày cho 5 ngày đầu, rateFromDay6/ngày từ ngày thứ 6
+        if (days <= 5) return days * rateFirst5Days
+        return 5 * rateFirst5Days + (days - 5) * rateFromDay6
     }
 
     async findMine(userId: string, query: any) {
@@ -166,11 +169,12 @@ export class FinesService {
             relations: { bookCopy: { book: true } }
         })
 
+        // Virtual fines: chỉ tạo cho phiếu mượn quá hạn CHƯA có fine thật
+        // (khoảng thời gian giữa các lần cron chạy — tối đa 1 giờ)
         const virtualFines = overdueBorrows
             .filter(b => {
-                // Chỉ skip nếu có phí 'pending' (chưa thanh toán) — vẫn tính virtual nếu đã paid/waived
-                const pendingFine = realFines.find(f => f.borrowRecordId === b.id && f.status === 'pending')
-                return !pendingFine
+                const anyFine = realFines.find(f => f.borrowRecordId === b.id)
+                return !anyFine // Chỉ tạo virtual nếu chưa có fine nào (kể cả paid/waived)
             })
             .map(b => {
                 const dueDate = new Date(b.dueDate)
@@ -179,34 +183,22 @@ export class FinesService {
                 todayMidnight.setHours(0, 0, 0, 0)
                 const diffTime = todayMidnight.getTime() - dueDate.getTime()
                 const totalDiffDays = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)))
-                
-                // Kiểm tra nếu đã có phí đã thanh toán — trừ đi số ngày đã đóng
-                const existingFine = realFines.find(f => f.borrowRecordId === b.id)
-                let remainingDays = totalDiffDays
-                let remainingAmount = this.calculateOverdueFine(totalDiffDays)
 
-                if (existingFine) {
-                    const paidDays = existingFine.overdueDays || 0
-                    const paidAmount = Number(existingFine.amount)
-                    remainingDays = totalDiffDays - paidDays
-                    remainingAmount = Math.max(0, this.calculateOverdueFine(totalDiffDays) - paidAmount)
-                }
-
-                if (remainingDays <= 0) return null // Không còn gì để đóng
+                if (totalDiffDays <= 0) return null
 
                 return {
                     id: `virtual-${b.id}`,
                     borrowRecord: b,
                     borrowRecordId: b.id,
                     fineType: 'overdue',
-                    overdueDays: remainingDays,
-                    amount: remainingAmount,
+                    overdueDays: totalDiffDays,
+                    amount: this.calculateOverdueFine(totalDiffDays),
                     status: 'pending',
                     createdAt: new Date(),
-                    isVirtual: true // Đánh dấu để frontend biết đây là phí tạm tính
+                    isVirtual: true
                 }
             })
-            .filter((x): x is any => x != null) // Loại bỏ null (trường hợp remainingDays <= 0)
+            .filter((x): x is any => x != null)
 
         const allFines = [...virtualFines, ...realFines]
             .filter(f => {

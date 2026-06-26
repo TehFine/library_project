@@ -3,6 +3,7 @@ import { toLocalDateStr } from '@/common/utils/date'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { LibraryCard } from './entities/library-card.entity'
+import { User } from '../users/entities/user.entity'
 import { RealtimeGateway } from '@/common/websocket/realtime.gateway'
 import { NotificationsService } from '../notifications/notifications.service'
 
@@ -11,6 +12,8 @@ export class LibraryCardsService {
     constructor(
         @InjectRepository(LibraryCard)
         private cardRepo: Repository<LibraryCard>,
+        @InjectRepository(User)
+        private userRepo: Repository<User>,
         private realtime: RealtimeGateway,
         private notifService: NotificationsService,
     ) { }
@@ -62,6 +65,13 @@ export class LibraryCardsService {
 
     async create(dto: Partial<LibraryCard>, creatorId: string) {
         const targetUserId = dto.userId || creatorId;
+        
+        // KIỂM TRA: Tài khoản người dùng còn hoạt động không?
+        const targetUser = await this.userRepo.findOneBy({ id: targetUserId })
+        if (!targetUser || !targetUser.isActive) {
+            throw new BadRequestException('Tài khoản người dùng đã bị khóa, không thể cấp thẻ thư viện')
+        }
+
         const existingCard = await this.cardRepo.findOne({ where: { userId: targetUserId } });
         if (existingCard) {
             throw new BadRequestException('Người dùng này đã có thẻ thư viện. Vui lòng sử dụng chức năng Gia hạn.');
@@ -86,8 +96,16 @@ export class LibraryCardsService {
     }
 
     async renew(id: string, durationStr: string) {
-        const card = await this.cardRepo.findOne({ where: { id } })
+        const card = await this.cardRepo.findOne({
+            where: { id },
+            relations: { user: true }
+        })
         if (!card) throw new NotFoundException('Không tìm thấy thẻ')
+
+        // KIỂM TRA: Tài khoản người dùng còn hoạt động không?
+        if (!card.user?.isActive) {
+            throw new BadRequestException('Tài khoản người dùng đã bị khóa, không thể gia hạn thẻ')
+        }
 
         const currentExpiry = new Date(card.expiryDate)
         const today = new Date()
@@ -180,6 +198,11 @@ export class LibraryCardsService {
         if (!card) throw new NotFoundException('Không tìm thấy yêu cầu cấp thẻ')
         if (card.status !== 'pending') throw new BadRequestException('Yêu cầu này đã được xử lý')
 
+        // KIỂM TRA: Tài khoản người dùng còn hoạt động không?
+        if (!card.user?.isActive) {
+            throw new BadRequestException('Tài khoản người dùng đã bị khóa, không thể kích hoạt thẻ')
+        }
+
         card.status = 'active'
         card.issuedDate = toLocalDateStr()
         card.issuedBy = { id: librarianId } as any
@@ -208,6 +231,11 @@ export class LibraryCardsService {
         })
         if (!card) throw new NotFoundException('Không tìm thấy yêu cầu cấp thẻ')
         if (card.status !== 'pending') throw new BadRequestException('Yêu cầu này đã được xử lý')
+
+        // KIỂM TRA: Tài khoản người dùng còn hoạt động không?
+        if (!card.user?.isActive) {
+            throw new BadRequestException('Tài khoản người dùng đã bị khóa, không thể từ chối yêu cầu')
+        }
 
         card.status = 'rejected'
         const saved = await this.cardRepo.save(card)

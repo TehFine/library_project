@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
+import { Repository, In } from 'typeorm'
 import { BorrowRequest } from './entities/borrow-request.entity'
 import { LibraryCard } from '../library-cards/entities/library-card.entity'
 import { Book } from '../books/entities/book.entity'
@@ -27,6 +27,18 @@ export class BorrowRequestsService {
         const card = await this.cardRepo.findOneBy({ userId, status: 'active' })
         if (!card) throw new BadRequestException('Bạn cần có thẻ thư viện đang hoạt động')
 
+        // KIỂM TRA: Người dùng đã đang mượn cuốn sách này chưa?
+        const existingBorrow = await this.borrowRecordRepo.findOne({
+            where: {
+                libraryCard: { userId },
+                bookCopy: { bookId },
+                status: In(['borrowing', 'overdue'])
+            }
+        })
+        if (existingBorrow) {
+            throw new BadRequestException('Bạn đang mượn cuốn sách này rồi, vui lòng trả sách trước khi tạo yêu cầu mới')
+        }
+
         // Kiểm tra xem đã có yêu cầu đang chờ cho cuốn sách này chưa
         const existing = await this.requestRepo.findOneBy({
             libraryCardId: card.id,
@@ -36,7 +48,20 @@ export class BorrowRequestsService {
         if (existing) throw new BadRequestException('Bạn đã gửi yêu cầu mượn cuốn sách này rồi')
 
         const book = await this.bookRepo.findOneBy({ id: bookId })
-        if (!book || book.availableCopies <= 0) throw new BadRequestException('Sách hiện không còn bản sao nào có sẵn')
+        if (!book) throw new BadRequestException('Sách không tồn tại')
+        if (book.availableCopies <= 0) throw new BadRequestException('Sách hiện không còn bản sao nào có sẵn')
+
+        // KIỂM TRA: Số sách đang mượn có vượt quá giới hạn không?
+        const maxBorrow = parseInt(process.env.MAX_BORROW ?? '3', 10) || 3
+        const activeBorrows = await this.borrowRecordRepo.count({
+            where: {
+                libraryCard: { userId },
+                status: In(['borrowing', 'overdue'])
+            }
+        })
+        if (activeBorrows >= maxBorrow) {
+            throw new BadRequestException(`Bạn chỉ được mượn tối đa ${maxBorrow} cuốn cùng lúc. Hiện đang mượn ${activeBorrows} cuốn.`)
+        }
 
         const request = this.requestRepo.create({
             libraryCardId: card.id,
@@ -93,10 +118,15 @@ export class BorrowRequestsService {
     async approve(id: string, librarianId: string, copyId?: string) {
         const request = await this.requestRepo.findOne({
             where: { id },
-            relations: { book: true, libraryCard: true }
+            relations: { book: true, libraryCard: { user: true } }
         })
         if (!request || request.status !== 'pending') throw new BadRequestException('Yêu cầu không hợp lệ')
         if (!copyId) throw new BadRequestException('Vui lòng chọn mã bản sao để cấp cho độc giả')
+
+        // KIỂM TRA: Tài khoản độc giả còn hoạt động không?
+        if (!request.libraryCard?.user?.isActive) {
+            throw new BadRequestException('Tài khoản độc giả đã bị khóa, không thể duyệt yêu cầu mượn')
+        }
 
         // Tạo phiếu mượn thực tế
         const borrowRecord = await this.borrowRecordsService.borrow({

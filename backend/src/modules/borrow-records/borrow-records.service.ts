@@ -36,12 +36,20 @@ export class BorrowRecordsService {
         await queryRunner.startTransaction()
 
         try {
-            const card = await this.cardRepo.findOneBy({ id: dto.cardId })
+            const card = await this.cardRepo.findOne({
+                where: { id: dto.cardId },
+                relations: { user: true }
+            })
             if (card && card.status === 'active' && card.expiryDate < toLocalDateStr()) {
                 card.status = 'expired'
                 await this.cardRepo.save(card)
             }
             if (!card || card.status !== 'active') throw new BadRequestException('Thẻ không hợp lệ, đã bị khóa hoặc hết hạn')
+
+            // KIỂM TRA: Tài khoản độc giả còn hoạt động không?
+            if (!card.user?.isActive) {
+                throw new BadRequestException('Tài khoản độc giả đã bị khóa, không thể tạo phiếu mượn mới')
+            }
 
             const copy = await this.copyRepo.findOne({
                 where: { id: dto.copyId }
@@ -211,13 +219,17 @@ export class BorrowRecordsService {
             const overdue = diffDays > 0
 
             // Tự động tạo/cập nhật phí phạt nếu quá hạn (trong transaction)
+            // Rates: 1000đ/ngày cho 5 ngày đầu, 3000đ/ngày từ ngày thứ 6
+            // TODO: Đọc rates động từ system_config table
+            const rateFirst5 = 1000
+            const rateFrom6 = 3000
             let fineAmount = 0
             if (overdue) {
                 let amount: number
                 if (diffDays <= 5) {
-                    amount = diffDays * 1000
+                    amount = diffDays * rateFirst5
                 } else {
-                    amount = 5000 + (diffDays - 5) * 3000
+                    amount = 5 * rateFirst5 + (diffDays - 5) * rateFrom6
                 }
                 fineAmount = amount
 

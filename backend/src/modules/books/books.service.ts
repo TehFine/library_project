@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common'
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository, ILike } from 'typeorm'
 import { Book } from './entities/book.entity'
@@ -122,8 +122,8 @@ export class BooksService {
         })
         if (!copy) throw new NotFoundException('Không tìm thấy bản sao sách')
         
-        if (copy.status === 'borrowed' && dto.status && dto.status !== 'borrowed') {
-            throw new Error('Không thể thay đổi trạng thái của sách đang được mượn')
+        if ((copy.status === 'borrowed' || copy.status === 'reserved') && dto.status && dto.status !== copy.status) {
+            throw new BadRequestException('Không thể thay đổi trạng thái của sách đang được mượn hoặc đã được đặt trước')
         }
 
         Object.assign(copy, dto)
@@ -139,8 +139,8 @@ export class BooksService {
         })
         if (!copy) throw new NotFoundException('Không tìm thấy bản sao sách')
         
-        if (copy.status === 'borrowed') {
-            throw new Error('Không thể xóa bản sao đang được mượn')
+        if (copy.status === 'borrowed' || copy.status === 'reserved') {
+            throw new BadRequestException('Không thể xóa bản sao đang được mượn hoặc đã được đặt trước')
         }
 
         // BookCopySubscriber tự động cập nhật totalCopies và availableCopies

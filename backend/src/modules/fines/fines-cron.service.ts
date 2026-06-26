@@ -20,8 +20,9 @@ export class FinesCronService {
     ) { }
 
     /**
-     * Chạy mỗi giờ để tự động tạo phí phạt cho sách quá hạn.
-     * Chỉ tạo phí cho những phiếu mượn quá hạn chưa có bản ghi phí.
+     * Chạy mỗi giờ để tự động cập nhật phí phạt cho sách quá hạn.
+     - Nếu chưa có fine: tạo mới
+     - Nếu đã có fine (pending): cập nhật số ngày & số tiền mới nhất
      */
     @Cron(CronExpression.EVERY_HOUR)
     async processOverdueFines() {
@@ -36,23 +37,21 @@ export class FinesCronService {
                 ],
             })
 
-            if (overdueBorrows.length === 0) {
-                return
-            }
+            if (overdueBorrows.length === 0) return
 
-            // Lấy tất cả Fine record đã tồn tại để tránh tạo trùng
-            const existingFineIds = new Set(
+            // Map borrowRecordId -> existing fine (chỉ pending)
+            const existingFines = new Map(
                 (await this.fineRepo.find({
                     where: overdueBorrows.map(b => ({ borrowRecordId: b.id })),
-                })).map(f => f.borrowRecordId)
+                }))
+                    .filter(f => f.status === 'pending')
+                    .map(f => [f.borrowRecordId, f] as [string, Fine])
             )
 
+            const changedFines: Fine[] = []
             const now = new Date()
-            const newFines: Fine[] = []
 
             for (const record of overdueBorrows) {
-                if (existingFineIds.has(record.id)) continue
-
                 const dueDate = new Date(record.dueDate)
                 dueDate.setHours(0, 0, 0, 0)
                 const todayDate = new Date(todayStr)
@@ -60,28 +59,41 @@ export class FinesCronService {
                 const diffTime = todayDate.getTime() - dueDate.getTime()
                 const diffDays = Math.max(1, Math.floor(diffTime / (1000 * 60 * 60 * 24)))
 
+                // Rates: 1000đ/ngày cho 5 ngày đầu, 3000đ/ngày từ ngày thứ 6
+                const rateFirst5 = 1000
+                const rateFrom6 = 3000
                 let amount: number
                 if (diffDays <= 5) {
-                    amount = diffDays * 1000
+                    amount = diffDays * rateFirst5
                 } else {
-                    amount = 5000 + (diffDays - 5) * 3000
+                    amount = 5 * rateFirst5 + (diffDays - 5) * rateFrom6
                 }
 
-                const fine = this.fineRepo.create({
-                    borrowRecordId: record.id,
-                    fineType: 'overdue',
-                    overdueDays: diffDays,
-                    amount,
-                    status: 'pending',
-                    createdAt: now,
-                })
-
-                newFines.push(fine)
+                const existing = existingFines.get(record.id)
+                if (existing) {
+                    // Cập nhật số ngày & số tiền mới nhất (chỉ update nếu có thay đổi)
+                    if (existing.overdueDays !== diffDays || Number(existing.amount) !== amount) {
+                        existing.overdueDays = diffDays
+                        existing.amount = amount
+                        changedFines.push(existing)
+                    }
+                } else {
+                    // Tạo fine mới
+                    const fine = this.fineRepo.create({
+                        borrowRecordId: record.id,
+                        fineType: 'overdue',
+                        overdueDays: diffDays,
+                        amount,
+                        status: 'pending',
+                        createdAt: now,
+                    })
+                    changedFines.push(fine)
+                }
             }
 
-            if (newFines.length > 0) {
-                await this.fineRepo.save(newFines)
-                this.logger.log(`Đã tự động tạo ${newFines.length} khoản phí phạt cho sách quá hạn`)
+            if (changedFines.length > 0) {
+                await this.fineRepo.save(changedFines)
+                this.logger.log(`Đã cập nhật ${changedFines.length} khoản phí phạt cho sách quá hạn`)
                 this.realtime.emit('librarian:dashboard-update')
                 this.realtime.emit('admin:dashboard-update')
                 this.realtime.emit('reader:dashboard-update')

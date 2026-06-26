@@ -163,10 +163,18 @@ export class ReservationsService {
     }
 
     async fulfill(id: string, librarianId: string) {
-        const res = await this.resRepo.findOneBy({ id })
+        const res = await this.resRepo.findOne({
+            where: { id },
+            relations: { libraryCard: { user: true } }
+        })
         if (!res) throw new BadRequestException('Không tìm thấy yêu cầu đặt trước')
         if (res.status !== 'notified') throw new BadRequestException('Chỉ có thể cấp sách cho yêu cầu đã được thông báo')
         if (!res.reservedCopyId) throw new BadRequestException('Không tìm thấy bản sao sách được giữ cho yêu cầu này')
+
+        // KIỂM TRA: Tài khoản độc giả còn hoạt động không?
+        if (!res.libraryCard?.user?.isActive) {
+            throw new BadRequestException('Tài khoản độc giả đã bị khóa, không thể hoàn tất đặt trước')
+        }
 
         // Tạo phiếu mượn thực tế
         await this.borrowService.borrow({
