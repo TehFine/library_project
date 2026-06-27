@@ -18,10 +18,12 @@ import { DatabaseModule } from './common/database/database.module'
 import { RealtimeModule } from './common/websocket/realtime.module'
 import { AdminModule } from './modules/admin/admin.module'
 import { NotificationsModule } from './modules/notifications/notifications.module'
+import { MailModule } from './common/mail/mail.module'
 
 @Module({
     imports: [
         ScheduleModule.forRoot(),
+        MailModule,
         ConfigModule.forRoot({
             isGlobal: true,
         }),

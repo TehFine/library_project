@@ -1,10 +1,12 @@
 import { Injectable, UnauthorizedException, ConflictException, NotFoundException, BadRequestException } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
+import { ConfigService } from '@nestjs/config'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository, MoreThan } from 'typeorm'
 import * as bcrypt from 'bcryptjs'
 import * as crypto from 'crypto'
 import { RealtimeGateway } from '@/common/websocket/realtime.gateway'
+import { MailService } from '@/common/mail/mail.service'
 import { UsersService } from '../users/users.service'
 import { RoleName } from '../users/entities/role.entity'
 import { PasswordReset } from './entities/password-reset.entity'
@@ -14,8 +16,10 @@ import { RegisterDto } from './dto/register.dto'
 export class AuthService {
   constructor(
     private jwt: JwtService,
+    private config: ConfigService,
     private usersService: UsersService,
     private realtime: RealtimeGateway,
+    private mailService: MailService,
     @InjectRepository(PasswordReset)
     private passwordResetRepo: Repository<PasswordReset>,
   ) { }
@@ -90,17 +94,30 @@ export class AuthService {
     })
     await this.passwordResetRepo.save(reset)
 
-    // For now, return the token directly since there's no email service.
-    // In production you'd send this via email: `${baseUrl}/auth/reset-password?token=${rawToken}&email=${encodeURIComponent(user.email)}`
-    console.log(`\n🔐 Password reset requested for ${user.email}`)
-    console.log(`   Reset token: ${rawToken}`)
-    console.log(`   Link: http://localhost:3000/auth/reset-password?token=${rawToken}&email=${encodeURIComponent(user.email)}\n`)
+    // Build reset link
+    const frontendUrl = this.config.get<string>('FRONTEND_URL') || 'http://localhost:3000'
+    const resetLink = `${frontendUrl}/auth/reset-password?token=${rawToken}&email=${encodeURIComponent(user.email)}`
+
+    // Get user's display name for email personalization
+    const userName = user.fullName || user.username || user.email
+
+    // Send email
+    const emailSent = await this.mailService.sendPasswordResetEmail(user.email, resetLink, userName)
+
+    // Fallback: log to console in dev mode
+    if (!emailSent) {
+      console.log(`\n🔐 Password reset requested for ${user.email}`)
+      console.log(`   Reset token: ${rawToken}`)
+      console.log(`   Link: ${resetLink}\n`)
+    }
 
     return {
       message: 'Nếu email tồn tại, bạn sẽ nhận được hướng dẫn đặt lại mật khẩu.',
-      // Development only — remove in production!
-      _devToken: rawToken,
-      _devLink: `/auth/reset-password?token=${rawToken}&email=${encodeURIComponent(user.email)}`,
+      // Development fallback — only included when email wasn't sent
+      ...(!emailSent && {
+        _devToken: rawToken,
+        _devLink: `/auth/reset-password?token=${rawToken}&email=${encodeURIComponent(user.email)}`,
+      }),
     }
   }
 

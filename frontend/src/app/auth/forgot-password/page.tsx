@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Mail, KeyRound, Send, Undo2, AlertTriangle, Phone, MapPin, Clock } from 'lucide-react'
+import { Mail, KeyRound, Send, Undo2, AlertTriangle, Clock } from 'lucide-react'
 import { authApi } from '@/lib/api'
 import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
@@ -38,16 +38,16 @@ export default function ForgotPasswordPage() {
         <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-5">
           <Mail className="w-8 h-8 text-primary" />
         </div>
-        <h1 className="text-xl font-bold text-gray-800 flex items-center justify-center gap-2">Yêu cầu đã được gửi! <Send className="w-6 h-6 text-primary" /></h1>
+        <h1 className="text-xl font-bold text-gray-800 flex items-center justify-center gap-2">Email đã được gửi! <Send className="w-6 h-6 text-primary" /></h1>
         <p className="mt-3 text-sm text-gray-500 max-w-sm mx-auto leading-relaxed">
-          Yêu cầu đặt lại mật khẩu của bạn đã được ghi nhận. Vui lòng liên hệ trực tiếp với thủ thư tại thư viện để được hỗ trợ đặt lại mật khẩu.
+          Nếu email <span className="font-medium text-gray-700">{email}</span> tồn tại trong hệ thống, bạn sẽ nhận được hướng dẫn đặt lại mật khẩu.
         </p>
         <div className="mt-6 p-4 rounded-2xl bg-amber-50/60 border border-amber-100/60 text-left">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Thông tin liên hệ</p>
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Hướng dẫn</p>
           <div className="space-y-1.5 text-xs text-gray-400">
-            <p><Phone className="w-3.5 h-3.5 inline" /> Hotline: <span className="text-gray-600">(028) 3829 1234</span></p>
-            <p><MapPin className="w-3.5 h-3.5 inline" /> Địa chỉ: <span className="text-gray-600">123 Nguyễn Văn Cừ, Quận 1, TP.HCM</span></p>
-            <p><Clock className="w-3.5 h-3.5 inline" /> Giờ làm việc: <span className="text-gray-600">Thứ 2 - Thứ 7, 7:30 - 19:30</span></p>
+            <p><Mail className="w-3.5 h-3.5 inline" /> Kiểm tra <span className="text-gray-600 font-medium">hộp thư đến</span> (và thư mục Spam/Junk)</p>
+            <p><Clock className="w-3.5 h-3.5 inline" /> Link đặt lại mật khẩu có hiệu lực trong <span className="text-gray-600 font-medium">30 phút</span></p>
+            <p><KeyRound className="w-3.5 h-3.5 inline" /> Nhấn vào link trong email để tạo mật khẩu mới</p>
           </div>
         </div>
         <Button

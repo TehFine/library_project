@@ -78,6 +78,16 @@ PORT=3001
 # === Giới hạn mượn sách ===
 # Số cuốn tối đa một độc giả được giữ cùng lúc (mặc định: 3)
 MAX_BORROW=3
+
+# === Frontend URL (dùng cho link trong email) ===
+FRONTEND_URL=http://localhost:3000
+
+# === Email SMTP (bỏ trống để dùng console log thay thế) ===
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USER=your-email@gmail.com
+MAIL_PASS=your-app-password
+MAIL_FROM="Thư viện" <your-email@gmail.com>
 ```
 
 > **Lưu ý:** File `backend/.env` đã được liệt kê trong `.gitignore`, không bao giờ commit file này lên GitHub vì chứa thông tin nhạy cảm.
@@ -161,6 +171,7 @@ Library_project/
 │   │   │   ├── guards/            # JWT auth guard
 │   │   │   ├── strategies/        # JWT strategy
 │   │   │   ├── utils/             # Hàm tiện ích (toLocalDateStr)
+│   │   │   ├── mail/              # Mail service (nodemailer)
 │   │   │   └── websocket/         # WebSocket gateway (realtime)
 │   │   └── modules/
 │   │       ├── admin/             # Dashboard, báo cáo, audit log
@@ -287,7 +298,7 @@ Dashboard tự động cập nhật khi có sự kiện mượn/trả nhờ WebS
 - [x] Giao diện responsive
 - [x] Timezone Việt Nam
 - [x] Swagger API documentation
-- [ ] Gửi email thật (SMTP)
+- [x] Gửi email đặt lại mật khẩu (SMTP/nodemailer)
 - [ ] Kênh SMS cho thông báo
 - [ ] Upload ảnh bìa sách
 - [ ] Tích hợp thanh toán online
