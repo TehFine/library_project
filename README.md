@@ -79,18 +79,16 @@ PORT=3001
 # Số cuốn tối đa một độc giả được giữ cùng lúc (mặc định: 3)
 MAX_BORROW=3
 
-# === Frontend URL (dùng cho link trong email) ===
+# === Frontend URL  ===
 FRONTEND_URL=http://localhost:3000
 
-# === Email SMTP (bỏ trống để dùng console log thay thế) ===
+# === Email SMTP (Khuyến nghị sử dụng mailtrap ===
 MAIL_HOST=smtp.gmail.com
 MAIL_PORT=587
 MAIL_USER=your-email@gmail.com
 MAIL_PASS=your-app-password
 MAIL_FROM="Thư viện" <your-email@gmail.com>
 ```
-
-> **Lưu ý:** File `backend/.env` đã được liệt kê trong `.gitignore`, không bao giờ commit file này lên GitHub vì chứa thông tin nhạy cảm.
 
 ### 2. Khởi động Database
 
