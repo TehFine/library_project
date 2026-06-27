@@ -73,9 +73,9 @@ export class AuthService {
       return { message: 'Nếu email tồn tại, bạn sẽ nhận được hướng dẫn đặt lại mật khẩu.' }
     }
 
-    // Invalidate any existing unused tokens for this email
+    // Invalidate any existing unused tokens for this user
     await this.passwordResetRepo.update(
-      { email: user.email, used: false, expiresAt: MoreThan(new Date()) } as any,
+      { userId: user.id, used: false, expiresAt: MoreThan(new Date()) } as any,
       { used: true },
     )
 
@@ -84,7 +84,7 @@ export class AuthService {
     const hashedToken = await bcrypt.hash(rawToken, 10)
 
     const reset = this.passwordResetRepo.create({
-      email: user.email,
+      userId: user.id,
       token: hashedToken,
       expiresAt: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes
     })
@@ -109,10 +109,10 @@ export class AuthService {
     const user = await this.usersService.findByEmailOrUsername(email)
     if (!user) throw new NotFoundException('Không tìm thấy tài khoản')
 
-    // Find all unused, non-expired tokens for this email
+    // Find all unused, non-expired tokens for this user
     const resets = await this.passwordResetRepo.find({
       where: {
-        email: user.email,
+        userId: user.id,
         used: false,
         expiresAt: MoreThan(new Date()),
       } as any,
@@ -144,9 +144,9 @@ export class AuthService {
     // Mark token as used
     await this.passwordResetRepo.update(matchedReset.id, { used: true })
 
-    // Invalidate all other tokens for this email
+    // Invalidate all other tokens for this user
     await this.passwordResetRepo.update(
-      { email: user.email, used: false } as any,
+      { userId: user.id, used: false } as any,
       { used: true },
     )
 

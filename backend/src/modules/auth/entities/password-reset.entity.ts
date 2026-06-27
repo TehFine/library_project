@@ -1,12 +1,17 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn } from 'typeorm'
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm'
+import { User } from '../../users/entities/user.entity'
 
 @Entity('password_resets')
 export class PasswordReset {
     @PrimaryGeneratedColumn('uuid')
     id: string
 
+    @ManyToOne(() => User, { onDelete: 'CASCADE' })
+    @JoinColumn({ name: 'userId' })
+    user: User
+
     @Column()
-    email: string
+    userId: string
 
     @Column()
     token: string
