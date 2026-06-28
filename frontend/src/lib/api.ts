@@ -163,6 +163,8 @@ export const finesApi = {
     request<any>(`/fines/${id}/waive`, { method: 'PATCH', body: JSON.stringify({ reason }) }),
   simulatePayOnline: (id: string) =>
     request<any>(`/fines/${id}/simulate-pay`, { method: 'POST' }),
+  vnpayPay: (id: string) =>
+    request<{ paymentUrl: string }>(`/fines/${id}/vnpay-pay`, { method: 'POST' }),
   pay: (id: string, method: string) =>
     request<any>(`/fines/${id}/pay`, { method: 'PATCH', body: JSON.stringify({ method }) }),
   getAdminStats: (params?: { from?: string; to?: string; status?: string; fineType?: string }) =>
@@ -207,6 +209,14 @@ export interface LibrarianStats {
   returnsToday: number
   overdueCount: number
   finesCollectedToday: number
+  onlineCollectedToday: number
+  recentOnlinePayments: {
+    id: string
+    amount: number
+    readerName: string
+    bookTitle: string
+    paidAt: string
+  }[]
   pendingRequestsCount: number
   overdueBooks: { id: string; title: string; user: string; days: number }[]
   readyReservations: { id: string; title: string; user: string; queue: number }[]
@@ -262,11 +272,19 @@ export const librarianApi = {
 }
 
 // ── Admin ──────────────────────────────────────────────────────────────────────
+export interface AdminFineStats {
+  totalPaidToday: number
+  cashCollectedToday: number
+  onlineCollectedToday: number
+  perLibrarian: { id: string; name: string; amount: number }[]
+}
+
 export interface AdminDashboardStats {
   totalUsers: number
   totalBooks: number
   borrowedBooks: number
   totalFines: number
+  fineStats: AdminFineStats
   recentActivities: { id: number; type: string; user: string; content: string; time: string; color: string }[]
   systemAlerts: { label: string; type: string; action: string; href?: string }[]
   topBooks: { rank: number; title: string; count: number }[]
@@ -370,6 +388,34 @@ export const adminApi = {
   updateUserRole: (id: string, role: string) => request<User>(`/admin/users/${id}/role`, { method: 'PATCH', body: JSON.stringify({ role }) }),    toggleUserStatus: (id: string, isActive: boolean, reason?: string) => request<User>(`/admin/users/${id}/status`, { method: 'PATCH', body: JSON.stringify({ isActive, reason }) }),
   getSettings: () => request<Record<string, string>>('/admin/settings'),
   updateSettings: (data: Record<string, string>) => request<Record<string, string>>('/admin/settings', { method: 'PUT', body: JSON.stringify(data) }),
+  
+  // System Tasks
+  getSystemTasks: () => request<SystemTask[]>('/admin/system-tasks'),
+  toggleSystemTask: (id: string, enabled: boolean) => request<{ success: boolean }>(`/admin/system-tasks/${id}/toggle`, { method: 'PATCH', body: JSON.stringify({ enabled }) }),
+  runSystemTask: (id: string) => request<{ success: boolean; message: string }>(`/admin/system-tasks/${id}/run-now`, { method: 'POST' }),
+
+  // Shifts
+  getShifts: () => request<Shift[]>('/shifts'),
+  createShift: (data: { librarianId: string; startTime: string; endTime: string; note?: string }) => request<Shift>('/shifts', { method: 'POST', body: JSON.stringify(data) }),
+  deleteShift: (id: string) => request<void>(`/shifts/${id}`, { method: 'DELETE' }),
+}
+
+export interface Shift {
+  id: string
+  librarianId: string
+  librarian?: { id: string; fullName?: string; username: string }
+  startTime: string
+  endTime: string
+  note?: string
+  createdAt: string
+}
+
+export interface SystemTask {
+  id: string
+  name: string
+  schedule: string
+  description: string
+  enabled: boolean
 }
 
 // ── Notifications ──────────────────────────────────────────────────────────────

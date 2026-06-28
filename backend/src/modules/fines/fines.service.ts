@@ -47,6 +47,13 @@ export class FinesService {
         })
     }
 
+    async getFineById(id: string) {
+        return this.fineRepo.findOne({
+            where: { id },
+            relations: { borrowRecord: { libraryCard: true } }
+        })
+    }
+
     async createFine(dto: Partial<Fine>) {
         const fine = this.fineRepo.create(dto)
         return this.fineRepo.save(fine)
@@ -78,8 +85,10 @@ export class FinesService {
         if (fine.status !== 'pending') throw new BadRequestException('Khoản phí này đã được xử lý')
 
         fine.status = 'waived'
+        fine.paidAt = new Date()
         fine.collectedBy = { id: librarianId } as any
-        fine.paymentMethod = reason
+        fine.paymentMethod = `waive:${reason}`
+        fine.receiptNumber = `WVR-${Date.now()}`
         const saved = await this.fineRepo.save(fine)
         
         // Emit realtime events

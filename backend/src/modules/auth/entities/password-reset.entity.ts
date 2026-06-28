@@ -10,7 +10,7 @@ export class PasswordReset {
     @JoinColumn({ name: 'userId' })
     user: User
 
-    @Column()
+    @Column({ nullable: true })
     userId: string
 
     @Column()
