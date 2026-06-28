@@ -5,7 +5,7 @@ import { Card, Badge } from '@/components/ui'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import Select from '@/components/ui/Select'
-import { adminApi } from '@/lib/api'
+import { adminApi, SystemTask } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { Mail, AlertTriangle, CheckCircle, Settings2, BookOpen, Play, RefreshCw } from 'lucide-react'
 
@@ -136,13 +136,11 @@ export default function SystemSettingsPage() {
   })
 
   // ── Tasks state ─────────────────────────────────────────────────────
-  const [tasks, setTasks] = useState([
-    { id: 1, name: 'Cập nhật trạng thái quá hạn', schedule: '00:00 hàng ngày', enabled: true },
-    { id: 2, name: 'Gửi nhắc sắp đến hạn (3 ngày)', schedule: '08:00 hàng ngày', enabled: true },
-    { id: 3, name: 'Gửi cảnh báo quá hạn', schedule: '09:00 hàng ngày', enabled: true },
-    { id: 4, name: 'Hết hạn đặt trước', schedule: '01:00 hàng ngày', enabled: true },
-    { id: 5, name: 'Backup dữ liệu', schedule: '02:00 hàng ngày', enabled: true },
-  ])
+  const [tasks, setTasks] = useState<SystemTask[]>([])
+  const [tasksLoading, setTasksLoading] = useState(false)
+  const [togglingId, setTogglingId] = useState<string | null>(null)
+  const [runningId, setRunningId] = useState<string | null>(null)
+  const [taskLog, setTaskLog] = useState<string>('')
 
   // ── Cập nhật rules với validation inline ────────────────────────────
   const updateRule = useCallback(<K extends keyof RuleSettings>(
@@ -164,7 +162,10 @@ export default function SystemSettingsPage() {
     async function load() {
       setLoadingSettings(true)
       try {
-        const apiData = await adminApi.getSettings()
+        const [apiData, systemTasks] = await Promise.all([
+          adminApi.getSettings(),
+          adminApi.getSystemTasks(),
+        ])
         if (cancelled) return
         setRules({
           maxBooksPerBorrow: Number(apiData.max_books_per_borrow ?? 3),
@@ -178,6 +179,8 @@ export default function SystemSettingsPage() {
           autoDeactivateMonths: Number(apiData.auto_deactivate_months ?? 3),
           autoLockDays: Number(apiData.auto_lock_days ?? 30),
         })
+        setTasks(systemTasks)
+        setTaskLog(`Lần kiểm tra gần nhất: ${new Date().toLocaleString('vi-VN')}`)
       } catch (err) {
         // Fallback to defaults
         setRules(defaultRules)
@@ -534,48 +537,100 @@ export default function SystemSettingsPage() {
                  <Settings2 className="w-4 h-4 text-amber-500" />
                  <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">LỊCH TÁC VỤ TỰ ĐỘNG</h3>
                </div>
-               <Badge className="bg-emerald-50 text-emerald-700 text-[10px] sm:text-xs">Tất cả đang hoạt động tốt</Badge>
+               <Badge className={"bg-emerald-50 text-emerald-700 text-[10px] sm:text-xs"}>
+                 {tasks.filter(t => t.enabled).length}/{tasks.length} đang hoạt động
+               </Badge>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left min-w-[500px]">
-                <thead className="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
-                  <tr>
-                    <th className="px-4 sm:px-6 py-3 sm:py-4">Tác vụ</th>
-                    <th className="px-4 sm:px-6 py-3 sm:py-4">Lịch chạy</th>
-                    <th className="px-4 sm:px-6 py-3 sm:py-4 text-center">Trạng thái</th>
-                    <th className="px-4 sm:px-6 py-3 sm:py-4 text-right">Hành động</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50 text-sm">
-                  {tasks.map(task => (
-                    <tr key={task.id} className="hover:bg-slate-50/50">
-                      <td className="px-4 sm:px-6 py-3 sm:py-4 font-bold text-slate-800 text-[12px] sm:text-sm">{task.name}</td>
-                      <td className="px-4 sm:px-6 py-3 sm:py-4 text-slate-500 font-medium italic text-[12px] sm:text-sm">{task.schedule}</td>
-                      <td className="px-4 sm:px-6 py-3 sm:py-4 text-center">
-                         <label className="relative inline-flex items-center cursor-pointer">
-                            <input 
-                              type="checkbox" 
-                              className="sr-only peer" 
-                              checked={task.enabled}
-                              onChange={() => {
-                                 setTasks(tasks.map(t => t.id === task.id ? { ...t, enabled: !t.enabled } : t))
-                              }}
-                            />
-                            <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
-                         </label>
-                      </td>
-                      <td className="px-4 sm:px-6 py-3 sm:py-4 text-right">
-                         <button className="text-[11px] sm:text-xs font-bold text-amber-600 hover:bg-amber-50 px-2.5 sm:px-3 py-1.5 rounded-lg border border-amber-100 transition-all whitespace-nowrap">
-                            <Play className="w-3.5 h-3.5" /> Chạy ngay
-                         </button>
-                      </td>
+            {tasksLoading ? (
+              <div className="p-10 text-center">
+                <div className="w-10 h-10 mx-auto rounded-2xl bg-gray-100 animate-pulse mb-3" />
+                <p className="text-gray-400 text-sm">Đang tải...</p>
+              </div>
+            ) : tasks.length === 0 ? (
+              <div className="p-10 text-center">
+                <Settings2 className="w-10 h-10 mx-auto text-gray-300 mb-2" />
+                <p className="text-gray-400 text-sm font-medium">Không có tác vụ nào</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left min-w-[500px]">
+                  <thead className="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
+                    <tr>
+                      <th className="px-4 sm:px-6 py-3 sm:py-4">Tác vụ</th>
+                      <th className="px-4 sm:px-6 py-3 sm:py-4">Lịch chạy</th>
+                      <th className="px-4 sm:px-6 py-3 sm:py-4 text-center">Trạng thái</th>
+                      <th className="px-4 sm:px-6 py-3 sm:py-4 text-right">Hành động</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50 text-sm">
+                    {tasks.map(task => (
+                      <tr key={task.id} className="hover:bg-slate-50/50">
+                        <td className="px-4 sm:px-6 py-3 sm:py-4">
+                          <p className="font-bold text-slate-800 text-[12px] sm:text-sm">{task.name}</p>
+                          <p className="text-[10px] text-gray-400 mt-0.5">{task.description}</p>
+                        </td>
+                        <td className="px-4 sm:px-6 py-3 sm:py-4 text-slate-500 font-medium italic text-[12px] sm:text-sm">{task.schedule}</td>
+                        <td className="px-4 sm:px-6 py-3 sm:py-4 text-center">
+                           <label className="relative inline-flex items-center cursor-pointer">
+                              <input 
+                                type="checkbox" 
+                                className="sr-only peer" 
+                                checked={task.enabled}
+                                disabled={togglingId === task.id}
+                                onChange={async () => {
+                                  setTogglingId(task.id)
+                                  try {
+                                    const newState = !task.enabled
+                                    await adminApi.toggleSystemTask(task.id, newState)
+                                    setTasks(prev => prev.map(t => t.id === task.id ? { ...t, enabled: newState } : t))
+                                    toast(newState ? `Đã bật tác vụ: ${task.name}` : `Đã tắt tác vụ: ${task.name}`, 'success')
+                                  } catch (err: any) {
+                                    toast(err?.message || 'Lỗi khi thay đổi trạng thái', 'error')
+                                  } finally {
+                                    setTogglingId(null)
+                                  }
+                                }}
+                              />
+                              <div className={`w-11 h-6 rounded-full peer-focus:outline-none after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all ${task.enabled ? 'bg-amber-600 after:translate-x-full after:border-white' : 'bg-slate-200 after:border-gray-300'}`}></div>
+                           </label>
+                        </td>
+                        <td className="px-4 sm:px-6 py-3 sm:py-4 text-right">
+                           <button
+                             onClick={async () => {
+                               setRunningId(task.id)
+                               try {
+                                 const result = await adminApi.runSystemTask(task.id)
+                                 toast(result.message, 'success')
+                                 setTaskLog(`Lần chạy gần nhất: ${new Date().toLocaleString('vi-VN')} - ${result.message}`)
+                               } catch (err: any) {
+                                 toast(err?.message || 'Lỗi khi chạy tác vụ', 'error')
+                               } finally {
+                                 setRunningId(null)
+                               }
+                             }}
+                             disabled={runningId === task.id}
+                             className="text-[11px] sm:text-xs font-bold text-amber-600 hover:bg-amber-50 px-2.5 sm:px-3 py-1.5 rounded-lg border border-amber-100 transition-all whitespace-nowrap disabled:opacity-50"
+                           >
+                              {runningId === task.id ? (
+                                <span className="inline-flex items-center gap-1">
+                                  <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                                  Đang chạy
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1">
+                                  <Play className="w-3.5 h-3.5" /> Chạy ngay
+                                </span>
+                              )}
+                           </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
             <div className="p-3 sm:p-4 bg-slate-50 text-[10px] text-slate-400 font-bold uppercase tracking-widest text-center">
-               Nhật ký tác vụ gần nhất: 11/05/2026 09:00:15 — Thành công
+               {taskLog || `Đang tải...`}
             </div>
           </Card>
         )}

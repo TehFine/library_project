@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Put, Param, Body, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Put, Param, Body, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiBody, ApiQuery } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { RolesGuard } from '@/common/guards/roles.guard';
@@ -82,5 +82,25 @@ export class AdminController {
     @ApiBody({ schema: { example: { fineFirst5Days: '1000', fineFromDay6: '3000', maxBooksPerBorrow: '3' } } })
     updateSettings(@Body() body: Record<string, string>) {
         return this.adminService.updateSettings(body);
+    }
+
+    // ── Task management ─────────────────────────────────────────────────
+    @Get('system-tasks')
+    @ApiOperation({ summary: 'Danh sách tác vụ tự động' })
+    getSystemTasks() {
+        return this.adminService.getSystemTasks();
+    }
+
+    @Patch('system-tasks/:id/toggle')
+    @ApiOperation({ summary: 'Bật/tắt tác vụ tự động' })
+    @ApiBody({ schema: { example: { enabled: false } } })
+    toggleSystemTask(@Param('id') id: string, @Body('enabled') enabled: boolean) {
+        return this.adminService.toggleSystemTask(id, enabled);
+    }
+
+    @Post('system-tasks/:id/run-now')
+    @ApiOperation({ summary: 'Chạy tác vụ ngay lập tức' })
+    runSystemTask(@Param('id') id: string) {
+        return this.adminService.runSystemTask(id);
     }
 }

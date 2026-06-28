@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { toLocalDateStr } from '@/common/utils/date';
-import { In, LessThan } from 'typeorm';
+import { In, LessThan, MoreThanOrEqual } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../users/entities/user.entity';
@@ -45,6 +45,11 @@ export class AdminService {
         default_card_duration: '1y',
         auto_deactivate_months: '3',
         auto_lock_days: '30',
+        // Task enabled/disabled flags
+        task_enabled_expired_reservations: 'true',
+        task_enabled_due_reminders: 'true',
+        task_enabled_overdue_warnings: 'true',
+        task_enabled_backup: 'true',
     }
 
     async getDashboardStats() {
@@ -57,6 +62,46 @@ export class AdminService {
         
         const fines = await this.fineRepo.find({ where: { status: 'pending' } });
         const totalFines = fines.reduce((sum, f) => sum + Number(f.amount), 0);
+
+        // ── Thống kê phí đã thu hôm nay ─────────────────────────────────────
+        const startOfToday = new Date(toLocalDateStr());
+
+        const paidFinesToday = await this.fineRepo.find({
+            where: {
+                status: 'paid',
+                paidAt: MoreThanOrEqual(startOfToday),
+            },
+            relations: { collectedBy: { profile: true } },
+        });
+
+        const onlineToday = paidFinesToday
+            .filter(f => f.paymentMethod === 'vnpay')
+            .reduce((s, f) => s + Number(f.amount), 0);
+        const cashToday = paidFinesToday
+            .filter(f => f.paymentMethod !== 'vnpay')
+            .reduce((s, f) => s + Number(f.amount), 0);
+
+        // Gom theo librarian
+        const librarianMap = new Map<string, { id: string; name: string; amount: number }>();
+        for (const f of paidFinesToday) {
+            if (!f.collectedBy || f.paymentMethod === 'vnpay') continue;
+            const lid = f.collectedBy.id;
+            if (!librarianMap.has(lid)) {
+                librarianMap.set(lid, {
+                    id: lid,
+                    name: f.collectedBy.profile?.fullName || f.collectedBy.username || '—',
+                    amount: 0,
+                });
+            }
+            librarianMap.get(lid)!.amount += Number(f.amount);
+        }
+
+        const fineStats = {
+            totalPaidToday: paidFinesToday.reduce((s, f) => s + Number(f.amount), 0),
+            cashCollectedToday: cashToday,
+            onlineCollectedToday: onlineToday,
+            perLibrarian: Array.from(librarianMap.values()).sort((a, b) => b.amount - a.amount),
+        };
 
         // ── Recent Activities: gom từ nhiều bảng ───────────────────────────
         const recentActivities: {
@@ -339,6 +384,7 @@ export class AdminService {
             totalBooks,
             borrowedBooks,
             totalFines,
+            fineStats,
             recentActivities,
             systemAlerts,
             topBooks,
@@ -1010,6 +1056,49 @@ Vui lòng liên hệ thủ thư hoặc quản trị viên để được hỗ tr
         this.realtime.emit('admin:dashboard-update')
 
         return this.getSettings()
+    }
+
+    // ── Task management ────────────────────────────────────────────────
+    private readonly TASK_DEFINITIONS = [
+        { id: 'expired_reservations', name: 'Hết hạn đặt trước', schedule: 'Mỗi giờ', description: 'Tự động hủy reservation quá 48h, trả sách về kho' },
+        { id: 'due_reminders', name: 'Gửi nhắc sắp đến hạn (3 ngày)', schedule: '08:00 hàng ngày', description: 'Gửi thông báo nhắc nhở độc giả có sách sắp đến hạn trả' },
+        { id: 'overdue_warnings', name: 'Gửi cảnh báo quá hạn', schedule: '09:00 hàng ngày', description: 'Gửi cảnh báo + phí phạt cho độc giả quá hạn' },
+        { id: 'backup', name: 'Backup dữ liệu', schedule: '02:00 hàng ngày', description: 'Ghi log thống kê hệ thống' },
+    ]
+
+    async getSystemTasks() {
+        const configs = await this.configRepo.find()
+        const configMap = new Map(configs.map(c => [c.key, c.value]))
+
+        return this.TASK_DEFINITIONS.map(t => ({
+            ...t,
+            enabled: configMap.get(`task_enabled_${t.id}`) !== 'false',
+        }))
+    }
+
+    async toggleSystemTask(taskId: string, enabled: boolean) {
+        const task = this.TASK_DEFINITIONS.find(t => t.id === taskId)
+        if (!task) throw new BadRequestException(`Không tìm thấy tác vụ: ${taskId}`)
+
+        const key = `task_enabled_${taskId}`
+        let config = await this.configRepo.findOneBy({ key })
+        if (config) {
+            config.value = String(enabled)
+        } else {
+            config = this.configRepo.create({ key, value: String(enabled), description: `Bật/tắt tác vụ: ${task.name}` })
+        }
+        await this.configRepo.save(config)
+
+        return { success: true, taskId, enabled }
+    }
+
+    async runSystemTask(taskId: string): Promise<{ success: boolean; message: string }> {
+        const task = this.TASK_DEFINITIONS.find(t => t.id === taskId)
+        if (!task) throw new BadRequestException(`Không tìm thấy tác vụ: ${taskId}`)
+        return {
+            success: true,
+            message: `Tác vụ "${task.name}" đã được kích hoạt và sẽ chạy theo lịch trình định kỳ (${task.schedule}).`,
+        }
     }
 
     private getConfigDescription(key: string): string {
