@@ -5,7 +5,8 @@ import Link from 'next/link'
 import { useState, useEffect, useCallback } from 'react'
 import { useRealtimeRefresh } from '@/hooks/useWebSocket'
 import { adminApi, AdminDashboardStats } from '@/lib/api'
-import { Users, BookOpen, Book, DollarSign, AlertTriangle } from 'lucide-react'
+import { formatCurrency } from '@/lib/utils'
+import { Users, BookOpen, Book, DollarSign, AlertTriangle, TrendingUp } from 'lucide-react'
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<AdminDashboardStats | null>(null)
@@ -186,6 +187,49 @@ export default function AdminDashboard() {
           </div>
         </Card>
       </div>
+
+      {/* Thống kê phí đã thu */}
+      <Card padding="lg" className="border-emerald-100">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-bold text-slate-800 text-sm sm:text-base flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-emerald-600" />
+            Doanh thu phí phạt hôm nay
+          </h3>
+          <Link href="/admin/reports/fines" className="text-xs font-bold text-amber-600 hover:underline">
+            Xem chi tiết →
+          </Link>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+          <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-50 to-green-50 border border-emerald-200">
+            <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">Tổng đã thu</p>
+            <p className="text-xl font-black text-gray-900 mt-1">{formatCurrency(stats.fineStats.totalPaidToday)}</p>
+            <p className="text-[10px] text-emerald-500 mt-0.5">Bao gồm tiền mặt + online</p>
+          </div>
+          <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-50 to-yellow-50 border border-amber-200">
+            <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wider">Tiền mặt tại quầy</p>
+            <p className="text-xl font-black text-gray-900 mt-1">{formatCurrency(stats.fineStats.cashCollectedToday)}</p>
+            <p className="text-[10px] text-amber-500 mt-0.5">Các thủ thư thu trực tiếp</p>
+          </div>
+          <div className="p-4 rounded-2xl bg-gradient-to-br from-sky-50 to-blue-50 border border-sky-200">
+            <p className="text-[10px] font-bold text-sky-600 uppercase tracking-wider">Thanh toán online</p>
+            <p className="text-xl font-black text-gray-900 mt-1">{formatCurrency(stats.fineStats.onlineCollectedToday)}</p>
+            <p className="text-[10px] text-sky-500 mt-0.5">Qua VNPay</p>
+          </div>
+        </div>
+        {stats.fineStats.perLibrarian.length > 0 && (
+          <div className="border-t border-gray-100 pt-3">
+            <p className="text-xs font-bold text-gray-500 mb-2 uppercase tracking-wider">Chi tiết theo thủ thư</p>
+            <div className="space-y-1.5">
+              {stats.fineStats.perLibrarian.map(lib => (
+                <div key={lib.id} className="flex items-center justify-between text-sm py-1.5 px-3 rounded-xl hover:bg-gray-50">
+                  <span className="font-medium text-gray-700">{lib.name}</span>
+                  <span className="font-bold text-emerald-600">{formatCurrency(lib.amount)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </Card>
 
       {/* Tables Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

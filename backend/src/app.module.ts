@@ -19,6 +19,8 @@ import { RealtimeModule } from './common/websocket/realtime.module'
 import { AdminModule } from './modules/admin/admin.module'
 import { NotificationsModule } from './modules/notifications/notifications.module'
 import { MailModule } from './common/mail/mail.module'
+import { SystemTasksModule } from './modules/system-tasks/system-tasks.module'
+import { ShiftsModule } from './modules/shifts/shifts.module'
 
 @Module({
     imports: [
@@ -56,6 +58,8 @@ import { MailModule } from './common/mail/mail.module'
         BorrowRequestsModule,
         AdminModule,
         NotificationsModule,
+        SystemTasksModule,
+        ShiftsModule,
     ],
     controllers: [AppController],
     providers: [AppService],

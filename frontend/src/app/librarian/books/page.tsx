@@ -251,9 +251,17 @@ export default function LibrarianBooksPage() {
                       </Badge>
                     )}
                   </td>
-                  <td className="py-4 px-6 text-right space-x-2">
-                    <Button variant="ghost" size="sm" onClick={() => handleOpenEditBook(book)} className="rounded-full"><Pencil className="w-3.5 h-3.5" /> Sửa</Button>
-                    <Button variant="secondary" size="sm" onClick={() => handleOpenCopies(book)} className="rounded-full px-4"><Package className="w-3.5 h-3.5" /> {book.totalCopies || 0} bản</Button>
+                  <td className="py-4 px-6">
+                    <div className="flex items-center justify-end gap-2 flex-wrap">
+                      <Button variant="ghost" size="sm" onClick={() => handleOpenEditBook(book)} className="rounded-full whitespace-nowrap">
+                        <Pencil className="w-3.5 h-3.5 shrink-0" />
+                        <span>Sửa</span>
+                      </Button>
+                      <Button variant="secondary" size="sm" onClick={() => handleOpenCopies(book)} className="rounded-full px-3 sm:px-4 whitespace-nowrap">
+                        <Package className="w-3.5 h-3.5 shrink-0" />
+                        <span>{book.totalCopies || 0} bản</span>
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -280,9 +288,12 @@ export default function LibrarianBooksPage() {
       {/* Modal Quản lý Bản Sao */}
       <Modal open={!!selectedBookForCopies} onClose={() => setSelectedBookForCopies(null)} title={`Kho sách — ${selectedBookForCopies?.title}`} size="lg">
         <div className="space-y-6">
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-between items-start sm:items-center">
             <p className="text-sm text-gray-500">Danh sách các cuốn vật lý của đầu sách này hiện có trong kho.</p>
-            <Button variant="primary" size="sm" className="rounded-xl" onClick={handleAddCopy} loading={addingCopy}>+ Thêm bản sao</Button>
+            <Button variant="primary" size="sm" className="rounded-xl whitespace-nowrap shrink-0" onClick={handleAddCopy} loading={addingCopy}>
+              <Plus className="w-4 h-4" />
+              <span>Thêm bản sao</span>
+            </Button>
           </div>
           <div className="border border-gray-100 rounded-3xl overflow-hidden shadow-sm">
             <table className="w-full text-left">

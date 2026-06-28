@@ -11,7 +11,7 @@ import { User } from '@/types'
 import { useRealtimeRefresh } from '@/hooks/useWebSocket'
 import {
   BookOpen, RotateCcw, HelpCircle, AlertTriangle,
-  DollarSign, Bell, Users, ArrowRight, Clock, CheckCircle
+  DollarSign, Bell, Users, ArrowRight, Clock, CheckCircle, CreditCard, Smartphone
 } from 'lucide-react'
 
 export default function LibrarianDashboard() {
@@ -90,12 +90,12 @@ export default function LibrarianDashboard() {
       iconBg: 'bg-violet-100 text-violet-600',
     },
     {
-      label: 'Đặt trước sẵn sàng',
-      value: stats?.readyReservations?.length ?? 0,
-      subtext: 'chờ nhận sách',
-      icon: <Bell className="w-5 h-5" />,
-      color: 'bg-indigo-50 text-indigo-700 ring-indigo-200/50',
-      iconBg: 'bg-indigo-100 text-indigo-600',
+      label: 'Online hôm nay',
+      value: formatCurrency(stats?.onlineCollectedToday ?? 0),
+      subtext: 'thanh toán VNPay',
+      icon: <Smartphone className="w-5 h-5" />,
+      color: 'bg-sky-50 text-sky-700 ring-sky-200/50',
+      iconBg: 'bg-sky-100 text-sky-600',
     },
   ]
 
@@ -354,54 +354,47 @@ export default function LibrarianDashboard() {
           </div>
         </Card>
 
-        {/* Đặt trước sẵn sàng */}
+        {/* Thanh toán online hôm nay */}
         <Card padding="none" className="rounded-3xl overflow-hidden border border-gray-100 shadow-sm">
           <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-white">
             <h3 className="font-bold text-gray-900 flex items-center gap-2 text-sm">
-              <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
-              Đặt trước sẵn sàng
-              {stats && stats.readyReservations.length > 0 && (
-                <span className="bg-indigo-100 text-indigo-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                  {stats.readyReservations.length}
+              <span className="w-2 h-2 rounded-full bg-sky-500 animate-pulse" />
+              Thanh toán online hôm nay
+              {stats && stats.recentOnlinePayments.length > 0 && (
+                <span className="bg-sky-100 text-sky-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                  {stats.recentOnlinePayments.length}
                 </span>
               )}
             </h3>
-            <Link href="/librarian/reservations">
-              <Button variant="ghost" size="sm" className="text-primary text-xs px-2 hover:bg-indigo-50">
-                Xem tất cả
-              </Button>
-            </Link>
           </div>
           <div className="divide-y divide-gray-50 bg-white min-h-[200px] max-h-[320px] overflow-y-auto">
-            {!stats || stats.readyReservations.length === 0 ? (
+            {!stats || stats.recentOnlinePayments.length === 0 ? (
               <div className="p-10 text-center">
-                <div className="w-12 h-12 mx-auto mb-3 rounded-2xl bg-indigo-50 flex items-center justify-center">
-                  <Bell className="w-6 h-6 text-indigo-300" />
+                <div className="w-12 h-12 mx-auto mb-3 rounded-2xl bg-sky-50 flex items-center justify-center">
+                  <Smartphone className="w-6 h-6 text-sky-300" />
                 </div>
-                <p className="text-gray-400 text-sm font-medium">Không có đặt trước sẵn sàng</p>
-                <p className="text-gray-300 text-xs mt-1">Sách đã có sẵn chờ độc giả đến nhận sẽ hiển thị tại đây</p>
+                <p className="text-gray-400 text-sm font-medium">Chưa có thanh toán online hôm nay</p>
+                <p className="text-gray-300 text-xs mt-1">Khi độc giả thanh toán qua VNPay, giao dịch sẽ xuất hiện tại đây</p>
               </div>
             ) : (
-              stats.readyReservations.map(r => (
-                <div key={r.id} className="p-3 sm:p-4 flex items-center justify-between hover:bg-indigo-50/30 transition-colors">
+              stats.recentOnlinePayments.map(p => (
+                <div key={p.id} className="p-3 sm:p-4 flex items-center justify-between hover:bg-sky-50/30 transition-colors">
                   <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div className="w-9 h-9 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center shrink-0">
-                      <Bell className="w-4 h-4" />
+                    <div className="w-9 h-9 bg-sky-50 text-sky-600 rounded-xl flex items-center justify-center shrink-0">
+                      <CreditCard className="w-4 h-4" />
                     </div>
                     <div className="min-w-0">
-                      <p className="font-semibold text-gray-900 text-sm truncate">{r.title}</p>
+                      <p className="font-semibold text-gray-900 text-sm truncate">{p.readerName}</p>
                       <p className="text-xs text-gray-500 mt-0.5 truncate">
-                        {r.user}
+                        {p.bookTitle}
                         <span className="mx-1.5 text-gray-300">•</span>
-                        <span className="text-indigo-600 font-semibold">Vị trí: #{r.queue}</span>
+                        <span className="text-emerald-600 font-semibold">{formatCurrency(p.amount)}</span>
                       </p>
                     </div>
                   </div>
-                  <Link href="/librarian/reservations">
-                    <Button variant="ghost" size="sm" className="rounded-full text-xs px-3 text-indigo-700 hover:bg-indigo-100 shrink-0 ml-2">
-                      Xử lý
-                    </Button>
-                  </Link>
+                  <span className="text-[10px] text-gray-400 shrink-0 ml-2">
+                    {new Date(p.paidAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
                 </div>
               ))
             )}
