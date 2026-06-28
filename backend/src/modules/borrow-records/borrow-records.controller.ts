@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiQuery, ApiResponse, 
 import { BorrowRecordsService } from './borrow-records.service'
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard'
 import { RolesGuard } from '@/common/guards/roles.guard'
+import { ShiftGuard, OnShift } from '@/common/guards/shift.guard'
 import { Roles } from '@/common/decorators/roles.decorator'
 import { RoleName } from '../users/entities/role.entity'
 
@@ -14,16 +15,18 @@ export class BorrowRecordsController {
     constructor(private readonly service: BorrowRecordsService) { }
 
     @Get()
-    @UseGuards(RolesGuard)
+    @UseGuards(RolesGuard, ShiftGuard)
     @Roles(RoleName.LIBRARIAN, RoleName.LIBRARY_ADMIN)
+    @OnShift()
     @ApiOperation({ summary: 'Tất cả phiếu mượn', description: 'Lấy danh sách tất cả phiếu mượn (librarian/admin)' })
     findAll() {
         return this.service.findAll()
     }
 
     @Get('copy/:code')
-    @UseGuards(RolesGuard)
+    @UseGuards(RolesGuard, ShiftGuard)
     @Roles(RoleName.LIBRARIAN, RoleName.LIBRARY_ADMIN)
+    @OnShift()
     @ApiOperation({ summary: 'Tra cứu theo bản sao', description: 'Tìm phiếu mượn theo mã bản sao' })
     @ApiParam({ name: 'code', description: 'Mã bản sao', example: '901-001' })
     findByCopyCode(@Param('code') code: string) {
@@ -31,8 +34,9 @@ export class BorrowRecordsController {
     }
 
     @Get('by-card/:cardNumber')
-    @UseGuards(RolesGuard)
+    @UseGuards(RolesGuard, ShiftGuard)
     @Roles(RoleName.LIBRARIAN, RoleName.LIBRARY_ADMIN)
+    @OnShift()
     @ApiOperation({ summary: 'Tra cứu theo thẻ', description: 'Tìm phiếu mượn theo số thẻ thư viện' })
     @ApiParam({ name: 'cardNumber', description: 'Số thẻ thư viện', example: 'TV-2024-001' })
     findByCardNumber(@Param('cardNumber') cardNumber: string) {
@@ -49,8 +53,9 @@ export class BorrowRecordsController {
     }
 
     @Post()
-    @UseGuards(RolesGuard)
+    @UseGuards(RolesGuard, ShiftGuard)
     @Roles(RoleName.LIBRARIAN, RoleName.LIBRARY_ADMIN)
+    @OnShift()
     @ApiOperation({ summary: 'Tạo phiếu mượn', description: 'Tạo phiếu mượn sách cho độc giả (librarian). Kiểm tra ràng buộc trùng sách và MAX_BORROW.' })
     @ApiBody({ schema: { example: { cardId: 'b0000000-...', copyId: 'uuid-copy-id', requestId: 'uuid-request-id (tuỳ chọn)' } } })
     @ApiResponse({ status: 201, description: 'Phiếu mượn đã được tạo' })
@@ -60,8 +65,9 @@ export class BorrowRecordsController {
     }
 
     @Patch(':id/return')
-    @UseGuards(RolesGuard)
+    @UseGuards(RolesGuard, ShiftGuard)
     @Roles(RoleName.LIBRARIAN, RoleName.LIBRARY_ADMIN)
+    @OnShift()
     @ApiOperation({ summary: 'Trả sách', description: 'Xác nhận trả sách, cập nhật tình trạng, tính phí phạt nếu quá hạn' })
     @ApiParam({ name: 'id', description: 'ID phiếu mượn' })
     @ApiBody({ schema: { example: { condition: 'good', paymentMethod: 'cash' } } })
@@ -70,8 +76,9 @@ export class BorrowRecordsController {
     }
 
     @Get('search-by-book-title')
-    @UseGuards(RolesGuard)
+    @UseGuards(RolesGuard, ShiftGuard)
     @Roles(RoleName.LIBRARIAN, RoleName.LIBRARY_ADMIN)
+    @OnShift()
     @ApiOperation({ summary: 'Tìm theo tên sách', description: 'Tìm phiếu mượn đang active theo tên sách' })
     @ApiQuery({ name: 'q', required: false, example: 'Đắc Nhân Tâm' })
     searchByBookTitle(@Query('q') q: string) {
@@ -79,8 +86,9 @@ export class BorrowRecordsController {
     }
 
     @Get('pending-returns')
-    @UseGuards(RolesGuard)
+    @UseGuards(RolesGuard, ShiftGuard)
     @Roles(RoleName.LIBRARIAN, RoleName.LIBRARY_ADMIN)
+    @OnShift()
     @ApiOperation({ summary: 'Yêu cầu trả', description: 'Danh sách phiếu mượn đang chờ xác nhận trả' })
     pendingReturns() {
         return this.service.findPendingReturns()
@@ -94,8 +102,9 @@ export class BorrowRecordsController {
     }
 
     @Post(':id/approve-return')
-    @UseGuards(RolesGuard)
+    @UseGuards(RolesGuard, ShiftGuard)
     @Roles(RoleName.LIBRARIAN, RoleName.LIBRARY_ADMIN)
+    @OnShift()
     @ApiOperation({ summary: 'Duyệt yêu cầu trả', description: 'Thủ thư duyệt yêu cầu trả sách từ độc giả' })
     @ApiParam({ name: 'id', description: 'ID phiếu mượn' })
     @ApiBody({ schema: { example: { condition: 'good' } } })

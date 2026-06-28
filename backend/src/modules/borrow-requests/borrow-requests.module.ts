@@ -7,11 +7,13 @@ import { LibraryCard } from '../library-cards/entities/library-card.entity'
 import { Book } from '../books/entities/book.entity'
 import { BorrowRecord } from '../borrow-records/entities/borrow-record.entity'
 import { BorrowRecordsModule } from '../borrow-records/borrow-records.module'
+import { ShiftsModule } from '../shifts/shifts.module'
 
 @Module({
     imports: [
         TypeOrmModule.forFeature([BorrowRequest, LibraryCard, Book, BorrowRecord]),
-        BorrowRecordsModule
+        BorrowRecordsModule,
+        ShiftsModule,
     ],
     controllers: [BorrowRequestsController],
     providers: [BorrowRequestsService],
