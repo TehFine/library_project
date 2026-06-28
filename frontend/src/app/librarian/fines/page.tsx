@@ -81,6 +81,7 @@ export default function LibrarianFinesPage() {
             <option value="all">Tất cả</option>
             <option value="pending">Chưa thanh toán</option>
             <option value="paid">Đã thanh toán</option>
+            <option value="waived">Đã miễn giảm</option>
           </Select>
         </div>
       </div>
@@ -116,13 +117,21 @@ export default function LibrarianFinesPage() {
                   <td className="py-4 px-6 text-xs text-gray-500 capitalize">{fine.fineType === 'overdue' ? 'Trễ hạn' : fine.fineType}</td>
                   <td className="py-4 px-6 font-black text-sm text-gray-900">{formatCurrency(fine.amount)}</td>
                   <td className="py-4 px-6">
-                    <Badge className={fine.status === 'paid' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}>
-                        {fine.status === 'paid' ? <><span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1" /> Đã thu</> : <><span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500 mr-1" /> Chờ thu</>}
+                    <Badge className={
+                      fine.status === 'paid' ? 'bg-emerald-50 text-emerald-600' :
+                      fine.status === 'waived' ? 'bg-gray-100 text-gray-600' :
+                      'bg-red-50 text-red-600'
+                    }>
+                      {fine.status === 'paid' ? <><span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1" /> Đã thu</> :
+                       fine.status === 'waived' ? <><span className="inline-block w-1.5 h-1.5 rounded-full bg-gray-400 mr-1" /> Đã miễn giảm</> :
+                       <><span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500 mr-1" /> Chờ thu</>}
                     </Badge>
                   </td>
                   <td className="py-4 px-6 text-right">
                     {fine.status === 'pending' ? (
                       <Button variant="primary" size="sm" className="rounded-full px-4 text-xs" onClick={() => setSelectedFine(fine)}>Thu phí</Button>
+                    ) : fine.status === 'waived' ? (
+                      <Button variant="ghost" size="sm" className="rounded-full text-xs px-3 text-gray-500" onClick={() => setReceiptFine(fine)}>Đã miễn</Button>
                     ) : (
                       <Button variant="ghost" size="sm" className="rounded-full text-xs px-3" onClick={() => setReceiptFine(fine)}>Biên lai</Button>
                     )}
@@ -178,33 +187,72 @@ export default function LibrarianFinesPage() {
         </div>
       </Modal>
 
-      {/* Modal Biên Lai */}
-      <Modal open={!!receiptFine} onClose={() => setReceiptFine(null)} title="Biên lai điện tử" size="sm">
+      {/* Modal Biên Lai / Chi Tiết Miễn Giảm */}
+      <Modal open={!!receiptFine} onClose={() => setReceiptFine(null)} title={receiptFine?.status === 'waived' ? 'Chi tiết miễn giảm' : 'Biên lai điện tử'} size="sm">
         <div className="space-y-6">
-           <div className="bg-emerald-50 p-6 rounded-3xl border border-emerald-100 text-center space-y-2">
-              <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full mx-auto flex items-center justify-center text-xl font-bold mb-4"><Check className="w-6 h-6" /></div>
-              <p className="text-xs font-bold text-emerald-600 uppercase tracking-widest">Đã thanh toán</p>
-              <p className="text-4xl font-black text-emerald-900">{formatCurrency(receiptFine?.amount || 0)}</p>
-           </div>
-           
-           <div className="space-y-4 text-sm px-2">
-              <div className="flex justify-between items-center border-b border-gray-100 pb-3">
-                <span className="text-gray-400">Mã biên lai</span>
-                <span className="font-bold text-gray-900 font-mono text-xs">{receiptFine?.receiptNumber || '---'}</span>
+          {receiptFine?.status === 'waived' ? (
+            /* ── Waive receipt ── */
+            <>
+              <div className="bg-gray-50 p-6 rounded-3xl border border-gray-200 text-center space-y-2">
+                <div className="w-12 h-12 bg-gray-200 text-gray-500 rounded-full mx-auto flex items-center justify-center text-xl font-bold mb-4">
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Đã miễn giảm</p>
+                <p className="text-4xl font-black text-gray-700">{formatCurrency(receiptFine?.amount || 0)}</p>
               </div>
-              <div className="flex justify-between items-center border-b border-gray-100 pb-3">
-                <span className="text-gray-400">Ngày thanh toán</span>
-                <span className="font-bold text-gray-900">{receiptFine?.paidAt ? new Date(receiptFine.paidAt).toLocaleString('vi-VN') : '---'}</span>
+              <div className="space-y-4 text-sm px-2">
+                <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+                  <span className="text-gray-400">Mã chứng từ</span>
+                  <span className="font-bold text-gray-900 font-mono text-xs">{receiptFine?.receiptNumber || '---'}</span>
+                </div>
+                <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+                  <span className="text-gray-400">Ngày miễn giảm</span>
+                  <span className="font-bold text-gray-900">{receiptFine?.paidAt ? new Date(receiptFine.paidAt).toLocaleString('vi-VN') : '---'}</span>
+                </div>
+                <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+                  <span className="text-gray-400">Lý do</span>
+                  <span className="font-bold text-gray-900 text-right max-w-[60%]">
+                    {(receiptFine?.paymentMethod || '').replace(/^waive:/, '') || '---'}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-400">Người xử lý</span>
+                  <span className="font-bold text-gray-900">{receiptFine?.collectedBy?.fullName || receiptFine?.collectedBy?.username || 'Thủ thư'}</span>
+                </div>
               </div>
-              <div className="flex justify-between items-center border-b border-gray-100 pb-3">
-                <span className="text-gray-400">Hình thức</span>
-                <span className="font-bold text-gray-900 capitalize">{receiptFine?.paymentMethod === 'cash' ? 'Tiền mặt' : receiptFine?.paymentMethod === 'transfer' ? 'Chuyển khoản' : receiptFine?.paymentMethod === 'qr' ? 'QR Code' : receiptFine?.paymentMethod || '---'}</span>
+            </>
+          ) : (
+            /* ── Payment receipt ── */
+            <>
+              <div className="bg-emerald-50 p-6 rounded-3xl border border-emerald-100 text-center space-y-2">
+                <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full mx-auto flex items-center justify-center text-xl font-bold mb-4"><Check className="w-6 h-6" /></div>
+                <p className="text-xs font-bold text-emerald-600 uppercase tracking-widest">Đã thanh toán</p>
+                <p className="text-4xl font-black text-emerald-900">{formatCurrency(receiptFine?.amount || 0)}</p>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-400">Người thu</span>
-                <span className="font-bold text-gray-900">{receiptFine?.collectedBy?.fullName || receiptFine?.collectedBy?.username || 'Thủ thư'}</span>
+              <div className="space-y-4 text-sm px-2">
+                <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+                  <span className="text-gray-400">Mã biên lai</span>
+                  <span className="font-bold text-gray-900 font-mono text-xs">{receiptFine?.receiptNumber || '---'}</span>
+                </div>
+                <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+                  <span className="text-gray-400">Ngày thanh toán</span>
+                  <span className="font-bold text-gray-900">{receiptFine?.paidAt ? new Date(receiptFine.paidAt).toLocaleString('vi-VN') : '---'}</span>
+                </div>
+                <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+                  <span className="text-gray-400">Hình thức</span>
+                  <span className="font-bold text-gray-900 capitalize">
+                    {receiptFine?.paymentMethod === 'cash' ? 'Tiền mặt' : receiptFine?.paymentMethod === 'transfer' ? 'Chuyển khoản' : receiptFine?.paymentMethod === 'qr' ? 'QR Code' : receiptFine?.paymentMethod || '---'}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-400">Người thu</span>
+                  <span className="font-bold text-gray-900">{receiptFine?.collectedBy?.fullName || receiptFine?.collectedBy?.username || 'Thủ thư'}</span>
+                </div>
               </div>
-           </div>
+            </>
+          )}
 
            <div className="pt-4 border-t border-gray-50 text-center">
               <Button variant="ghost" className="rounded-2xl px-8" onClick={() => setReceiptFine(null)}>Đóng</Button>

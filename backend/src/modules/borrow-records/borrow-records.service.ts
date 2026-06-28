@@ -9,6 +9,7 @@ import { Book } from '@/modules/books/entities/book.entity'
 import { Reservation } from '@/modules/reservations/entities/reservation.entity'
 import { BorrowRequest } from '@/modules/borrow-requests/entities/borrow-request.entity'
 import { Fine } from '@/modules/fines/entities/fine.entity'
+import { Notification } from '@/modules/notifications/entities/notification.entity'
 import { SystemConfig } from '@/modules/admin/entities/system-config.entity'
 import { RealtimeGateway } from '@/common/websocket/realtime.gateway'
 
@@ -29,6 +30,8 @@ export class BorrowRecordsService {
         private fineRepo: Repository<Fine>,
         @InjectRepository(SystemConfig)
         private configRepo: Repository<SystemConfig>,
+        @InjectRepository(Notification)
+        private notifRepo: Repository<Notification>,
         private dataSource: DataSource,
         private realtime: RealtimeGateway,
     ) { }
@@ -287,6 +290,45 @@ export class BorrowRecordsService {
             }
 
             await queryRunner.commitTransaction()
+
+            // Gửi thông báo realtime cho độc giả nếu có reservation được kích hoạt
+            if (oldestReservation) {
+                try {
+                    const resWithUser = await this.resRepo.findOne({
+                        where: { id: oldestReservation.id },
+                        relations: { libraryCard: { user: { profile: true } }, book: true },
+                    })
+                    if (resWithUser?.libraryCard?.user?.id) {
+                        const userId = resWithUser.libraryCard.user.id
+                        const bookTitle = book?.title || 'sách'
+                        const expiresTimeStr = oldestReservation.expiresAt?.toLocaleDateString('vi-VN', {
+                            hour: '2-digit', minute: '2-digit',
+                            day: '2-digit', month: '2-digit',
+                        }) || 'trong 48h'
+
+                        const notification = this.notifRepo.create({
+                            notificationType: 'individual',
+                            title: '📖 Sách đã sẵn sàng!',
+                            content: `Sách "${bookTitle}" đã có sẵn cho bạn! Vui lòng đến thư viện mượn sách trước ${expiresTimeStr} (48h).`,
+                            userId,
+                            read: false,
+                            status: 'sent',
+                            sentAt: new Date(),
+                            createdById: userId,
+                        })
+                        await this.notifRepo.save(notification)
+
+                        this.realtime.emitToUser(userId, 'reader:notification', {
+                            id: notification.id,
+                            title: notification.title,
+                            content: `📖 Sách "${bookTitle}" đã sẵn sàng! Đến thư viện mượn ngay.`,
+                            createdAt: notification.createdAt,
+                        })
+                    }
+                } catch (notifErr) {
+                    console.error('Lỗi gửi thông báo reservation khi trả sách:', notifErr)
+                }
+            }
 
             // Emit realtime events (sau khi đã tạo fine)
             this.realtime.emit('librarian:dashboard-update')
