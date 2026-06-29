@@ -474,7 +474,7 @@ export class BorrowRecordsService {
         return this.borrowRepo.find({
             where: { returnRequested: true, status: In(['borrowing', 'overdue']) },
             relations: { bookCopy: { book: true }, libraryCard: { user: { profile: true } } },
-            order: { createdAt: 'DESC' }
+            order: { returnRequestedAt: 'ASC' }
         });
     }
 
@@ -495,6 +495,7 @@ export class BorrowRecordsService {
         }
 
         record.returnRequested = true
+        record.returnRequestedAt = new Date()
         const saved = await this.borrowRepo.save(record)
 
         // Emit realtime events
@@ -522,36 +523,30 @@ export class BorrowRecordsService {
 
         // Sau đó xóa cờ yêu cầu trả
         record.returnRequested = false
+        record.returnRequestedAt = null
         await this.borrowRepo.save(record)
 
         return result
     }
 
-    async simulateReturn(recordId: string, userId: string) {
+    async snoozeReturnRequest(recordId: string, librarianId: string) {
         const record = await this.borrowRepo.findOne({
-            where: { id: recordId },
-            relations: { libraryCard: true, bookCopy: { book: true } }
+            where: { id: recordId }
         })
         if (!record) throw new NotFoundException('Không tìm thấy phiếu mượn')
-        if (record.libraryCard.userId !== userId) {
-            throw new BadRequestException('Bạn không có quyền trả phiếu mượn này')
-        }
-        if (record.status === 'returned') {
-            throw new BadRequestException('Phiếu mượn này đã được trả rồi')
+        if (!record.returnRequested) {
+            throw new BadRequestException('Độc giả chưa yêu cầu trả sách này')
         }
 
-        // Gọi logic trả sách giống librarian, mặc định condition là 'good'
-        const result = await this.returnBook(recordId, 'good', undefined, userId)
+        // Cập nhật thời gian yêu cầu để đẩy xuống cuối danh sách
+        record.returnRequestedAt = new Date()
+        const saved = await this.borrowRepo.save(record)
+
+        this.realtime.emit('librarian:dashboard-update')
         
-        // Emit thêm reader event
-        this.realtime.emit('reader:dashboard-update')
-        
-        return {
-            ...result,
-            simulated: true,
-            message: 'Trả sách thành công (Mô phỏng)'
-        }
+        return saved
     }
+
 
     async renew(id: string, userId: string) {
         const record = await this.borrowRepo.findOne({
