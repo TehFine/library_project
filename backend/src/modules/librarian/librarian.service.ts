@@ -6,6 +6,7 @@ import { BorrowRecord } from '../borrow-records/entities/borrow-record.entity'
 import { Fine } from '../fines/entities/fine.entity'
 import { Reservation } from '../reservations/entities/reservation.entity'
 import { BorrowRequest } from '../borrow-requests/entities/borrow-request.entity'
+import { LibraryCard } from '../library-cards/entities/library-card.entity'
 
 @Injectable()
 export class LibrarianService {
@@ -18,6 +19,8 @@ export class LibrarianService {
         private reservationRepo: Repository<Reservation>,
         @InjectRepository(BorrowRequest)
         private requestRepo: Repository<BorrowRequest>,
+        @InjectRepository(LibraryCard)
+        private cardRepo: Repository<LibraryCard>,
     ) { }
 
     async getStats(librarianId?: string) {
@@ -156,5 +159,12 @@ export class LibrarianService {
             where: { returnRequested: true, status: In(['borrowing', 'overdue']) }
         })
         return { count: borrowRequestCount + returnRequestCount }
+    }
+
+    async getPendingCardsCount() {
+        const count = await this.cardRepo.count({
+            where: { status: 'pending' }
+        })
+        return { count }
     }
 }
