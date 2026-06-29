@@ -253,10 +253,10 @@ export default function ViolationsReportPage() {
           <Button variant="secondary" size="sm" className="rounded-xl text-[10px] sm:text-xs font-bold flex-1 sm:flex-none justify-center" onClick={handleSendReminderAll}>
             <Bell className="w-3.5 h-3.5" /> Nhắc nhở
           </Button>
-          <Button variant="ghost" size="sm" className="rounded-xl border border-slate-200 text-[10px] sm:text-xs font-bold flex-1 sm:flex-none justify-center" onClick={handleExportExcel}>
+          <Button variant="secondary" size="sm" className="rounded-xl text-[10px] sm:text-xs font-bold flex-1 sm:flex-none justify-center hover:bg-amber-50 hover:border-amber-300 hover:shadow-md active:scale-[0.97]" onClick={handleExportExcel}>
             <Download className="w-3.5 h-3.5" /> Excel
           </Button>
-          <Button variant="secondary" size="sm" className="rounded-xl text-[10px] sm:text-xs font-bold flex-1 sm:flex-none justify-center" onClick={handleExportPDF}>
+          <Button variant="secondary" size="sm" className="rounded-xl text-[10px] sm:text-xs font-bold flex-1 sm:flex-none justify-center hover:bg-amber-50 hover:border-amber-300 hover:shadow-md active:scale-[0.97]" onClick={handleExportPDF}>
             <FileText className="w-3.5 h-3.5" /> PDF
           </Button>
         </div>

@@ -214,10 +214,10 @@ export default function FinancialReportsPage() {
           description="Quản lý các khoản thu phí phạt và tình trạng thanh toán."
         />
         <div className="flex gap-2 shrink-0">
-          <Button variant="ghost" size="sm" className="rounded-xl border border-slate-200 text-xs font-bold" onClick={handlePDFExport}>
+          <Button variant="secondary" size="sm" className="rounded-xl text-xs font-bold hover:bg-amber-50 hover:border-amber-300 hover:shadow-md active:scale-[0.97]" onClick={handlePDFExport}>
             <FileText className="w-3.5 h-3.5" /> PDF
           </Button>
-          <Button variant="secondary" size="sm" className="rounded-xl text-xs font-bold" onClick={handleExcelExport}>
+          <Button variant="secondary" size="sm" className="rounded-xl text-xs font-bold hover:bg-amber-50 hover:border-amber-300 hover:shadow-md active:scale-[0.97]" onClick={handleExcelExport}>
             <Download className="w-3.5 h-3.5" /> Excel
           </Button>
         </div>

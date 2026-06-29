@@ -92,6 +92,27 @@ export default function AdminShiftsPage() {
     }
   }
 
+  const applyTemplate = (start: string, end: string) => {
+    // Nếu chưa chọn ngày bắt đầu, lấy ngày hôm nay
+    const sd = newShift.startDate || new Date().toISOString().split('T')[0]
+    
+    // Nếu giờ kết thúc nhỏ hơn giờ bắt đầu (vd ca đêm 22:00 -> 06:00), ngày kết thúc = ngày bắt đầu + 1
+    let ed = sd
+    if (end < start) {
+      const d = new Date(sd)
+      d.setDate(d.getDate() + 1)
+      ed = d.toISOString().split('T')[0]
+    }
+    
+    setNewShift(prev => ({
+      ...prev,
+      startDate: sd,
+      startTime: start,
+      endDate: ed,
+      endTime: end
+    }))
+  }
+
   const getShiftStatus = (shift: Shift) => {
     const now = new Date()
     const start = new Date(shift.startTime)
@@ -226,6 +247,16 @@ export default function AdminShiftsPage() {
                 <option key={u.id} value={u.id}>{u.fullName || u.username}</option>
               ))}
             </Select>
+          </div>
+
+          <div className="space-y-3">
+            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Mẫu ca nhanh</label>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={() => applyTemplate('07:00', '12:00')} className="px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors">Sáng (07:00 - 12:00)</button>
+              <button type="button" onClick={() => applyTemplate('13:00', '17:30')} className="px-3 py-1.5 text-xs font-medium rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 transition-colors">Chiều (13:00 - 17:30)</button>
+              <button type="button" onClick={() => applyTemplate('18:00', '22:00')} className="px-3 py-1.5 text-xs font-medium rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors">Tối (18:00 - 22:00)</button>
+              <button type="button" onClick={() => applyTemplate('22:00', '06:00')} className="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors">Đêm (22:00 - 06:00)</button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
