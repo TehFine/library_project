@@ -11,10 +11,12 @@ import { librarianApi } from '@/lib/api'
 import { toast } from 'react-hot-toast'
 import { cn } from '@/lib/utils'
 import { useRealtimeRefresh } from '@/hooks/useWebSocket'
+import { useShift } from '@/hooks/useShift'
 import { Book, Upload } from 'lucide-react'
 
 export default function LibrarianRequestsPage() {
   const router = useRouter()
+  const { onShift } = useShift()
   const [requests, setRequests] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -221,12 +223,12 @@ export default function LibrarianRequestsPage() {
                     {req.status === 'pending' ? (
                       req.requestType === 'borrow' ? (
                         <>
-                          <Button variant="primary" size="sm" className="rounded-full px-4" onClick={() => handleApproveBorrow(req)}>Duyệt</Button>
-                          <Button variant="ghost" size="sm" className="rounded-full text-red-500 hover:bg-red-50" onClick={() => { setRejectTarget(req); setRejectReason('') }}>Từ chối</Button>
+                          <Button variant="primary" size="sm" className="rounded-full px-4" onClick={() => handleApproveBorrow(req)} disabled={!onShift} title={!onShift ? 'Cần trong ca trực để duyệt' : ''}>Duyệt</Button>
+                          <Button variant="ghost" size="sm" className="rounded-full text-red-500 hover:bg-red-50" onClick={() => { setRejectTarget(req); setRejectReason('') }} disabled={!onShift} title={!onShift ? 'Cần trong ca trực để từ chối' : ''}>Từ chối</Button>
                         </>
                       ) : (
                         <>
-                          <Button variant="primary" size="sm" className="rounded-full px-4 bg-emerald-500 hover:bg-emerald-600" onClick={() => handleApproveReturn(req)}>Nhận trả</Button>
+                          <Button variant="primary" size="sm" className="rounded-full px-4 bg-emerald-500 hover:bg-emerald-600" onClick={() => handleApproveReturn(req)} disabled={!onShift} title={!onShift ? 'Cần trong ca trực để xử lý' : ''}>Nhận trả</Button>
                         </>
                       )
                     ) : (

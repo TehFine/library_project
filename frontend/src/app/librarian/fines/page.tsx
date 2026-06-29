@@ -9,10 +9,12 @@ import Modal from '@/components/ui/Modal'
 import { librarianApi } from '@/lib/api'
 import { formatCurrency, cn } from '@/lib/utils'
 import { toast } from 'react-hot-toast'
+import { useShift } from '@/hooks/useShift'
 import { Check } from 'lucide-react'
 
 
 export default function LibrarianFinesPage() {
+  const { onShift } = useShift()
   const [fines, setFines] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -129,7 +131,7 @@ export default function LibrarianFinesPage() {
                   </td>
                   <td className="py-4 px-6 text-right">
                     {fine.status === 'pending' ? (
-                      <Button variant="primary" size="sm" className="rounded-full px-4 text-xs" onClick={() => setSelectedFine(fine)}>Thu phí</Button>
+                      <Button variant="primary" size="sm" className="rounded-full px-4 text-xs" onClick={() => setSelectedFine(fine)} disabled={!onShift} title={!onShift ? 'Cần trong ca trực để thu phí' : ''}>Thu phí</Button>
                     ) : fine.status === 'waived' ? (
                       <Button variant="ghost" size="sm" className="rounded-full text-xs px-3 text-gray-500" onClick={() => setReceiptFine(fine)}>Đã miễn</Button>
                     ) : (

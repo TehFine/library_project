@@ -9,6 +9,7 @@ import Modal from '@/components/ui/Modal'
 import { librarianApi, cardsApi } from '@/lib/api'
 import { toast } from 'react-hot-toast'
 import { User } from '@/types'
+import { useShift } from '@/hooks/useShift'
 import { TriangleAlert, Check, CreditCard, X, IdCard } from 'lucide-react'
 import { cardStatusMap } from '@/lib/utils'
 
@@ -23,6 +24,7 @@ const cardDotColors: Record<string, string> = {
 }
 
 export default function LibrarianCardsPage() {
+  const { onShift } = useShift()
   const [activeTab, setActiveTab] = useState<'all' | 'pending'>('all')
   const [cards, setCards] = useState<any[]>([])
   const [pendingRequests, setPendingRequests] = useState<any[]>([])
@@ -218,6 +220,8 @@ export default function LibrarianCardsPage() {
                         variant="primary" size="sm" className="rounded-full" 
                         loading={approvingId === card.id}
                         onClick={() => handleApprove(card.id)}
+                        disabled={!onShift}
+                        title={!onShift ? 'Cần trong ca trực để duyệt' : ''}
                       >
                         <Check className="w-3.5 h-3.5" /> Duyệt
                       </Button>
@@ -225,6 +229,8 @@ export default function LibrarianCardsPage() {
                         variant="ghost" size="sm" className="rounded-full text-red-500 hover:text-red-600 hover:bg-red-50"
                         loading={approvingId === card.id}
                         onClick={() => handleReject(card.id)}
+                        disabled={!onShift}
+                        title={!onShift ? 'Cần trong ca trực để từ chối' : ''}
                       >
                         <X className="w-3.5 h-3.5" /> Từ chối
                       </Button>
@@ -260,7 +266,7 @@ export default function LibrarianCardsPage() {
                 <option value="rejected">Bị từ chối</option>
               </Select>
             </div>
-            <Button variant="primary" onClick={() => setShowAddCardModal(true)} className="rounded-xl sm:rounded-2xl px-4 sm:px-6 text-xs sm:text-sm whitespace-nowrap shrink-0">
+            <Button variant="primary" onClick={() => setShowAddCardModal(true)} className="rounded-xl sm:rounded-2xl px-4 sm:px-6 text-xs sm:text-sm whitespace-nowrap shrink-0" disabled={!onShift} title={!onShift ? 'Cần trong ca trực để cấp thẻ' : ''}>
               + Cấp thẻ mới
             </Button>
           </div>
@@ -329,7 +335,7 @@ export default function LibrarianCardsPage() {
                       <td className="py-4 px-6 text-right space-x-2">
                         <Button variant="ghost" size="sm" className="rounded-full opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => setSelectedCard(card)}>Chi tiết</Button>
                         {(card.status === 'active' || card.status === 'expired') && (
-                          <Button variant="secondary" size="sm" className="rounded-full" loading={renewing === card.id} onClick={() => handleRenewCard(card.id)}>Gia hạn</Button>
+                          <Button variant="secondary" size="sm" className="rounded-full" loading={renewing === card.id} onClick={() => handleRenewCard(card.id)} disabled={!onShift} title={!onShift ? 'Cần trong ca trực để gia hạn' : ''}>Gia hạn</Button>
                         )}
                       </td>
                     </tr>

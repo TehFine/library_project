@@ -25,7 +25,6 @@ export class BorrowRequestsController {
     @Get()
     @UseGuards(RolesGuard, ShiftGuard)
     @Roles(RoleName.LIBRARIAN, RoleName.LIBRARY_ADMIN)
-    @OnShift()
     @ApiOperation({ summary: 'Tất cả yêu cầu', description: 'Lấy danh sách tất cả yêu cầu mượn (librarian)' })
     findAll() {
         return this.service.findAll()

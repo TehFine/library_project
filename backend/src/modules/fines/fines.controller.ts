@@ -22,7 +22,6 @@ export class FinesController {
     @Get()
     @UseGuards(RolesGuard, ShiftGuard)
     @Roles(RoleName.LIBRARIAN, RoleName.LIBRARY_ADMIN)
-    @OnShift()
     @ApiOperation({ summary: 'Tất cả phí phạt', description: 'Lấy danh sách tất cả phí phạt (admin/librarian)' })
     findAll() {
         return this.service.findAll()

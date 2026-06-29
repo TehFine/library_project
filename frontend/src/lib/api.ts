@@ -265,6 +265,9 @@ export const librarianApi = {
   getAllFines: () => request<any[]>('/fines'),
   payFine: (id: string, method: string) => request<any>(`/fines/${id}/pay`, { method: 'PATCH', body: JSON.stringify({ method }) }),
 
+  // Shifts
+  checkShift: () => request<{ onShift: boolean; shift: { id: string; startTime: string; endTime: string; note?: string; librarianName: string | null } | null }>('/shifts/current'),
+
   // Reservations
   getReservations: () => request<any[]>('/reservations'),
   notifyReservation: (id: string) => request<any>(`/reservations/${id}/notify`, { method: 'POST' }),

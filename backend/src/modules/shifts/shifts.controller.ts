@@ -36,10 +36,20 @@ export class ShiftsController {
     }
 
     @Get('current')
-    @ApiOperation({ summary: 'Ca hiện tại', description: 'Kiểm tra thủ thư có đang trong ca không' })
+    @ApiOperation({ summary: 'Ca hiện tại', description: 'Kiểm tra thủ thư có đang trong ca không, kèm thông tin chi tiết ca' })
     async current(@Req() req: any) {
         const onShift = await this.service.isOnShift(req.user.userId)
-        return { onShift }
+        const shift = await this.service.findCurrentShift(req.user.userId)
+        return {
+            onShift,
+            shift: shift ? {
+                id: shift.id,
+                startTime: shift.startTime,
+                endTime: shift.endTime,
+                note: shift.note,
+                librarianName: shift.librarian?.fullName || shift.librarian?.username || null,
+            } : null,
+        }
     }
 
     @Delete(':id')

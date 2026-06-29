@@ -3,14 +3,17 @@ import { useEffect, useState } from 'react'
 import LibrarianSidebar from '@/components/layout/LibrarianSidebar'
 import TopBar from '@/components/layout/TopBar'
 import MobileDrawer from '@/components/layout/MobileDrawer'
+import OffShiftBanner from '@/components/layout/OffShiftBanner'
+import { ShiftProvider, useShift } from '@/hooks/useShift'
 import { useRealtimeRefresh } from '@/hooks/useWebSocket'
 import { authApi, librarianApi } from '@/lib/api'
 import { User } from '@/types'
 
-export default function LibrarianLayout({ children }: { children: React.ReactNode }) {
+function LibrarianLayoutInner({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0)
+  const { onShift, loading: shiftLoading } = useShift()
 
   async function fetchPendingCount() {
     try {
@@ -27,10 +30,9 @@ export default function LibrarianLayout({ children }: { children: React.ReactNod
 
   useRealtimeRefresh('librarian:dashboard-update', fetchPendingCount)
 
+  const showBanner = !shiftLoading && onShift === false
+
   return (
-    /*
-     * Full-screen amber shell — fixed, no scroll on the outer frame
-     */
     <div
       className="h-screen w-screen flex overflow-hidden p-2 sm:p-4 gap-2 sm:gap-3"
       style={{ background: '#F5E6CC' }}
@@ -46,10 +48,7 @@ export default function LibrarianLayout({ children }: { children: React.ReactNod
         {/* TopBar lives on the amber background */}
         <TopBar user={user} onMenuToggle={() => setDrawerOpen(v => !v)} hideMobileAvatar={drawerOpen} />
 
-        {/*
-         * Main content card — white, rounded, takes all remaining height.
-         * Only THIS scrolls; the amber shell stays fixed.
-         */}
+        {/* Main content card */}
         <div
           className="flex-1 rounded-2xl sm:rounded-3xl overflow-hidden min-h-0 relative"
           style={{
@@ -58,15 +57,25 @@ export default function LibrarianLayout({ children }: { children: React.ReactNod
           }}
         >
           <div className="h-full overflow-y-auto px-4 py-4 sm:px-8 sm:py-8 pb-4 sm:pb-8">
-            <div className="max-w-[1400px] mx-auto">
+            <div className="max-w-[1400px] mx-auto space-y-4">
+              {/* Off-shift warning banner */}
+              {showBanner && <OffShiftBanner />}
               {children}
             </div>
           </div>
         </div>
       </div>
 
-      {/* ── Mobile drawer (hamburger menu) ── */}
+      {/* ── Mobile drawer ── */}
       <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} pendingRequestsCount={pendingRequestsCount} />
     </div>
+  )
+}
+
+export default function LibrarianLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <ShiftProvider>
+      <LibrarianLayoutInner>{children}</LibrarianLayoutInner>
+    </ShiftProvider>
   )
 }

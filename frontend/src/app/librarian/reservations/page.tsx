@@ -8,9 +8,11 @@ import Select from '@/components/ui/Select'
 import { librarianApi } from '@/lib/api'
 import { toast } from 'react-hot-toast'
 import { cn } from '@/lib/utils'
+import { useShift } from '@/hooks/useShift'
 import { Book } from 'lucide-react'
 
 export default function LibrarianReservationsPage() {
+  const { onShift } = useShift()
   const [reservations, setReservations] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -157,7 +159,7 @@ export default function LibrarianReservationsPage() {
                   </td>
                   <td className="py-4 px-6 text-right space-x-2">
                     {res.status === 'notified' && (
-                      <Button variant="primary" size="sm" className="rounded-full px-3 text-xs" onClick={() => handleFulfill(res.id)}>Cấp Sách</Button>
+                      <Button variant="primary" size="sm" className="rounded-full px-3 text-xs" onClick={() => handleFulfill(res.id)} disabled={!onShift} title={!onShift ? 'Cần trong ca trực để cấp sách' : ''}>Cấp Sách</Button>
                     )}
                     <Button variant="ghost" size="sm" className="rounded-full text-xs px-3" onClick={() => setSelectedReservation(res)}>Chi tiết</Button>
                   </td>

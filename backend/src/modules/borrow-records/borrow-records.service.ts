@@ -531,7 +531,7 @@ export class BorrowRecordsService {
     async renew(id: string, userId: string) {
         const record = await this.borrowRepo.findOne({
             where: { id },
-            relations: { libraryCard: true }
+            relations: { libraryCard: { user: true } }
         })
         if (!record) throw new NotFoundException('Không tìm thấy phiếu mượn')
         
@@ -547,6 +547,21 @@ export class BorrowRecordsService {
             throw new BadRequestException('Đã quá số lần gia hạn tối đa (2 lần)')
         }
         
+        // Kiểm tra thẻ thư viện còn hiệu lực
+        const card = record.libraryCard
+        if (card.status === 'active' && card.expiryDate < toLocalDateStr()) {
+            card.status = 'expired'
+            await this.cardRepo.save(card)
+        }
+        if (card.status !== 'active') {
+            throw new BadRequestException('Thẻ thư viện không hợp lệ hoặc đã hết hạn, vui lòng gia hạn thẻ trước')
+        }
+        
+        // Kiểm tra tài khoản độc giả còn hoạt động
+        if (!card.user?.isActive) {
+            throw new BadRequestException('Tài khoản độc giả đã bị khóa, không thể gia hạn sách')
+        }
+        
         if (!record.originalDueDate) {
             record.originalDueDate = record.dueDate
         }
@@ -557,6 +572,7 @@ export class BorrowRecordsService {
         
         record.renewalCount += 1
         record.renewedAt = new Date()
+        record.renewedBy = { id: userId } as any
         
         if (record.status === 'overdue' && dueDate > new Date()) {
             record.status = 'borrowing'

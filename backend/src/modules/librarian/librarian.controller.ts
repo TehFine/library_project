@@ -2,7 +2,7 @@ import { Controller, Get, UseGuards, Req } from '@nestjs/common'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard'
 import { RolesGuard } from '@/common/guards/roles.guard'
-import { ShiftGuard, OnShift } from '@/common/guards/shift.guard'
+import { ShiftGuard } from '@/common/guards/shift.guard'
 import { Roles } from '@/common/decorators/roles.decorator'
 import { RoleName } from '../users/entities/role.entity'
 import { LibrarianService } from './librarian.service'
@@ -12,7 +12,6 @@ import { LibrarianService } from './librarian.service'
 @Controller('librarian')
 @UseGuards(JwtAuthGuard, RolesGuard, ShiftGuard)
 @Roles(RoleName.LIBRARIAN, RoleName.LIBRARY_ADMIN)
-@OnShift()
 export class LibrarianController {
     constructor(private readonly librarianService: LibrarianService) { }
 

@@ -17,7 +17,6 @@ export class BorrowRecordsController {
     @Get()
     @UseGuards(RolesGuard, ShiftGuard)
     @Roles(RoleName.LIBRARIAN, RoleName.LIBRARY_ADMIN)
-    @OnShift()
     @ApiOperation({ summary: 'Tất cả phiếu mượn', description: 'Lấy danh sách tất cả phiếu mượn (librarian/admin)' })
     findAll() {
         return this.service.findAll()
@@ -26,7 +25,6 @@ export class BorrowRecordsController {
     @Get('copy/:code')
     @UseGuards(RolesGuard, ShiftGuard)
     @Roles(RoleName.LIBRARIAN, RoleName.LIBRARY_ADMIN)
-    @OnShift()
     @ApiOperation({ summary: 'Tra cứu theo bản sao', description: 'Tìm phiếu mượn theo mã bản sao' })
     @ApiParam({ name: 'code', description: 'Mã bản sao', example: '901-001' })
     findByCopyCode(@Param('code') code: string) {
@@ -36,7 +34,6 @@ export class BorrowRecordsController {
     @Get('by-card/:cardNumber')
     @UseGuards(RolesGuard, ShiftGuard)
     @Roles(RoleName.LIBRARIAN, RoleName.LIBRARY_ADMIN)
-    @OnShift()
     @ApiOperation({ summary: 'Tra cứu theo thẻ', description: 'Tìm phiếu mượn theo số thẻ thư viện' })
     @ApiParam({ name: 'cardNumber', description: 'Số thẻ thư viện', example: 'TV-2024-001' })
     findByCardNumber(@Param('cardNumber') cardNumber: string) {
@@ -78,7 +75,6 @@ export class BorrowRecordsController {
     @Get('search-by-book-title')
     @UseGuards(RolesGuard, ShiftGuard)
     @Roles(RoleName.LIBRARIAN, RoleName.LIBRARY_ADMIN)
-    @OnShift()
     @ApiOperation({ summary: 'Tìm theo tên sách', description: 'Tìm phiếu mượn đang active theo tên sách' })
     @ApiQuery({ name: 'q', required: false, example: 'Đắc Nhân Tâm' })
     searchByBookTitle(@Query('q') q: string) {
@@ -88,7 +84,6 @@ export class BorrowRecordsController {
     @Get('pending-returns')
     @UseGuards(RolesGuard, ShiftGuard)
     @Roles(RoleName.LIBRARIAN, RoleName.LIBRARY_ADMIN)
-    @OnShift()
     @ApiOperation({ summary: 'Yêu cầu trả', description: 'Danh sách phiếu mượn đang chờ xác nhận trả' })
     pendingReturns() {
         return this.service.findPendingReturns()

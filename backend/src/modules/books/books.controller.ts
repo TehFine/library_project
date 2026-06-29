@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiQuery, ApiResponse, 
 import { BooksService } from './books.service'
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard'
 import { RolesGuard } from '@/common/guards/roles.guard'
+import { ShiftGuard, OnShift } from '@/common/guards/shift.guard'
 import { Roles } from '@/common/decorators/roles.decorator'
 import { RoleName } from '../users/entities/role.entity'
 
@@ -45,8 +46,9 @@ export class BooksController {
     }
 
     @Post()
-    @UseGuards(JwtAuthGuard, RolesGuard)
+    @UseGuards(JwtAuthGuard, RolesGuard, ShiftGuard)
     @Roles(RoleName.LIBRARIAN, RoleName.LIBRARY_ADMIN)
+    @OnShift()
     @ApiBearerAuth('JWT-auth')
     @ApiOperation({ summary: 'Thêm sách mới', description: 'Thêm một cuốn sách mới vào thư viện' })
     @ApiBody({ schema: { example: { title: 'Tên sách', author: 'Tác giả', isbn: '978-604-2-18901-3', categoryId: 1, publisher: 'NXB', publishYear: 2024, description: 'Mô tả', totalCopies: 5 } } })
@@ -56,8 +58,9 @@ export class BooksController {
     }
 
     @Patch(':id')
-    @UseGuards(JwtAuthGuard, RolesGuard)
+    @UseGuards(JwtAuthGuard, RolesGuard, ShiftGuard)
     @Roles(RoleName.LIBRARIAN, RoleName.LIBRARY_ADMIN)
+    @OnShift()
     @ApiBearerAuth('JWT-auth')
     @ApiOperation({ summary: 'Cập nhật sách', description: 'Cập nhật thông tin sách' })
     @ApiParam({ name: 'id', description: 'ID của sách' })
@@ -67,8 +70,9 @@ export class BooksController {
     }
 
     @Post(':id/copies')
-    @UseGuards(JwtAuthGuard, RolesGuard)
+    @UseGuards(JwtAuthGuard, RolesGuard, ShiftGuard)
     @Roles(RoleName.LIBRARIAN, RoleName.LIBRARY_ADMIN)
+    @OnShift()
     @ApiBearerAuth('JWT-auth')
     @ApiOperation({ summary: 'Thêm bản sao', description: 'Thêm bản sao mới cho một cuốn sách' })
     @ApiParam({ name: 'id', description: 'ID của sách' })
@@ -78,8 +82,9 @@ export class BooksController {
     }
 
     @Patch('copies/:id')
-    @UseGuards(JwtAuthGuard, RolesGuard)
+    @UseGuards(JwtAuthGuard, RolesGuard, ShiftGuard)
     @Roles(RoleName.LIBRARIAN, RoleName.LIBRARY_ADMIN)
+    @OnShift()
     @ApiBearerAuth('JWT-auth')
     @ApiOperation({ summary: 'Cập nhật bản sao', description: 'Cập nhật thông tin bản sao' })
     @ApiParam({ name: 'id', description: 'ID của bản sao' })
@@ -88,8 +93,9 @@ export class BooksController {
     }
 
     @Delete('copies/:id')
-    @UseGuards(JwtAuthGuard, RolesGuard)
+    @UseGuards(JwtAuthGuard, RolesGuard, ShiftGuard)
     @Roles(RoleName.LIBRARIAN, RoleName.LIBRARY_ADMIN)
+    @OnShift()
     @ApiBearerAuth('JWT-auth')
     @ApiOperation({ summary: 'Xoá bản sao', description: 'Xoá một bản sao sách' })
     @ApiParam({ name: 'id', description: 'ID của bản sao' })

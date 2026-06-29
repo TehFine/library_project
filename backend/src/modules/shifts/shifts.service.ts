@@ -62,7 +62,7 @@ export class ShiftsService {
                 startTime: LessThanOrEqual(now),
                 endTime: MoreThanOrEqual(now),
             },
-            relations: { librarian: true },
+            relations: { librarian: { profile: true } },
         })
     }
 

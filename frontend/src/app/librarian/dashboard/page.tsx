@@ -2,20 +2,20 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { Card, Badge } from '@/components/ui'
-import Modal from '@/components/ui/Modal'
 import PageHeader from '@/components/layout/PageHeader'
 import Button from '@/components/ui/Button'
 import { cn, formatCurrency } from '@/lib/utils'
 import { librarianApi, LibrarianStats, authApi } from '@/lib/api'
 import { User } from '@/types'
 import { useRealtimeRefresh } from '@/hooks/useWebSocket'
+import { useShift, ShiftDetail } from '@/hooks/useShift'
 import {
   BookOpen, RotateCcw, HelpCircle, AlertTriangle,
   DollarSign, Bell, Users, ArrowRight, Clock, CheckCircle, CreditCard, Smartphone
 } from 'lucide-react'
 
 export default function LibrarianDashboard() {
-  const [showEndShiftModal, setShowEndShiftModal] = useState(false)
+  const { onShift, shiftDetail } = useShift()
   const [stats, setStats] = useState<LibrarianStats | null>(null)
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
@@ -42,11 +42,27 @@ export default function LibrarianDashboard() {
   // WebSocket realtime: auto-refresh when backend emits updates
   useRealtimeRefresh('librarian:dashboard-update', loadData)
 
-  const shiftInfo = {
-    name: 'Ca Hiện Tại',
-    time: 'Linh hoạt',
-    librarian: user?.fullName || user?.username || '...',
+  function formatShiftTime(dateStr: string) {
+    return new Date(dateStr).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
   }
+
+  const shiftInfo = shiftDetail
+    ? {
+        name: 'Ca Hiện Tại',
+        time: `${formatShiftTime(shiftDetail.startTime)} - ${formatShiftTime(shiftDetail.endTime)}`,
+        librarian: shiftDetail.librarianName || user?.fullName || user?.username || '...',
+      }
+    : onShift === false
+      ? {
+          name: 'Ngoài ca trực',
+          time: '—',
+          librarian: user?.fullName || user?.username || '...',
+        }
+      : {
+          name: 'Đang tải...',
+          time: '...',
+          librarian: '...',
+        }
 
   const statCards = [
     {
@@ -98,11 +114,6 @@ export default function LibrarianDashboard() {
       iconBg: 'bg-sky-100 text-sky-600',
     },
   ]
-
-  const handleEndShift = () => {
-    setShowEndShiftModal(false)
-    window.location.href = '/auth/login'
-  }
 
   if (loading) {
     return (
@@ -157,30 +168,35 @@ export default function LibrarianDashboard() {
       {/* Khu vực 1 — Thanh trạng thái ca */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-gradient-to-r from-white via-white to-amber-50/30 border border-gray-100 rounded-2xl p-4 sm:p-5 shadow-sm gap-3">
         <div className="flex flex-wrap items-center gap-3 sm:gap-5">
-          <Badge className="bg-primary-100 text-primary-800 text-xs sm:text-sm px-3 py-1.5 font-bold shrink-0 shadow-sm">
+          <Badge className={cn(
+            'text-xs sm:text-sm px-3 py-1.5 font-bold shrink-0 shadow-sm',
+            onShift
+              ? 'bg-primary-100 text-primary-800'
+              : 'bg-gray-100 text-gray-500',
+          )}>
             {shiftInfo.name}
           </Badge>
+          {shiftDetail && (
+            <div className="flex items-center gap-2 text-gray-500">
+              <Clock className="w-4 h-4" />
+              <span className="text-gray-700 font-semibold text-xs sm:text-sm">
+                {shiftInfo.time}
+              </span>
+            </div>
+          )}
           <div className="flex items-center gap-2 text-gray-500">
             <Users className="w-4 h-4" />
             <span className="text-gray-700 font-semibold text-xs sm:text-sm">
               Thủ thư: <span className="text-primary font-bold">{shiftInfo.librarian}</span>
             </span>
           </div>
-          {stats && (
+          {onShift && stats && (
             <div className="hidden sm:flex items-center gap-1.5 text-xs text-gray-400 bg-gray-50 rounded-full px-3 py-1">
               <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
               Đang hoạt động
             </div>
           )}
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-xs px-4 py-1.5 self-end sm:self-auto border border-gray-200 hover:border-red-200 hover:text-red-600 hover:bg-red-50 transition-all"
-          onClick={() => setShowEndShiftModal(true)}
-        >
-          Kết thúc ca
-        </Button>
       </div>
 
       {/* Khu vực 2 — 6 Stat cards */}
@@ -208,8 +224,8 @@ export default function LibrarianDashboard() {
 
       {/* Khu vực 3 — Thao tác nhanh */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <Link href="/librarian/borrows/new" className="block group">
-          <div className="bg-gradient-to-br from-primary to-primary-dark text-white rounded-3xl p-6 shadow-glow group-hover:shadow-xl group-hover:scale-[1.02] transition-all duration-200 cursor-pointer flex items-center justify-between">
+        <Link href={onShift ? "/librarian/borrows/new" : "#"} className="block group" onClick={e => { if (!onShift) e.preventDefault() }}>
+          <div className={`bg-gradient-to-br from-primary to-primary-dark text-white rounded-3xl p-6 shadow-glow group-hover:shadow-xl transition-all duration-200 flex items-center justify-between ${!onShift ? 'opacity-50 cursor-not-allowed' : 'group-hover:scale-[1.02] cursor-pointer'}`}>
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <div className="w-10 h-10 bg-white/15 rounded-2xl flex items-center justify-center backdrop-blur-sm">
@@ -218,7 +234,7 @@ export default function LibrarianDashboard() {
               </div>
               <h3 className="text-lg sm:text-xl font-bold">CHO MƯỢN SÁCH</h3>
               <p className="text-primary-100 text-xs sm:text-sm opacity-90 leading-relaxed">
-                Quét thẻ độc giả để tạo phiếu mượn mới
+                {onShift ? 'Quét thẻ độc giả để tạo phiếu mượn mới' : 'Cần trong ca trực để thực hiện'}
               </p>
             </div>
             <div className="w-10 h-10 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md group-hover:translate-x-1 transition-transform">
@@ -226,8 +242,8 @@ export default function LibrarianDashboard() {
             </div>
           </div>
         </Link>
-        <Link href="/librarian/borrows/return" className="block group">
-          <div className="bg-gradient-to-br from-emerald-500 to-emerald-700 text-white rounded-3xl p-6 shadow-lg group-hover:shadow-xl group-hover:scale-[1.02] transition-all duration-200 cursor-pointer flex items-center justify-between">
+        <Link href={onShift ? "/librarian/borrows/return" : "#"} className="block group" onClick={e => { if (!onShift) e.preventDefault() }}>
+          <div className={`bg-gradient-to-br from-emerald-500 to-emerald-700 text-white rounded-3xl p-6 shadow-lg group-hover:shadow-xl transition-all duration-200 flex items-center justify-between ${!onShift ? 'opacity-50 cursor-not-allowed' : 'group-hover:scale-[1.02] cursor-pointer'}`}>
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <div className="w-10 h-10 bg-white/15 rounded-2xl flex items-center justify-center backdrop-blur-sm">
@@ -236,7 +252,7 @@ export default function LibrarianDashboard() {
               </div>
               <h3 className="text-lg sm:text-xl font-bold">NHẬN TRẢ SÁCH</h3>
               <p className="text-emerald-100 text-xs sm:text-sm opacity-90 leading-relaxed">
-                Quét mã sách để tiến hành nhận trả và xử lý
+                {onShift ? 'Quét mã sách để tiến hành nhận trả và xử lý' : 'Cần trong ca trực để thực hiện'}
               </p>
             </div>
             <div className="w-10 h-10 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md group-hover:translate-x-1 transition-transform">
@@ -401,82 +417,6 @@ export default function LibrarianDashboard() {
           </div>
         </Card>
       </div>
-
-      {/* Modal Kết thúc ca */}
-      <Modal open={showEndShiftModal} onClose={() => setShowEndShiftModal(false)} title="Xác nhận kết thúc ca">
-        <div className="space-y-5">
-          <div className="flex items-center gap-3 p-4 bg-amber-50 rounded-2xl border border-amber-100">
-            <div className="w-10 h-10 rounded-2xl bg-amber-100 flex items-center justify-center shrink-0">
-              <Clock className="w-5 h-5 text-amber-600" />
-            </div>
-            <div>
-              <p className="font-semibold text-gray-900 text-sm">{user?.fullName || user?.username}</p>
-              <p className="text-xs text-gray-500">
-                {new Date().toLocaleDateString('vi-VN', {
-                  weekday: 'long', day: '2-digit', month: 'long', year: 'numeric'
-                })}
-              </p>
-            </div>
-          </div>
-
-          <p className="text-gray-600 text-sm">Bạn sắp kết thúc ca làm việc. Dưới đây là tổng kết hoạt động trong ca:</p>
-
-          <div className="bg-gray-50 p-5 rounded-2xl space-y-3 text-sm border border-gray-100">
-            <div className="flex justify-between items-center">
-              <span className="text-gray-500 flex items-center gap-2">
-                <BookOpen className="w-3.5 h-3.5 text-gray-400" /> Số phiếu mượn:
-              </span>
-              <span className="font-bold text-gray-800">{stats?.borrowsToday ?? 0}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-500 flex items-center gap-2">
-                <RotateCcw className="w-3.5 h-3.5 text-gray-400" /> Số phiếu trả:
-              </span>
-              <span className="font-bold text-gray-800">{stats?.returnsToday ?? 0}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-500 flex items-center gap-2">
-                <AlertTriangle className="w-3.5 h-3.5 text-gray-400" /> Số quá hạn chưa xử lý:
-              </span>
-              <span className="font-bold text-red-600">{stats?.overdueCount ?? 0}</span>
-            </div>
-            <div className="flex justify-between items-center pt-3 border-t border-gray-200">
-              <span className="text-gray-500 flex items-center gap-2">
-                <DollarSign className="w-3.5 h-3.5 text-amber-500" /> Tiền phạt thu được:
-              </span>
-              <span className="font-black text-amber-600 text-lg">
-                {formatCurrency(stats?.finesCollectedToday ?? 0)}
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-2 p-3 bg-amber-50 rounded-xl border border-amber-100">
-            <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-            <p className="text-xs text-amber-700 font-medium">
-              Lưu ý: Hệ thống sẽ in biên bản tổng kết ca làm việc và đăng xuất tài khoản. Các phiếu mượn/trả chưa xử lý sẽ được bàn giao cho ca sau.
-            </p>
-          </div>
-
-          <div className="flex justify-end gap-3 pt-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="px-5"
-              onClick={() => setShowEndShiftModal(false)}
-            >
-              Hủy
-            </Button>
-            <Button
-              variant="primary"
-              size="sm"
-              className="px-5"
-              onClick={handleEndShift}
-            >
-              In & Kết thúc
-            </Button>
-          </div>
-        </div>
-      </Modal>
     </div>
   )
 }

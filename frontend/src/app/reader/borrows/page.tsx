@@ -82,8 +82,10 @@ export default function BorrowsPage() {
     try {
       const updated = await borrowsApi.renew(id)
       setRecords(prev => prev.map(r => r.id === id ? { ...r, ...updated } : r))
+      toast('Gia hạn sách thành công! Hạn trả mới: ' + new Date(updated.dueDate).toLocaleDateString('vi-VN'), 'success')
     } catch (e) {
       console.error(e)
+      toast(e instanceof Error ? e.message : 'Gia hạn thất bại, vui lòng thử lại', 'error')
     } finally {
       setRenewingId(null)
     }

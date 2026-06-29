@@ -9,9 +9,11 @@ import Modal from '@/components/ui/Modal'
 import { booksApi, categoriesApi } from '@/lib/api'
 import { Book, Category } from '@/types'
 import { toast } from 'react-hot-toast'
+import { useShift } from '@/hooks/useShift'
 import { Check, BookOpen, Pencil, ChevronLeft, ChevronRight, Package, Plus } from 'lucide-react'
 
 export default function LibrarianBooksPage() {
+  const { onShift } = useShift()
   const [books, setBooks] = useState<Book[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
@@ -186,7 +188,7 @@ export default function LibrarianBooksPage() {
             ))}
           </Select>
         </div>
-        <Button variant="primary" onClick={() => setShowAddBookModal(true)} className="rounded-xl sm:rounded-2xl px-4 sm:px-6 text-xs sm:text-sm whitespace-nowrap shrink-0">
+        <Button variant="primary" onClick={() => setShowAddBookModal(true)} className="rounded-xl sm:rounded-2xl px-4 sm:px-6 text-xs sm:text-sm whitespace-nowrap shrink-0" disabled={!onShift} title={!onShift ? 'Cần trong ca trực để thêm sách' : ''}>
           + Thêm sách
         </Button>
       </div>
@@ -253,7 +255,7 @@ export default function LibrarianBooksPage() {
                   </td>
                   <td className="py-4 px-6">
                     <div className="flex items-center justify-end gap-2 flex-wrap">
-                      <Button variant="ghost" size="sm" onClick={() => handleOpenEditBook(book)} className="rounded-full whitespace-nowrap">
+                      <Button variant="ghost" size="sm" onClick={() => handleOpenEditBook(book)} className="rounded-full whitespace-nowrap" disabled={!onShift} title={!onShift ? 'Cần trong ca trực để sửa' : ''}>
                         <Pencil className="w-3.5 h-3.5 shrink-0" />
                         <span>Sửa</span>
                       </Button>
@@ -289,11 +291,10 @@ export default function LibrarianBooksPage() {
       <Modal open={!!selectedBookForCopies} onClose={() => setSelectedBookForCopies(null)} title={`Kho sách — ${selectedBookForCopies?.title}`} size="lg">
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-between items-start sm:items-center">
-            <p className="text-sm text-gray-500">Danh sách các cuốn vật lý của đầu sách này hiện có trong kho.</p>
-            <Button variant="primary" size="sm" className="rounded-xl whitespace-nowrap shrink-0" onClick={handleAddCopy} loading={addingCopy}>
-              <Plus className="w-4 h-4" />
-              <span>Thêm bản sao</span>
-            </Button>
+            <p className="text-sm text-gray-500">Danh sách các cuốn vật lý của đầu sách này hiện có trong kho.</p>                            <Button variant="primary" size="sm" className="rounded-xl whitespace-nowrap shrink-0" onClick={handleAddCopy} loading={addingCopy} disabled={!onShift} title={!onShift ? 'Cần trong ca trực để thêm bản sao' : ''}>
+                              <Plus className="w-4 h-4" />
+                              <span>Thêm bản sao</span>
+                            </Button>
           </div>
           <div className="border border-gray-100 rounded-3xl overflow-hidden shadow-sm">
             <table className="w-full text-left">
@@ -317,7 +318,7 @@ export default function LibrarianBooksPage() {
                     </td>
                     <td className="py-4 px-6 text-right">
                       {copy.status !== 'borrowed' ? (
-                        <Button variant="ghost" size="sm" className="rounded-full" onClick={() => setEditingCopy(copy)}>Sửa</Button>
+                        <Button variant="ghost" size="sm" className="rounded-full" onClick={() => setEditingCopy(copy)} disabled={!onShift} title={!onShift ? 'Cần trong ca trực để sửa' : ''}>Sửa</Button>
                       ) : (
                         <span className="text-xs text-gray-400 italic px-3">Đang mượn</span>
                       )}
@@ -372,10 +373,10 @@ export default function LibrarianBooksPage() {
             </div>
 
             <div className="flex flex-col gap-2 pt-4">
-               <Button variant="primary" fullWidth onClick={handleUpdateCopy}>Lưu thay đổi</Button>
+               <Button variant="primary" fullWidth onClick={handleUpdateCopy} disabled={!onShift} title={!onShift ? 'Cần trong ca trực để sửa' : ''}>Lưu thay đổi</Button>
                <Button variant="ghost" fullWidth onClick={() => setEditingCopy(null)}>Hủy bỏ</Button>
                <div className="border-t border-gray-100 my-2 pt-2">
-                  <Button variant="ghost" fullWidth className="text-red-600 hover:bg-red-50 font-bold" onClick={() => handleDeleteCopy(editingCopy.id)}>Xóa bản sao này</Button>
+                  <Button variant="ghost" fullWidth className="text-red-600 hover:bg-red-50 font-bold" onClick={() => handleDeleteCopy(editingCopy.id)} disabled={!onShift} title={!onShift ? 'Cần trong ca trực để xóa' : ''}>Xóa bản sao này</Button>
                </div>
             </div>
          </div>
@@ -429,7 +430,7 @@ export default function LibrarianBooksPage() {
           </div>
           <div className="flex justify-end gap-3 pt-6 border-t border-gray-50">
             <Button variant="ghost" onClick={() => setShowAddBookModal(false)}>Hủy bỏ</Button>
-            <Button variant="primary" onClick={handleAddBook} className="rounded-2xl px-8">Lưu sách</Button>
+            <Button variant="primary" onClick={handleAddBook} className="rounded-2xl px-8" disabled={!onShift} title={!onShift ? 'Cần trong ca trực để thêm sách' : ''}>Lưu sách</Button>
           </div>
         </div>
       </Modal>
@@ -482,7 +483,7 @@ export default function LibrarianBooksPage() {
           </div>
           <div className="flex justify-end gap-3 pt-6 border-t border-gray-50">
             <Button variant="ghost" onClick={() => setEditingBook(null)}>Hủy bỏ</Button>
-            <Button variant="primary" onClick={handleUpdateBook} className="rounded-2xl px-8">Lưu thay đổi</Button>
+            <Button variant="primary" onClick={handleUpdateBook} className="rounded-2xl px-8" disabled={!onShift} title={!onShift ? 'Cần trong ca trực để sửa' : ''}>Lưu thay đổi</Button>
           </div>
         </div>
       </Modal>

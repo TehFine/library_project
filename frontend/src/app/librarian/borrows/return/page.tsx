@@ -8,9 +8,11 @@ import Button from '@/components/ui/Button'
 import { librarianApi } from '@/lib/api'
 import { toast } from 'react-hot-toast'
 import { formatCurrency } from '@/lib/utils'
+import { useShift } from '@/hooks/useShift'
 import { Barcode, Search, Book, BookMarked, BookX, TriangleAlert, XCircle, Printer, Check } from 'lucide-react'
 
 export default function ReturnBorrowPage() {
+  const { onShift } = useShift()
   const [step, setStep] = useState(1)
 
   // Search mode: 'code' (quét mã vạch) or 'title' (tìm tên sách)
@@ -349,7 +351,7 @@ export default function ReturnBorrowPage() {
                 </div>
                 <div className="mt-5 flex gap-3">
                   <Button variant="ghost" onClick={() => { setSelectedRecord(null); setSearchRecord(''); setTitleSearchResults([]) }}>Tìm lại</Button>
-                  <Button variant="primary" onClick={() => setStep(2)}>Tiếp tục →</Button>
+                  <Button variant="primary" onClick={() => setStep(2)} disabled={!onShift} title={!onShift ? 'Cần trong ca trực để tiếp tục' : ''}>Tiếp tục →</Button>
                 </div>
               </div>
             )}
@@ -396,7 +398,7 @@ export default function ReturnBorrowPage() {
 
             <div className="flex justify-between pt-6 border-t border-gray-100">
               <Button variant="ghost" onClick={() => setStep(1)}>← Quay lại</Button>
-              <Button variant="primary" onClick={() => setStep(3)}>Tiếp tục →</Button>
+              <Button variant="primary" onClick={() => setStep(3)} disabled={!onShift} title={!onShift ? 'Cần trong ca trực để tiếp tục' : ''}>Tiếp tục →</Button>
             </div>
           </div>
         )}
@@ -448,7 +450,7 @@ export default function ReturnBorrowPage() {
 
             <div className="flex justify-between pt-6 border-t border-gray-100">
               <Button variant="ghost" onClick={() => setStep(2)}>← Quay lại</Button>
-              <Button variant="primary" onClick={handleSubmit}><Check className="w-4 h-4" /> Xác nhận {totalFine > 0 ? 'Thu phí & Nhập kho' : 'Nhập kho'}</Button>
+              <Button variant="primary" onClick={handleSubmit} disabled={!onShift} title={!onShift ? 'Cần trong ca trực để nhận trả' : ''}><Check className="w-4 h-4" /> Xác nhận {totalFine > 0 ? 'Thu phí & Nhập kho' : 'Nhập kho'}</Button>
             </div>
           </div>
         )}
