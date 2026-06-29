@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common'
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common'
 import { toLocalDateStr } from '@/common/utils/date'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository, LessThan } from 'typeorm'
@@ -9,9 +9,12 @@ import { BorrowRecord } from '../borrow-records/entities/borrow-record.entity'
 import { LibraryCard } from '../library-cards/entities/library-card.entity'
 import { Fine } from '../fines/entities/fine.entity'
 import { RealtimeGateway } from '@/common/websocket/realtime.gateway'
+import { MailService } from '@/common/mail/mail.service'
 
 @Injectable()
 export class NotificationsService {
+    private readonly logger = new Logger(NotificationsService.name)
+
     constructor(
         @InjectRepository(Notification) private notifRepo: Repository<Notification>,
         @InjectRepository(User) private userRepo: Repository<User>,
@@ -20,6 +23,7 @@ export class NotificationsService {
         @InjectRepository(LibraryCard) private cardRepo: Repository<LibraryCard>,
         @InjectRepository(Fine) private fineRepo: Repository<Fine>,
         private realtime: RealtimeGateway,
+        private mailService: MailService,
     ) {}
 
     /** Get real counts for each target group */
@@ -372,6 +376,38 @@ export class NotificationsService {
                 await this.notifRepo.save(saved)
             }
 
+            // ── Send actual emails via MailService ──
+            if (targetUsers.length > 0) {
+                // Batch-lookup user emails
+                const userIds = targetUsers.map(t => t.userId)
+                const users = await this.userRepo.find({
+                    where: userIds.map(id => ({ id })),
+                    relations: { profile: true },
+                })
+                const emailMap = new Map(users.map(u => [u.id, u]))
+
+                const emailPromises = targetUsers.map(async ({ userId, replacements }) => {
+                    const user = emailMap.get(userId)
+                    if (!user?.email) return
+
+                    // Personalize content
+                    let personalContent = saved.content
+                    let personalTitle = saved.title
+                    for (const [key, value] of Object.entries(replacements)) {
+                        personalContent = personalContent.split(key).join(value)
+                        personalTitle = personalTitle.split(key).join(value)
+                    }
+
+                    const html = this.buildNotificationEmailTemplate(personalTitle, personalContent)
+                    return this.mailService.sendMail(user.email, personalTitle, html)
+                })
+
+                // Send all emails concurrently (fire-and-forget, don't block if some fail)
+                const results = await Promise.allSettled(emailPromises)
+                const successCount = results.filter(r => r.status === 'fulfilled' && r.value === true).length
+                this.logger.log(`Bulk email: ${successCount}/${targetUsers.length} sent successfully`)
+            }
+
             // Emit realtime — send generic content to avoid showing raw placeholders in toast
             this.realtime.emit('admin:notification-update')
             // Only emit reader:notification to targeted readers (include targetUserIds for client-side filtering)
@@ -392,11 +428,29 @@ export class NotificationsService {
 
     /** Send a test notification to the admin's email */
     async sendTest(id: string) {
-        const notif = await this.notifRepo.findOneBy({ id })
+        const notif = await this.notifRepo.findOne({
+            where: { id },
+            relations: { createdBy: { profile: true } },
+        })
         if (!notif) throw new NotFoundException('Notification not found')
 
-        // In a real system, this would send an email via nodemailer
-        return { message: 'Đã gửi thông báo thử nghiệm', id }
+        const admin = notif.createdBy
+        const adminEmail = admin?.email
+        if (!adminEmail) throw new BadRequestException('Cannot find admin email')
+
+        const html = this.buildNotificationEmailTemplate(
+            `[Test] ${notif.title}`,
+            `Đây là email thử nghiệm cho thông báo:<br><br>${notif.content.replace(/\n/g, '<br>')}`,
+        )
+
+        const sent = await this.mailService.sendMail(adminEmail, `[Test] ${notif.title}`, html)
+
+        if (!sent) {
+            this.logger.warn(`Test email to ${adminEmail} was not sent (mail not configured)`)
+            return { message: 'Email thử nghiệm được ghi vào console (mail chưa được cấu hình)', id }
+        }
+
+        return { message: 'Đã gửi thông báo thử nghiệm đến email của bạn', id }
     }
 
     /** Update draft */
@@ -413,5 +467,56 @@ export class NotificationsService {
 
         await this.notifRepo.update(id, dto as any)
         return this.findOne(id)
+    }
+
+    /** Build a nice HTML email template for bulk notifications */
+    private buildNotificationEmailTemplate(title: string, bodyContent: string): string {
+        return `
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin:0;padding:0;background-color:#f4f6f9;font-family:'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#f4f6f9;padding:40px 20px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="540" cellspacing="0" cellpadding="0" style="background-color:#ffffff;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,0.06);overflow:hidden;">
+          <!-- Header -->
+          <tr>
+            <td style="background:linear-gradient(135deg,#d97706,#b45309);padding:28px 36px;text-align:center;">
+              <div style="width:48px;height:48px;background:rgba(255,255,255,0.2);border-radius:12px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:10px;">
+                <span style="font-size:24px;">📬</span>
+              </div>
+              <h1 style="margin:0;color:#ffffff;font-size:20px;font-weight:700;">${title}</h1>
+              <p style="margin:6px 0 0;color:rgba(255,255,255,0.85);font-size:13px;">Thư viện Bookly</p>
+            </td>
+          </tr>
+          <!-- Body -->
+          <tr>
+            <td style="padding:32px 36px;">
+              <div style="color:#374151;font-size:14px;line-height:1.7;">
+                ${bodyContent.replace(/\n/g, '<br>')}
+              </div>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="background:#f9fafb;padding:20px 36px;text-align:center;border-top:1px solid #f3f4f6;">
+              <p style="margin:0 0 6px;color:#9ca3af;font-size:11px;">
+                © ${new Date().getFullYear()} Hệ thống Quản lý Thư viện Bookly
+              </p>
+              <p style="margin:0;color:#9ca3af;font-size:10px;">
+                Email này được gửi tự động từ hệ thống quản lý thư viện.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`
     }
 }
