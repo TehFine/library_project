@@ -13,13 +13,18 @@ function LibrarianLayoutInner({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0)
+  const [pendingCardsCount, setPendingCardsCount] = useState(0)
   const { onShift, loading: shiftLoading } = useShift()
 
   async function fetchPendingCount() {
     try {
-      const res = await librarianApi.getPendingRequestsCount()
-      setPendingRequestsCount(res.count)
-      window.dispatchEvent(new CustomEvent('librarian-pending-count', { detail: { count: res.count } }))
+      const [reqs, cards] = await Promise.all([
+        librarianApi.getPendingRequestsCount(),
+        librarianApi.getPendingCardsCount()
+      ])
+      setPendingRequestsCount(reqs.count)
+      setPendingCardsCount(cards.count)
+      window.dispatchEvent(new CustomEvent('librarian-pending-count', { detail: { count: reqs.count } }))
     } catch { /* ignore */ }
   }
 
@@ -39,7 +44,7 @@ function LibrarianLayoutInner({ children }: { children: React.ReactNode }) {
     >
       {/* ── Sidebar — hidden on mobile ── */}
       <div className="hidden md:block h-full">
-        <LibrarianSidebar pendingRequestsCount={pendingRequestsCount} />
+        <LibrarianSidebar pendingRequestsCount={pendingRequestsCount} pendingCardsCount={pendingCardsCount} />
       </div>
 
       {/* ── Right column — TopBar + white card ── */}
@@ -67,7 +72,7 @@ function LibrarianLayoutInner({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* ── Mobile drawer ── */}
-      <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} pendingRequestsCount={pendingRequestsCount} />
+      <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} pendingRequestsCount={pendingRequestsCount} pendingCardsCount={pendingCardsCount} />
     </div>
   )
 }

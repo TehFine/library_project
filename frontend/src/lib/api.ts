@@ -226,6 +226,7 @@ export interface LibrarianStats {
 export const librarianApi = {
   getStats: () => request<LibrarianStats>('/librarian/dashboard/stats'),
   getPendingRequestsCount: () => request<{ count: number }>('/librarian/borrow-requests/pending-count'),
+  getPendingCardsCount: () => request<{ count: number }>('/librarian/cards/pending-count'),
   
   // Search
   searchCards: (q: string) => request<any[]>(`/library-cards/search?q=${encodeURIComponent(q)}`),
@@ -237,6 +238,7 @@ export const librarianApi = {
   searchBorrowByBookTitle: (q: string) => request<any[]>(`/borrow-records/search-by-book-title?q=${encodeURIComponent(q)}`),
   getPendingReturns: () => request<any[]>('/borrow-records/pending-returns'),
   approveReturn: (id: string, condition: string) => request<any>(`/borrow-records/${id}/approve-return`, { method: 'POST', body: JSON.stringify({ condition }) }),
+  snoozeReturnRequest: (id: string) => request<any>(`/borrow-records/${id}/snooze-return`, { method: 'PATCH' }),
   
   // Cards & Users
   searchUsers: (q: string) => request<User[]>(`/users/search?q=${encodeURIComponent(q)}`),

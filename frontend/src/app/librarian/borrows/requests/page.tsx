@@ -136,6 +136,16 @@ export default function LibrarianRequestsPage() {
     }
   }
 
+  const handleSnoozeReturn = async (req: any) => {
+    try {
+      await librarianApi.snoozeReturnRequest(req.recordId)
+      toast.success('Đã dời yêu cầu xuống cuối danh sách')
+      loadData()
+    } catch (err: any) {
+      toast.error(err?.message || 'Lỗi khi bỏ qua yêu cầu')
+    }
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader title="Yêu cầu" description="Duyệt các yêu cầu mượn sách và yêu cầu trả sách từ độc giả" />
@@ -227,9 +237,12 @@ export default function LibrarianRequestsPage() {
                           <Button variant="ghost" size="sm" className="rounded-full text-red-500 hover:bg-red-50" onClick={() => { setRejectTarget(req); setRejectReason('') }} disabled={!onShift} title={!onShift ? 'Cần trong ca trực để từ chối' : ''}>Từ chối</Button>
                         </>
                       ) : (
-                        <>
+                        <div className="flex gap-2 justify-end">
+                          <Button variant="ghost" size="sm" className="rounded-full text-amber-600 hover:bg-amber-50" onClick={() => handleSnoozeReturn(req)} disabled={!onShift} title={!onShift ? 'Cần trong ca trực để xử lý' : 'Đẩy yêu cầu này xuống cuối danh sách'}>
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                          </Button>
                           <Button variant="primary" size="sm" className="rounded-full px-4 bg-emerald-500 hover:bg-emerald-600" onClick={() => handleApproveReturn(req)} disabled={!onShift} title={!onShift ? 'Cần trong ca trực để xử lý' : ''}>Nhận trả</Button>
-                        </>
+                        </div>
                       )
                     ) : (
                       <span className="text-xs text-gray-400 italic">Đã xử lý</span>

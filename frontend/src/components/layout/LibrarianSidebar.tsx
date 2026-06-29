@@ -88,7 +88,7 @@ const NAV = [
   },
 ]
 
-export default function LibrarianSidebar({ pendingRequestsCount }: { pendingRequestsCount?: number }) {
+export default function LibrarianSidebar({ pendingRequestsCount, pendingCardsCount }: { pendingRequestsCount?: number, pendingCardsCount?: number }) {
   const pathname = usePathname()
 
   return (
@@ -135,6 +135,18 @@ export default function LibrarianSidebar({ pendingRequestsCount }: { pendingRequ
                       : 'bg-red-500 text-white',
                   )}>
                     {pendingRequestsCount > 99 ? '99+' : pendingRequestsCount}
+                  </span>
+                )}
+                {/* Pending cards badge on Thẻ độc giả */}
+                {item.href === '/librarian/cards' && pendingCardsCount !== undefined && pendingCardsCount > 0 && (
+                  <span className={cn(
+                    'absolute -top-1.5 -right-1.5 min-w-[16px] h-[16px] flex items-center justify-center',
+                    'rounded-full text-[9px] font-bold leading-none px-0.5',
+                    active
+                      ? 'bg-white text-primary'
+                      : 'bg-amber-500 text-white',
+                  )}>
+                    {pendingCardsCount > 99 ? '99+' : pendingCardsCount}
                   </span>
                 )}
               </span>
