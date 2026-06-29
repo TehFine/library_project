@@ -107,12 +107,16 @@ export class BorrowRecordsController {
         return this.service.approveReturn(id, req.user.userId, body.condition)
     }
 
-    @Post(':id/simulate-return')
-    @ApiOperation({ summary: 'Tự động trả', description: 'Độc giả tự động trả sách (mô phỏng, condition="good")' })
+    @Patch(':id/snooze-return')
+    @UseGuards(RolesGuard, ShiftGuard)
+    @Roles(RoleName.LIBRARIAN, RoleName.LIBRARY_ADMIN)
+    @OnShift()
+    @ApiOperation({ summary: 'Bỏ qua yêu cầu trả', description: 'Đẩy yêu cầu trả sách xuống cuối danh sách (cập nhật lại thời gian)' })
     @ApiParam({ name: 'id', description: 'ID phiếu mượn' })
-    simulateReturn(@Param('id') id: string, @Req() req: any) {
-        return this.service.simulateReturn(id, req.user.userId)
+    snoozeReturnRequest(@Param('id') id: string, @Req() req: any) {
+        return this.service.snoozeReturnRequest(id, req.user.userId)
     }
+
 
     @Post(':id/renew')
     @ApiOperation({ summary: 'Gia hạn sách', description: 'Gia hạn sách đang mượn (tối đa 2 lần, mỗi lần 14 ngày)' })

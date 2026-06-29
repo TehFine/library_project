@@ -9,7 +9,8 @@ import { librarianApi, booksApi } from '@/lib/api'
 import { toast } from 'react-hot-toast'
 import { cn, formatCurrency } from '@/lib/utils'
 import { useShift } from '@/hooks/useShift'
-import { Search, Barcode, Book, Check, TriangleAlert, XCircle, Home, BookOpen, Printer } from 'lucide-react'
+import { Search, Camera, Barcode, Book, Check, TriangleAlert, XCircle, Home, BookOpen, Printer } from 'lucide-react'
+import BarcodeScanner from '@/components/scanner/BarcodeScanner'
 
 export default function NewBorrowPage() {
   const { onShift } = useShift()
@@ -31,6 +32,9 @@ export default function NewBorrowPage() {
   const [selectedBookForCopies, setSelectedBookForCopies] = useState<any>(null)
   const [availableCopies, setAvailableCopies] = useState<any[]>([])
   const [loadingCopies, setLoadingCopies] = useState(false)
+
+  // Scanner state
+  const [showScanner, setShowScanner] = useState(false)
 
   // Step 3 State
   const [borrowType, setBorrowType] = useState('home')
@@ -187,9 +191,18 @@ export default function NewBorrowPage() {
 
   const handleAddBook = async () => {
     if (!searchBook) return
+    await findAndAddBook(searchBook)
+  }
+
+  const handleAddBookWithCode = async (code: string) => {
+    await findAndAddBook(code)
+  }
+
+  const findAndAddBook = async (code: string) => {
+    if (!code) return
     setIsSearchingBook(true)
     try {
-      const book = await librarianApi.findCopyByCode(searchBook)
+      const book = await librarianApi.findCopyByCode(code)
       if (book.status !== 'available') {
         toast.error('Sách này hiện không có sẵn (đang mượn hoặc mất)')
         return
@@ -198,7 +211,7 @@ export default function NewBorrowPage() {
         toast.error('Sách đã có trong danh sách')
         return
       }
-      setSelectedBooks([...selectedBooks, book])
+      setSelectedBooks(prev => [...prev, book])
       setSearchBook('')
     } catch (err: any) {
       toast.error(err?.message || 'Không tìm thấy mã sách này')
@@ -351,15 +364,37 @@ export default function NewBorrowPage() {
 
             {/* Search / Input */}
             {searchMode === 'code' ? (
-              <div className="flex gap-3">
-                <Input 
-                  value={searchBook}
-                  onChange={e => setSearchBook(e.target.value)}
-                  placeholder="Quét mã vạch bản sao (VD: 3333-001)..." 
-                  className="flex-1"
-                  onKeyDown={e => e.key === 'Enter' && handleAddBook()}
-                />
-                <Button onClick={handleAddBook} loading={isSearchingBook}>Thêm sách</Button>
+              <div className="space-y-3">
+                <div className="flex gap-3">
+                  <Input 
+                    value={searchBook}
+                    onChange={e => setSearchBook(e.target.value)}
+                    placeholder="Nhập mã bản sao hoặc quét bằng camera..." 
+                    className="flex-1"
+                    onKeyDown={e => e.key === 'Enter' && handleAddBook()}
+                  />
+                  <button
+                    onClick={() => setShowScanner(true)}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-gradient-to-br from-primary to-primary-dark text-white font-bold text-sm shadow-md hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
+                    title="Mở camera quét mã vạch"
+                  >
+                    <Camera className="w-4 h-4" />
+                    <span className="hidden sm:inline">Quét camera</span>
+                  </button>
+                  <Button onClick={handleAddBook} loading={isSearchingBook}>Thêm sách</Button>
+                </div>
+
+                {/* Camera Scanner Overlay */}
+                {showScanner && (
+                  <BarcodeScanner
+                    onScan={(code) => {
+                      setShowScanner(false)
+                      // Auto-search after a brief delay so React unmounts scanner first
+                      setTimeout(() => handleAddBookWithCode(code), 100)
+                    }}
+                    onClose={() => setShowScanner(false)}
+                  />
+                )}
               </div>
             ) : (
               <div className="space-y-4">

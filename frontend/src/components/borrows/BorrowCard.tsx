@@ -112,7 +112,7 @@ export default function BorrowCard({ record, onRenew, onRequestReturn, isRenewin
             loading={isRequestingReturn}
             onClick={() => onRequestReturn(record.id)}
           >
-            Trả sách
+            Yêu cầu trả sách
           </Button>
         )}
 

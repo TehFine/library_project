@@ -4,6 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { Repository, LessThan, Between } from 'typeorm'
 import { Fine } from './entities/fine.entity'
 import { BorrowRecord } from '@/modules/borrow-records/entities/borrow-record.entity'
+import { LibraryCard } from '@/modules/library-cards/entities/library-card.entity'
 import { SystemConfig } from '@/modules/admin/entities/system-config.entity'
 import { RealtimeGateway } from '@/common/websocket/realtime.gateway'
 
@@ -14,8 +15,10 @@ export class FinesService {
         private fineRepo: Repository<Fine>,
         @InjectRepository(BorrowRecord)
         private borrowRepo: Repository<BorrowRecord>,
-        @InjectRepository(SystemConfig)
-        private configRepo: Repository<SystemConfig>,
+    @InjectRepository(SystemConfig)
+    private configRepo: Repository<SystemConfig>,
+    @InjectRepository(LibraryCard)
+    private cardRepo: Repository<LibraryCard>,
         private realtime: RealtimeGateway,
     ) { }
 
@@ -60,7 +63,10 @@ export class FinesService {
     }
 
     async payFine(id: string, librarianId: string, method: string) {
-        const fine = await this.fineRepo.findOneBy({ id })
+        const fine = await this.fineRepo.findOne({
+            where: { id },
+            relations: { borrowRecord: { libraryCard: true } }
+        })
         if (!fine) throw new NotFoundException('Fine record not found')
         if (fine.status !== 'pending') throw new BadRequestException('Khoản phí này đã được xử lý')
 
@@ -70,6 +76,9 @@ export class FinesService {
         fine.collectedBy = { id: librarianId } as any
         fine.receiptNumber = `REC-${Date.now()}`
         const saved = await this.fineRepo.save(fine)
+
+        // Kiểm tra còn phí phạt pending nào không → nếu hết thì mở khóa thẻ
+        await this.unlockCardIfNoPendingFines(fine.borrowRecord?.libraryCard?.userId)
         
         // Emit realtime events
         this.realtime.emit('librarian:dashboard-update')
@@ -80,7 +89,10 @@ export class FinesService {
     }
 
     async waiveFine(id: string, librarianId: string, reason: string) {
-        const fine = await this.fineRepo.findOneBy({ id })
+        const fine = await this.fineRepo.findOne({
+            where: { id },
+            relations: { borrowRecord: { libraryCard: true } }
+        })
         if (!fine) throw new NotFoundException('Fine record not found')
         if (fine.status !== 'pending') throw new BadRequestException('Khoản phí này đã được xử lý')
 
@@ -90,6 +102,9 @@ export class FinesService {
         fine.paymentMethod = `waive:${reason}`
         fine.receiptNumber = `WVR-${Date.now()}`
         const saved = await this.fineRepo.save(fine)
+
+        // Kiểm tra còn phí phạt pending nào không → nếu hết thì mở khóa thẻ
+        await this.unlockCardIfNoPendingFines(fine.borrowRecord?.libraryCard?.userId)
         
         // Emit realtime events
         this.realtime.emit('librarian:dashboard-update')
@@ -99,22 +114,6 @@ export class FinesService {
         return saved
     }
 
-    async simulatePayFine(id: string, userId: string) {
-        const fine = await this.fineRepo.findOne({
-            where: { id },
-            relations: { borrowRecord: { libraryCard: true } }
-        })
-        if (!fine) throw new NotFoundException('Không tìm thấy khoản phí')
-        if (fine.borrowRecord?.libraryCard?.userId !== userId) {
-            throw new BadRequestException('Bạn không có quyền thanh toán khoản phí này')
-        }
-        if (fine.status !== 'pending') {
-            throw new BadRequestException('Khoản phí này đã được xử lý')
-        }
-
-        // Gọi logic thanh toán giống librarian, mặc định method là 'online'
-        return this.payFine(id, userId, 'online')
-    }
 
     async getAdminFineStats(from?: string, to?: string, status?: string, fineType?: string) {
         const qb = this.fineRepo.createQueryBuilder('fine')
@@ -159,6 +158,32 @@ export class FinesService {
                 receiptNumber: f.receiptNumber,
                 paidAt: f.paidAt,
             }))
+        }
+    }
+
+    /**
+     * Mở khóa thẻ thư viện nếu người dùng không còn phí phạt pending nào.
+     */
+    private async unlockCardIfNoPendingFines(userId?: string) {
+        if (!userId) return
+        try {
+            const remaining = await this.fineRepo.count({
+                relations: { borrowRecord: { libraryCard: true } },
+                where: {
+                    borrowRecord: { libraryCard: { userId } },
+                    status: 'pending'
+                }
+            })
+            if (remaining === 0) {
+                const card = await this.cardRepo.findOne({ where: { userId } })
+                if (card && card.status === 'locked') {
+                    card.status = 'active'
+                    await this.cardRepo.save(card)
+                }
+            }
+        } catch (err) {
+            // Chỉ log lỗi, không throw — không ảnh hưởng luồng thanh toán
+            console.error('Lỗi khi mở khóa thẻ:', err)
         }
     }
 

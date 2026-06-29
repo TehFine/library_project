@@ -9,7 +9,8 @@ import { librarianApi } from '@/lib/api'
 import { toast } from 'react-hot-toast'
 import { formatCurrency } from '@/lib/utils'
 import { useShift } from '@/hooks/useShift'
-import { Barcode, Search, Book, BookMarked, BookX, TriangleAlert, XCircle, Printer, Check } from 'lucide-react'
+import { Barcode, Search, Camera, Book, BookMarked, BookX, TriangleAlert, XCircle, Printer, Check } from 'lucide-react'
+import BarcodeScanner from '@/components/scanner/BarcodeScanner'
 
 export default function ReturnBorrowPage() {
   const { onShift } = useShift()
@@ -17,6 +18,9 @@ export default function ReturnBorrowPage() {
 
   // Search mode: 'code' (quét mã vạch) or 'title' (tìm tên sách)
   const [searchMode, setSearchMode] = useState<'code' | 'title'>('code')
+
+  // Scanner state
+  const [showScanner, setShowScanner] = useState(false)
 
   // Step 1 State
   const [searchRecord, setSearchRecord] = useState('')
@@ -109,9 +113,18 @@ export default function ReturnBorrowPage() {
   // ── Search by copy code ──
   const handleSearchByCode = async () => {
     if (!searchRecord) return
+    await findByCode(searchRecord)
+  }
+
+  const handleSearchByCodeWithCode = async (code: string) => {
+    await findByCode(code)
+  }
+
+  const findByCode = async (code: string) => {
+    if (!code) return
     setIsSearching(true)
     try {
-      const record = await librarianApi.findBorrowByCopyCode(searchRecord)
+      const record = await librarianApi.findBorrowByCopyCode(code)
       if (!record) {
         toast.error('Không tìm thấy phiếu mượn đang hoạt động cho mã sách này')
         return
@@ -273,16 +286,41 @@ export default function ReturnBorrowPage() {
 
                 {/* Code Search */}
                 {searchMode === 'code' ? (
-                  <div className="flex gap-3">
-                    <Input 
-                      value={searchRecord}
-                      onChange={e => setSearchRecord(e.target.value)}
-                      placeholder="Quét mã vạch sách (VD: 3901-001)..."
-                      className="flex-1"
-                      onKeyDown={e => e.key === 'Enter' && handleSearchByCode()}
-                      autoFocus
-                    />
-                    <Button onClick={handleSearchByCode} loading={isSearching}>Tìm kiếm</Button>
+                  <div className="space-y-3">
+                    <div className="flex gap-3">
+                      <Input 
+                        value={searchRecord}
+                        onChange={e => setSearchRecord(e.target.value)}
+                        placeholder="Nhập mã bản sao hoặc quét bằng camera..."
+                        className="flex-1"
+                        onKeyDown={e => e.key === 'Enter' && handleSearchByCode()}
+                        autoFocus
+                      />
+                      <button
+                        onClick={() => setShowScanner(true)}
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-gradient-to-br from-primary to-primary-dark text-white font-bold text-sm shadow-md hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all shrink-0"
+                        title="Mở camera quét mã vạch"
+                      >
+                        <Camera className="w-4 h-4" />
+                        <span className="hidden sm:inline">Quét camera</span>
+                      </button>
+                      <Button onClick={handleSearchByCode} loading={isSearching}>Tìm kiếm</Button>
+                    </div>
+
+                    {/* Camera Scanner Overlay */}
+                    {showScanner && (
+                      <BarcodeScanner
+                        onScan={(code) => {
+                          setShowScanner(false)
+                          setSearchRecord(code)
+                          // Auto-search after a brief delay
+                          setTimeout(() => {
+                            handleSearchByCodeWithCode(code)
+                          }, 100)
+                        }}
+                        onClose={() => setShowScanner(false)}
+                      />
+                    )}
                   </div>
                 ) : (
                   /* Book Title Search */
@@ -438,6 +476,16 @@ export default function ReturnBorrowPage() {
                           <span className="capitalize">{m === 'cash' ? 'Tiền mặt' : m === 'transfer' ? 'Chuyển khoản' : 'QR Code'}</span>
                         </label>
                       ))}
+                    </div>
+                  </div>
+                  {/* Warning about card lock if payment not collected */}
+                  <div className="p-4 bg-amber-50 rounded-2xl border border-amber-200">
+                    <div className="flex items-start gap-3">
+                      <TriangleAlert className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                      <div className="text-sm text-amber-800">
+                        <p className="font-bold">Không thu phí ngay?</p>
+                        <p className="mt-1">Nếu không thu phí ngay lúc này, <span className="font-bold">thẻ thư viện của độc giả sẽ tạm khóa</span> và không thể mượn sách mới cho đến khi thanh toán xong.</p>
+                      </div>
                     </div>
                   </div>
                 </div>

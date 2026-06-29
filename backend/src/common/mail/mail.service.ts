@@ -13,7 +13,9 @@ export class MailService {
         const port = this.config.get<number>('MAIL_PORT')
         const user = this.config.get<string>('MAIL_USER')
         const pass = this.config.get<string>('MAIL_PASS')
-        this.fromAddress = this.config.get<string>('MAIL_FROM') || `"Thư viện" <${user}>`
+        const fromDisplay = this.config.get<string>('MAIL_FROM') || 'Thư viện'
+        // Format: "Display Name" <email@address.com> — chuẩn email header
+        this.fromAddress = user ? `${fromDisplay} <${user}>` : fromDisplay
 
         if (host && user && pass) {
             this.transporter = nodemailer.createTransport({

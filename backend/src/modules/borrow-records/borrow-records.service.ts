@@ -99,6 +99,18 @@ export class BorrowRecordsService {
                 throw new BadRequestException('Độc giả này đang mượn cuốn sách này rồi, vui lòng trả sách trước khi mượn lại')
             }
 
+            // KIỂM TRA: Có phí phạt chưa thanh toán không?
+            const unpaidFines = await this.fineRepo.count({
+                relations: { borrowRecord: { libraryCard: true } },
+                where: {
+                    borrowRecord: { libraryCard: { userId: card.userId } },
+                    status: 'pending'
+                }
+            })
+            if (unpaidFines > 0) {
+                throw new BadRequestException('Bạn có phí phạt chưa thanh toán. Vui lòng thanh toán trước khi mượn sách mới.')
+            }
+
             // KIỂM TRA: Số sách đang mượn có vượt quá giới hạn không?
             const maxBorrow = parseInt(process.env.MAX_BORROW ?? '3', 10) || 3
             const activeBorrows = await this.borrowRepo.count({
@@ -194,7 +206,7 @@ export class BorrowRecordsService {
         try {
             const record = await this.borrowRepo.findOne({
                 where: { id: recordId },
-                relations: { bookCopy: { book: true } }
+                relations: { bookCopy: { book: true }, libraryCard: { user: true } }
             })
             if (!record || record.status === 'returned') throw new BadRequestException('Phiếu mượn không hợp lệ')
 
@@ -286,6 +298,19 @@ export class BorrowRecordsService {
                     }
                     const fine = queryRunner.manager.create(Fine, fineData)
                     await queryRunner.manager.save(fine)
+                }
+
+                // Nếu fine được tạo/cập nhật mà KHÔNG thu tiền (status='pending'),
+                // khóa thẻ thư viện để không cho mượn tiếp
+                const fineStatus = paymentMethod && librarianId ? 'paid' : 'pending'
+                if (fineStatus === 'pending') {
+                    const card = await queryRunner.manager.findOne(LibraryCard, {
+                        where: { userId: record.libraryCard.userId }
+                    })
+                    if (card && card.status === 'active') {
+                        card.status = 'locked'
+                        await queryRunner.manager.save(card)
+                    }
                 }
             }
 
@@ -449,7 +474,7 @@ export class BorrowRecordsService {
         return this.borrowRepo.find({
             where: { returnRequested: true, status: In(['borrowing', 'overdue']) },
             relations: { bookCopy: { book: true }, libraryCard: { user: { profile: true } } },
-            order: { createdAt: 'DESC' }
+            order: { returnRequestedAt: 'ASC' }
         });
     }
 
@@ -470,6 +495,7 @@ export class BorrowRecordsService {
         }
 
         record.returnRequested = true
+        record.returnRequestedAt = new Date()
         const saved = await this.borrowRepo.save(record)
 
         // Emit realtime events
@@ -497,36 +523,30 @@ export class BorrowRecordsService {
 
         // Sau đó xóa cờ yêu cầu trả
         record.returnRequested = false
+        record.returnRequestedAt = null
         await this.borrowRepo.save(record)
 
         return result
     }
 
-    async simulateReturn(recordId: string, userId: string) {
+    async snoozeReturnRequest(recordId: string, librarianId: string) {
         const record = await this.borrowRepo.findOne({
-            where: { id: recordId },
-            relations: { libraryCard: true, bookCopy: { book: true } }
+            where: { id: recordId }
         })
         if (!record) throw new NotFoundException('Không tìm thấy phiếu mượn')
-        if (record.libraryCard.userId !== userId) {
-            throw new BadRequestException('Bạn không có quyền trả phiếu mượn này')
-        }
-        if (record.status === 'returned') {
-            throw new BadRequestException('Phiếu mượn này đã được trả rồi')
+        if (!record.returnRequested) {
+            throw new BadRequestException('Độc giả chưa yêu cầu trả sách này')
         }
 
-        // Gọi logic trả sách giống librarian, mặc định condition là 'good'
-        const result = await this.returnBook(recordId, 'good', undefined, userId)
+        // Cập nhật thời gian yêu cầu để đẩy xuống cuối danh sách
+        record.returnRequestedAt = new Date()
+        const saved = await this.borrowRepo.save(record)
+
+        this.realtime.emit('librarian:dashboard-update')
         
-        // Emit thêm reader event
-        this.realtime.emit('reader:dashboard-update')
-        
-        return {
-            ...result,
-            simulated: true,
-            message: 'Trả sách thành công (Mô phỏng)'
-        }
+        return saved
     }
+
 
     async renew(id: string, userId: string) {
         const record = await this.borrowRepo.findOne({

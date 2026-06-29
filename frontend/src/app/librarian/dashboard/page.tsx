@@ -19,6 +19,13 @@ export default function LibrarianDashboard() {
   const [stats, setStats] = useState<LibrarianStats | null>(null)
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [currentDateStr, setCurrentDateStr] = useState('')
+
+  useEffect(() => {
+    setCurrentDateStr(new Date().toLocaleDateString('vi-VN', {
+      weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric'
+    }))
+  }, [])
 
   const loadData = useCallback(async () => {
     try {
@@ -157,9 +164,7 @@ export default function LibrarianDashboard() {
           <div className="flex items-center gap-2 text-xs text-gray-400 bg-gray-50 rounded-xl px-3 py-1.5">
             <Clock className="w-3.5 h-3.5" />
             <span>
-              {new Date().toLocaleDateString('vi-VN', {
-                weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric'
-              })}
+              {currentDateStr}
             </span>
           </div>
         }

@@ -61,12 +61,6 @@ export class FinesController {
         return this.service.payFine(id, req.user.userId, body.method)
     }
 
-    @Post(':id/simulate-pay')
-    @ApiOperation({ summary: 'Mô phỏng thanh toán', description: 'Độc giả tự thanh toán phí (mô phỏng)' })
-    @ApiParam({ name: 'id', description: 'ID phí phạt' })
-    simulatePay(@Param('id') id: string, @Req() req: any) {
-        return this.service.simulatePayFine(id, req.user.userId)
-    }
 
     @Patch(':id/waive')
     @UseGuards(RolesGuard, ShiftGuard)
@@ -82,13 +76,17 @@ export class FinesController {
     // ── VNPay endpoints ──────────────────────────────────────────────────────
 
     @Post(':id/vnpay-pay')
-    @ApiOperation({ summary: 'Thanh toán VNPay', description: 'Tạo URL thanh toán VNPay cho khoản phí phạt' })
+    @ApiOperation({ summary: 'Thanh toán VNPay', description: 'Tạo URL thanh toán VNPay cho khoản phí phạt (reader + librarian)' })
     @ApiParam({ name: 'id', description: 'ID phí phạt' })
     async vnpayPay(@Param('id') id: string, @Req() req: any) {
         const fine = await this.service.getFineById(id)
         if (!fine) throw new NotFoundException('Không tìm thấy khoản phí')
         if (fine.status !== 'pending') throw new BadRequestException('Khoản phí này đã được xử lý')
-        if (fine.borrowRecord?.libraryCard?.userId !== req.user.userId) {
+
+        // Reader: chỉ được tạo URL cho phí của chính mình
+        // Librarian: được tạo URL cho bất kỳ phí nào
+        const isLibrarian = req.user.roles?.some(r => ['librarian', 'library_admin'].includes(r.name))
+        if (!isLibrarian && fine.borrowRecord?.libraryCard?.userId !== req.user.userId) {
             throw new BadRequestException('Bạn không có quyền thanh toán khoản phí này')
         }
 

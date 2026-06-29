@@ -27,4 +27,10 @@ export class LibrarianController {
     getPendingRequestsCount() {
         return this.librarianService.getPendingRequestsCount()
     }
+
+    @Get('cards/pending-count')
+    @ApiOperation({ summary: 'Số thẻ chờ duyệt', description: 'Lấy số lượng yêu cầu cấp thẻ đang chờ duyệt' })
+    getPendingCardsCount() {
+        return this.librarianService.getPendingCardsCount()
+    }
 }

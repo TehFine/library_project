@@ -10,9 +10,10 @@ interface MobileDrawerProps {
   isGuest?: boolean
   unreadCount?: number
   pendingRequestsCount?: number
+  pendingCardsCount?: number
 }
 
-export default function MobileDrawer({ open, onClose, isGuest, unreadCount, pendingRequestsCount }: MobileDrawerProps) {
+export default function MobileDrawer({ open, onClose, isGuest, unreadCount, pendingRequestsCount, pendingCardsCount }: MobileDrawerProps) {
   const pathname = usePathname()
   let nav = getNav(pathname)
 
@@ -66,7 +67,8 @@ export default function MobileDrawer({ open, onClose, isGuest, unreadCount, pend
               const active = pathname === item.href || pathname.startsWith(item.href + '/')
               const isNotif = item.href === '/reader/notifications'
               const isLibrarianRequest = item.href === '/librarian/borrows/requests'
-              const badgeCount = isLibrarianRequest ? pendingRequestsCount : (isNotif ? unreadCount : undefined)
+              const isLibrarianCard = item.href === '/librarian/cards'
+              const badgeCount = isLibrarianRequest ? pendingRequestsCount : (isLibrarianCard ? pendingCardsCount : (isNotif ? unreadCount : undefined))
               return (
                 <Link
                   key={item.href}

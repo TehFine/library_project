@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { VNPay, VnpLocale } from 'vnpay'
 import { Fine } from './entities/fine.entity'
+import { LibraryCard } from '@/modules/library-cards/entities/library-card.entity'
 import { RealtimeGateway } from '@/common/websocket/realtime.gateway'
 
 @Injectable()
@@ -14,6 +15,8 @@ export class VnpayService {
     constructor(
         @InjectRepository(Fine)
         private fineRepo: Repository<Fine>,
+        @InjectRepository(LibraryCard)
+        private cardRepo: Repository<LibraryCard>,
         private realtime: RealtimeGateway,
     ) {
         const tmnCode = process.env.VNPAY_TMN_CODE ?? ''
@@ -117,6 +120,9 @@ export class VnpayService {
             fine.receiptNumber = `VNPAY-${txnRef.substring(0, 30)}`
             await this.fineRepo.save(fine)
 
+            // Mở khóa thẻ nếu hết phí phạt
+            await this.unlockCardIfNoPendingFines(fine)
+
             // Emit realtime events
             this.realtime.emit('librarian:dashboard-update')
             this.realtime.emit('admin:dashboard-update')
@@ -130,6 +136,37 @@ export class VnpayService {
             }
             this.logger.error(`VNPay return update error: ${error}`)
             return { isSuccess: false, fineId: '', message: 'Lỗi cập nhật trạng thái thanh toán' }
+        }
+    }
+
+    /**
+     * Mở khóa thẻ thư viện nếu người dùng không còn phí phạt pending nào.
+     */
+    private async unlockCardIfNoPendingFines(paidFine: Fine) {
+        try {
+            const fineWithRelations = await this.fineRepo.findOne({
+                where: { id: paidFine.id },
+                relations: { borrowRecord: { libraryCard: true } }
+            })
+            const userId = fineWithRelations?.borrowRecord?.libraryCard?.userId
+            if (!userId) return
+
+            const remaining = await this.fineRepo.count({
+                relations: { borrowRecord: { libraryCard: true } },
+                where: {
+                    borrowRecord: { libraryCard: { userId } },
+                    status: 'pending'
+                }
+            })
+            if (remaining === 0) {
+                const card = await this.cardRepo.findOne({ where: { userId } })
+                if (card && card.status === 'locked') {
+                    card.status = 'active'
+                    await this.cardRepo.save(card)
+                }
+            }
+        } catch (err) {
+            this.logger.error('Lỗi khi mở khóa thẻ sau VNPay:', err)
         }
     }
 

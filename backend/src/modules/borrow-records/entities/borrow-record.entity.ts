@@ -42,6 +42,9 @@ export class BorrowRecord {
     @Column({ default: false })
     returnRequested: boolean
 
+    @Column({ type: 'timestamp', nullable: true })
+    returnRequestedAt: Date | null
+
     @Column({ default: 0 })
     renewalCount: number
 

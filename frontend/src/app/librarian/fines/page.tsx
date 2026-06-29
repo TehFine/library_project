@@ -6,11 +6,12 @@ import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
 import Select from '@/components/ui/Select'
 import Modal from '@/components/ui/Modal'
-import { librarianApi } from '@/lib/api'
+import { librarianApi, finesApi } from '@/lib/api'
 import { formatCurrency, cn } from '@/lib/utils'
 import { toast } from 'react-hot-toast'
 import { useShift } from '@/hooks/useShift'
-import { Check } from 'lucide-react'
+import { QRCodeSVG } from 'qrcode.react'
+import { Check, Smartphone, Loader2 } from 'lucide-react'
 
 
 export default function LibrarianFinesPage() {
@@ -23,6 +24,33 @@ export default function LibrarianFinesPage() {
   const [selectedFine, setSelectedFine] = useState<any | null>(null)
   const [receiptFine, setReceiptFine] = useState<any | null>(null)
   const [paymentMethod, setPaymentMethod] = useState('cash')
+  const [vnpayUrl, setVnpayUrl] = useState<string | null>(null)
+  const [vnpayLoading, setVnpayLoading] = useState(false)
+
+  // Fetch VNPay URL when QR Code is selected
+  useEffect(() => {
+    if (paymentMethod === 'qr' && selectedFine && !vnpayUrl && !vnpayLoading) {
+      generateVnpayUrl()
+    }
+  }, [paymentMethod, selectedFine])
+
+  // Reset VNPay URL when closing modal or switching fine
+  useEffect(() => {
+    setVnpayUrl(null)
+  }, [selectedFine])
+
+  async function generateVnpayUrl() {
+    if (!selectedFine) return
+    setVnpayLoading(true)
+    try {
+      const { paymentUrl } = await finesApi.vnpayPay(selectedFine.id)
+      setVnpayUrl(paymentUrl)
+    } catch (err: any) {
+      toast.error(err?.message || 'Không thể tạo URL thanh toán VNPay')
+    } finally {
+      setVnpayLoading(false)
+    }
+  }
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -180,6 +208,39 @@ export default function LibrarianFinesPage() {
                   </label>
                 ))}
               </div>
+
+              {/* QR Code display */}
+              {paymentMethod === 'qr' && (
+                <div className="mt-4 p-6 bg-white rounded-3xl border-2 border-dashed border-primary/30 text-center space-y-4">
+                  {vnpayLoading ? (
+                    <div className="flex flex-col items-center gap-3 py-8">
+                      <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                      <p className="text-sm text-gray-500">Đang tạo mã QR thanh toán...</p>
+                    </div>
+                  ) : vnpayUrl ? (
+                    <>
+                      <div className="inline-block p-4 bg-white rounded-2xl shadow-lg">
+                        <QRCodeSVG value={vnpayUrl} size={200} level="M" includeMargin />
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-center gap-2 text-sm font-bold text-gray-800">
+                          <Smartphone className="w-4 h-4 text-primary" />
+                          Quét mã QR bằng ứng dụng ngân hàng
+                        </div>
+                        <p className="text-xs text-gray-400">
+                          Độc giả dùng ứng dụng ngân hàng quét mã này để thanh toán qua VNPay.
+                          Sau khi thanh toán, khoản phí sẽ tự động được cập nhật.
+                        </p>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center gap-3 py-6">
+                      <p className="text-sm text-amber-600">Không thể tạo mã QR. Vui lòng thử lại hoặc chọn phương thức khác.</p>
+                      <Button variant="ghost" size="sm" onClick={generateVnpayUrl}>Thử lại</Button>
+                    </div>
+                  )}
+                </div>
+              )}
            </div>
 
            <div className="flex flex-col gap-2 pt-4 border-t border-gray-50">
