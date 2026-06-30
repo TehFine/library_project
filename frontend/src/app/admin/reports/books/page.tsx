@@ -323,8 +323,7 @@ export default function BookReportsPage() {
         /* Skeleton loading for each tab */
         activeTab === 'top' ? (
           <Card padding="none" className="overflow-hidden border border-slate-100 shadow-sm rounded-3xl">
-            <table className="w-full text-left">
-              <thead className="bg-slate-50/50 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
+            <table className="w-full text-left"><thead className="bg-slate-50/50 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
                 <tr>
                   {['#', 'Tên sách / Tác giả', 'Thể loại', 'Lượt mượn', 'TB mượn (ngày)'].map(h => (
                     <th key={h} className="px-6 py-4">{h}</th>
@@ -366,8 +365,7 @@ export default function BookReportsPage() {
           </div>
         ) : (
           <Card padding="none" className="overflow-hidden border border-slate-100 shadow-sm rounded-3xl">
-            <table className="w-full text-left">
-              <thead className="bg-slate-50/50 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
+            <table className="w-full text-left"><thead className="bg-slate-50/50 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
                 <tr>
                   {['Tên sách', activeTab === 'replenish' ? 'Bản sao hiện có' : 'Mã bản sao', activeTab === 'replenish' ? 'Lượt đặt trước' : 'Tình trạng', activeTab === 'replenish' ? 'Đề xuất' : 'Ngày nhập', 'Thao tác'].map(h => (
                     <th key={h} className="px-6 py-4">{h}</th>
@@ -400,8 +398,7 @@ export default function BookReportsPage() {
           {activeTab === 'top' && (
             <Card padding="none" className="border border-slate-100 shadow-sm rounded-3xl overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse min-w-[600px]">
-                <thead className="bg-slate-50/50 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
+              <table className="w-full text-left border-collapse min-w-[600px]"><thead className="bg-slate-50/50 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
                   <tr>
                     <th className="px-6 py-4">#</th>
                     <th className="px-6 py-4">Tên sách / Tác giả</th>
@@ -485,8 +482,7 @@ export default function BookReportsPage() {
               {/* Stock table */}
               <Card padding="none" className="border border-slate-100 shadow-sm rounded-3xl overflow-hidden">
                 <div className="overflow-x-auto">
-                <table className="w-full text-left min-w-[600px]">
-                  <thead className="bg-slate-50/50 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
+                <table className="w-full text-left min-w-[600px]"><thead className="bg-slate-50/50 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
                     <tr>
                       <th className="px-6 py-4">Tên sách</th>
                       <th className="px-6 py-4">Thể loại</th>
@@ -551,8 +547,7 @@ export default function BookReportsPage() {
           {activeTab === 'replenish' && (
             <Card padding="none" className="border border-slate-100 shadow-sm rounded-3xl overflow-hidden">
               <div className="overflow-x-auto">
-              <table className="w-full text-left min-w-[500px]">
-                <thead className="bg-slate-50/50 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
+              <table className="w-full text-left min-w-[500px]"><thead className="bg-slate-50/50 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
                   <tr>
                     <th className="px-6 py-4">Tên sách</th>
                     <th className="px-6 py-4 text-center">Bản sao hiện có</th>
@@ -588,8 +583,7 @@ export default function BookReportsPage() {
           {activeTab === 'disposal' && (
             <Card padding="none" className="border border-slate-100 shadow-sm rounded-3xl overflow-hidden">
               <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm min-w-[500px]">
-                <thead className="bg-slate-50/50 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
+              <table className="w-full text-left text-sm min-w-[500px]"><thead className="bg-slate-50/50 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
                   <tr>
                     <th className="px-6 py-4">Tên sách</th>
                     <th className="px-6 py-4">Mã bản sao</th>

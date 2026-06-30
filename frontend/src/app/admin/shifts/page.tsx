@@ -151,8 +151,7 @@ export default function AdminShiftsPage() {
       {/* Shifts List */}
       <Card padding="none" className="rounded-3xl overflow-hidden border-none shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
+          <table className="w-full text-left border-collapse"><thead>
               <tr className="bg-gray-50/50 border-b border-gray-100 text-[11px] font-bold text-gray-400 uppercase tracking-widest">
                 <th className="py-5 px-6">Thủ thư</th>
                 <th className="py-5 px-6">Giờ vào</th>

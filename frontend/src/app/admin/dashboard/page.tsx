@@ -242,8 +242,7 @@ export default function AdminDashboard() {
             </svg>
           </div>
           <div className="overflow-x-auto -mx-2 sm:mx-0 px-2 sm:px-0">
-            <table className="w-full min-w-[400px]">
-            <thead className="text-[10px] font-bold text-slate-400 uppercase border-b border-slate-100">
+            <table className="w-full min-w-[400px]"><thead className="text-[10px] font-bold text-slate-400 uppercase border-b border-slate-100">
               <tr>
                 <th className="pb-2 text-left">#</th>
                 <th className="pb-2 text-left">Tên sách</th>

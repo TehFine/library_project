@@ -172,8 +172,7 @@ export default function UsersManagementPage() {
       {/* User Table */}
       <Card padding="none" className="overflow-hidden border border-slate-100 shadow-sm rounded-3xl">
         <div className="overflow-x-auto">
-          <table className="w-full text-left min-w-[640px]">
-            <thead className="bg-slate-50/50 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
+          <table className="w-full text-left min-w-[640px]"><thead className="bg-slate-50/50 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
               <tr>
                 <th className="px-4 sm:px-6 py-4 whitespace-nowrap">Họ tên</th>
                 <th className="px-4 sm:px-6 py-4 whitespace-nowrap">Email / Username</th>
