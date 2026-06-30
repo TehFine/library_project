@@ -8,7 +8,7 @@ interface SearchBarProps {
   placeholder?: string
 }
 
-export default function SearchBar({ className, placeholder = 'Tìm kiếm tên sách hoặc tác giả...' }: SearchBarProps) {
+export default function SearchBar({ className, placeholder = 'tìm kiếm theo tên sách hoặc tác giả..' }: SearchBarProps) {
   const [value, setValue] = useState('')
   const [focused, setFocused] = useState(false)
   const router = useRouter()

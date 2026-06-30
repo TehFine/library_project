@@ -90,7 +90,10 @@ export class FinesController {
             throw new BadRequestException('Bạn không có quyền thanh toán khoản phí này')
         }
 
-        const ipAddr = req.ip || req.connection?.remoteAddress || '127.0.0.1'
+        let ipAddr = req.ip || req.connection?.remoteAddress || '127.0.0.1'
+        if (ipAddr === '::1' || ipAddr === '::ffff:127.0.0.1') {
+            ipAddr = '127.0.0.1'
+        }
         const paymentUrl = this.vnpayService.createPaymentUrl(id, Number(fine.amount), ipAddr)
 
         return { paymentUrl }

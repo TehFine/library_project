@@ -6,6 +6,7 @@ import { LibraryCard } from '../library-cards/entities/library-card.entity'
 import { Book } from '../books/entities/book.entity'
 import { BorrowRecord } from '../borrow-records/entities/borrow-record.entity'
 import { BorrowRecordsService } from '../borrow-records/borrow-records.service'
+import { Fine } from '../fines/entities/fine.entity'
 import { RealtimeGateway } from '@/common/websocket/realtime.gateway'
 
 @Injectable()
@@ -19,13 +20,43 @@ export class BorrowRequestsService {
         private bookRepo: Repository<Book>,
         @InjectRepository(BorrowRecord)
         private borrowRecordRepo: Repository<BorrowRecord>,
+        @InjectRepository(Fine)
+        private fineRepo: Repository<Fine>,
         private borrowRecordsService: BorrowRecordsService,
         private realtime: RealtimeGateway,
     ) { }
 
     async create(userId: string, bookId: string) {
-        const card = await this.cardRepo.findOneBy({ userId, status: 'active' })
-        if (!card) throw new BadRequestException('Bạn cần có thẻ thư viện đang hoạt động')
+        // KIỂM TRA: Thẻ thư viện — phải có thẻ đang hoạt động
+        const card = await this.cardRepo.findOne({ where: { userId }, relations: { user: true } })
+        if (!card) throw new BadRequestException('Bạn cần có thẻ thư viện để mượn sách')
+        if (card.status === 'locked') {
+            throw new BadRequestException('Thẻ thư viện của bạn đã bị khóa do có phí phạt chưa thanh toán. Vui lòng thanh toán phí phạt để tiếp tục mượn sách.')
+        }
+        if (card.status === 'expired') {
+            throw new BadRequestException('Thẻ thư viện của bạn đã hết hạn. Vui lòng gia hạn thẻ để tiếp tục mượn sách.')
+        }
+        if (card.status === 'rejected' || card.status === 'pending') {
+            throw new BadRequestException('Thẻ thư viện của bạn chưa được kích hoạt. Vui lòng liên hệ thủ thư.')
+        }
+        if (card.status !== 'active') {
+            throw new BadRequestException('Thẻ thư viện không hợp lệ')
+        }
+        if (!card.user?.isActive) {
+            throw new BadRequestException('Tài khoản của bạn đã bị khóa, không thể mượn sách')
+        }
+
+        // KIỂM TRA: Phí phạt chưa thanh toán
+        const unpaidFines = await this.fineRepo.count({
+            relations: { borrowRecord: { libraryCard: true } },
+            where: {
+                borrowRecord: { libraryCard: { userId } },
+                status: 'pending'
+            }
+        })
+        if (unpaidFines > 0) {
+            throw new BadRequestException('Bạn có phí phạt chưa thanh toán. Vui lòng thanh toán trước khi gửi yêu cầu mượn sách mới.')
+        }
 
         // KIỂM TRA: Người dùng đã đang mượn cuốn sách này chưa?
         const existingBorrow = await this.borrowRecordRepo.findOne({

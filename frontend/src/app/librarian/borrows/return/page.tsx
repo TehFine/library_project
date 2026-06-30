@@ -186,7 +186,8 @@ export default function ReturnBorrowPage() {
 
   const handleSubmit = async () => {
     try {
-      const res = await librarianApi.returnBook(selectedRecord.id, condition, totalFine > 0 ? paymentMethod : undefined)
+      const apiPaymentMethod = paymentMethod === 'later' ? undefined : paymentMethod;
+      const res = await librarianApi.returnBook(selectedRecord.id, condition, totalFine > 0 ? apiPaymentMethod : undefined)
       setReturnResult(res)
       setIsSuccess(true)
       toast.success('Nhận trả sách thành công')
@@ -207,15 +208,20 @@ export default function ReturnBorrowPage() {
             <div>
               <h3 className="text-2xl font-bold text-gray-900">Nhận trả sách thành công!</h3>
               <p className="text-gray-500 mt-2">Sách <span className="font-bold text-gray-900">{selectedRecord?.bookCopy?.book?.title}</span> đã được nhập kho.</p>
-              {totalFine > 0 && (
+              {totalFine > 0 && paymentMethod !== 'later' && (
                 <div className="mt-4 p-4 bg-amber-50 rounded-2xl border border-amber-100 inline-block">
                    <p className="text-amber-800 font-medium">Đã thu phí phạt: <span className="font-bold text-lg">{formatCurrency(totalFine)}</span></p>
+                </div>
+              )}
+              {totalFine > 0 && paymentMethod === 'later' && (
+                <div className="mt-4 p-4 bg-red-50 rounded-2xl border border-red-100 inline-block">
+                   <p className="text-red-800 font-medium">Đã ghi nhận nợ phí phạt: <span className="font-bold text-lg">{formatCurrency(totalFine)}</span>. Thẻ độc giả đã bị khóa.</p>
                 </div>
               )}
             </div>
 
             <div className="flex justify-center gap-4 pt-6">
-              {totalFine > 0 && <Button variant="ghost" onClick={() => window.print()}><Printer className="w-4 h-4" /> In biên lai</Button>}
+              {totalFine > 0 && paymentMethod !== 'later' && <Button variant="ghost" onClick={() => window.print()}><Printer className="w-4 h-4" /> In biên lai</Button>}
               <Button variant="secondary" onClick={() => { setStep(1); setIsSuccess(false); setSelectedRecord(null); setSearchRecord(''); setCondition('good'); setConditionNote(''); setTitleSearchResults([]) }}>Nhận trả tiếp</Button>
               <Link href="/librarian/dashboard">
                 <Button variant="primary">Về tổng quan</Button>
@@ -470,10 +476,10 @@ export default function ReturnBorrowPage() {
                   <div className="space-y-3">
                     <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Hình thức thanh toán</label>
                     <div className="flex gap-3">
-                      {['cash', 'transfer', 'qr'].map(m => (
+                      {['cash', 'transfer', 'qr', 'later'].map(m => (
                         <label key={m} className={`flex-1 flex items-center justify-center p-3 rounded-xl border cursor-pointer transition-all ${paymentMethod === m ? 'bg-primary/5 border-primary text-primary font-bold' : 'border-gray-100 hover:bg-gray-50'}`}>
                           <input type="radio" checked={paymentMethod === m} onChange={() => setPaymentMethod(m)} className="hidden" />
-                          <span className="capitalize">{m === 'cash' ? 'Tiền mặt' : m === 'transfer' ? 'Chuyển khoản' : 'QR Code'}</span>
+                          <span className="capitalize text-center">{m === 'cash' ? 'Tiền mặt' : m === 'transfer' ? 'Chuyển khoản' : m === 'qr' ? 'QR Code' : 'Thu sau (Khóa thẻ)'}</span>
                         </label>
                       ))}
                     </div>

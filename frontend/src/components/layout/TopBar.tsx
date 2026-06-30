@@ -1,6 +1,5 @@
 'use client'
 import Link from 'next/link'
-import SearchBar from '@/components/ui/SearchBar'
 import UserAvatar from '@/components/ui/UserAvatar'
 import { User } from '@/types'
 import { cn } from '@/lib/utils'
@@ -8,12 +7,11 @@ import { cn } from '@/lib/utils'
 interface TopBarProps {
   user: User | null
   isGuest?: boolean
-  hideSearch?: boolean
   hideMobileAvatar?: boolean
   onMenuToggle?: () => void
 }
 
-export default function TopBar({ user, isGuest, hideSearch, hideMobileAvatar, onMenuToggle }: TopBarProps) {
+export default function TopBar({ user, isGuest, hideMobileAvatar, onMenuToggle }: TopBarProps) {
   return (
     <>
       <header className="h-14 shrink-0 flex items-center gap-3 sm:gap-4 px-2 sm:px-4">
@@ -28,13 +26,6 @@ export default function TopBar({ user, isGuest, hideSearch, hideMobileAvatar, on
               <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
             </svg>
           </button>
-        )}
-
-        {/* Search bar — hidden on admin, hidden on mobile (< sm) */}
-        {!hideSearch && (
-          <div className="hidden sm:flex flex-1 justify-center">
-            <SearchBar />
-          </div>
         )}
 
         {/* Spacer — đẩy avatar/login sang phải trên mobile */}

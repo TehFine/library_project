@@ -40,7 +40,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div className="flex-1 flex flex-col min-w-0 gap-2 sm:gap-3">
 
         {/* TopBar lives on the amber background — hide search on admin */}
-        <TopBar user={mockAdmin} hideSearch onMenuToggle={() => setDrawerOpen(v => !v)} hideMobileAvatar={drawerOpen} />
+        <TopBar user={mockAdmin} onMenuToggle={() => setDrawerOpen(v => !v)} hideMobileAvatar={drawerOpen} />
 
         {/*
          * Main content card — white, rounded, takes all remaining height.

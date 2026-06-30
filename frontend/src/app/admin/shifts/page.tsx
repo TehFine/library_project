@@ -54,6 +54,14 @@ export default function AdminShiftsPage() {
     loadData()
   }, [loadData])
 
+  const getTimezoneOffset = () => {
+    const offset = -new Date().getTimezoneOffset()
+    const sign = offset >= 0 ? '+' : '-'
+    const hours = Math.floor(Math.abs(offset) / 60)
+    const minutes = Math.abs(offset) % 60
+    return `${sign}${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
+  }
+
   const handleCreateShift = async () => {
     if (!newShift.librarianId || !newShift.startDate || !newShift.endDate) {
       toast.error('Vui lòng điền đầy đủ thông tin')
@@ -61,10 +69,11 @@ export default function AdminShiftsPage() {
     }
     setIsCreating(true)
     try {
+      const tz = getTimezoneOffset()
       await adminApi.createShift({
         librarianId: newShift.librarianId,
-        startTime: `${newShift.startDate}T${newShift.startTime}:00`,
-        endTime: `${newShift.endDate}T${newShift.endTime}:00`,
+        startTime: `${newShift.startDate}T${newShift.startTime}:00${tz}`,
+        endTime: `${newShift.endDate}T${newShift.endTime}:00${tz}`,
         note: newShift.note || undefined,
       })
       toast.success('Đã tạo ca trực mới')

@@ -29,21 +29,21 @@ export class BookCopySubscriber implements EntitySubscriberInterface<BookCopy> {
     }
 
     async afterInsert(event: InsertEvent<BookCopy>): Promise<void> {
-        const bookId = event.entity?.bookId
+        const bookId = event.entity?.bookId ?? event.entity?.book?.id
         if (bookId) {
             await this.recalculate(bookId, event.manager)
         }
     }
 
     async afterUpdate(event: UpdateEvent<BookCopy>): Promise<void> {
-        const bookId = event.entity?.bookId ?? event.databaseEntity?.bookId
+        const bookId = event.entity?.bookId ?? event.entity?.book?.id ?? event.databaseEntity?.bookId ?? event.databaseEntity?.book?.id
         if (bookId) {
             await this.recalculate(bookId as string, event.manager)
         }
     }
 
     async afterRemove(event: RemoveEvent<BookCopy>): Promise<void> {
-        const bookId = event.databaseEntity?.bookId
+        const bookId = event.databaseEntity?.bookId ?? event.databaseEntity?.book?.id
         if (bookId) {
             await this.recalculate(bookId, event.manager)
         }

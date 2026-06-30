@@ -5,6 +5,7 @@ import { Repository, LessThan } from 'typeorm'
 import { toLocalDateStr } from '@/common/utils/date'
 import { Fine } from './entities/fine.entity'
 import { BorrowRecord } from '@/modules/borrow-records/entities/borrow-record.entity'
+import { LibraryCard } from '@/modules/library-cards/entities/library-card.entity'
 import { SystemConfig } from '@/modules/admin/entities/system-config.entity'
 import { RealtimeGateway } from '@/common/websocket/realtime.gateway'
 
@@ -17,6 +18,8 @@ export class FinesCronService {
         private fineRepo: Repository<Fine>,
         @InjectRepository(BorrowRecord)
         private borrowRepo: Repository<BorrowRecord>,
+        @InjectRepository(LibraryCard)
+        private cardRepo: Repository<LibraryCard>,
         @InjectRepository(SystemConfig)
         private configRepo: Repository<SystemConfig>,
         private realtime: RealtimeGateway,
@@ -57,6 +60,7 @@ export class FinesCronService {
                     { status: 'borrowing', dueDate: LessThan(todayStr) },
                     { status: 'overdue' },
                 ],
+                relations: { libraryCard: true },
             })
 
             if (overdueBorrows.length === 0) return
@@ -71,12 +75,17 @@ export class FinesCronService {
             )
 
             const changedFines: Fine[] = []
+            const lockedUserIds = new Set<string>()
             const now = new Date()
 
             // Đọc rates động từ system_config
             const rates = await this.getFineRates()
 
             for (const record of overdueBorrows) {
+                // Lấy userId để khóa thẻ sau này
+                if (record.libraryCard?.userId) {
+                    lockedUserIds.add(record.libraryCard.userId)
+                }
                 const dueDate = new Date(record.dueDate)
                 dueDate.setHours(0, 0, 0, 0)
                 const todayDate = new Date(todayStr)
@@ -115,6 +124,21 @@ export class FinesCronService {
 
             if (changedFines.length > 0) {
                 await this.fineRepo.save(changedFines)
+
+                // Khóa thẻ thư viện của những độc giả có phí phạt mới
+                for (const userId of lockedUserIds) {
+                    try {
+                        const card = await this.cardRepo.findOne({ where: { userId } })
+                        if (card && card.status === 'active') {
+                            card.status = 'locked'
+                            await this.cardRepo.save(card)
+                            this.logger.log(`Đã khóa thẻ thư viện của user ${userId} do phí phạt quá hạn`)
+                        }
+                    } catch (err) {
+                        this.logger.error(`Lỗi khi khóa thẻ user ${userId}:`, err)
+                    }
+                }
+
                 this.logger.log(`Đã cập nhật ${changedFines.length} khoản phí phạt cho sách quá hạn`)
                 this.realtime.emit('librarian:dashboard-update')
                 this.realtime.emit('admin:dashboard-update')

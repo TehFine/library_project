@@ -21,12 +21,19 @@ export class VnpayService {
     ) {
         const tmnCode = process.env.VNPAY_TMN_CODE ?? ''
         const secureSecret = process.env.VNPAY_HASH_SECRET ?? ''
+        const rawAlgorithm = process.env.VNPAY_HASH_ALGORITHM ?? 'SHA512'
+        const validAlgorithms = ['SHA256', 'SHA512', 'MD5']
+        const hashAlgorithm = validAlgorithms.includes(rawAlgorithm) ? rawAlgorithm : 'SHA512'
+        // Note: HashAlgorithm is typed as numeric enum but library uses strings at runtime
         const backendUrl = process.env.BACKEND_URL ?? 'http://localhost:3001'
         this.returnUrl = `${backendUrl}/api/fines/vnpay-return`
+
+        this.logger.log(`[CONFIG] VNPay: tmnCode="${tmnCode}", hashAlgorithm="${hashAlgorithm}", testMode=true, returnUrl="${this.returnUrl}"`)
 
         this.vnpay = new VNPay({
             tmnCode,
             secureSecret,
+            hashAlgorithm: hashAlgorithm as any,
             vnp_Locale: VnpLocale.VN,
             testMode: true,
         })
@@ -47,7 +54,7 @@ export class VnpayService {
         const buildData = {
             vnp_Amount: amount,
             vnp_TxnRef: txnRef,
-            vnp_OrderInfo: `Thanh toan phi phat thu vien`,
+            vnp_OrderInfo: `Thanh_toan_phi_phat_thu_vien`,
             vnp_ReturnUrl: this.returnUrl,
             vnp_IpAddr: ipAddr,
         }
@@ -85,11 +92,69 @@ export class VnpayService {
         this.logger.log(`[DEBUG] Params for hash verification: ${JSON.stringify(paramsForHash)}`)
         this.logger.log(`[DEBUG] Received vnp_SecureHash="${receivedHash}"`)
 
-        const verify = this.vnpay.verifyReturnUrl(query as any)
-        this.logger.log(`VNPay return verify: isVerified=${verify.isVerified}, isSuccess=${verify.isSuccess}, vnp_ResponseCode=${verify.vnp_ResponseCode}`)
+        // Validate that we have a hash to verify
+        if (!receivedHash) {
+            this.logger.warn('VNPay return called without vnp_SecureHash — missing query params')
+            return { isSuccess: false, fineId: '', message: 'Thiếu thông tin xác thực từ VNPay' }
+        }
+
+        let verify: any
+        try {
+            verify = this.vnpay.verifyReturnUrl(query as any)
+        } catch (err) {
+            this.logger.error(`VNPay verifyReturnUrl threw an exception: ${err}`)
+            return { isSuccess: false, fineId: '', message: 'Lỗi xác thực chữ ký VNPay' }
+        }
+
+        this.logger.log(`VNPay return verify: isVerified=${verify?.isVerified}, isSuccess=${verify?.isSuccess}, vnp_ResponseCode=${verify?.vnp_ResponseCode}`)
         this.logger.log(`[DEBUG] verify object: ${JSON.stringify(verify)}`)
 
-        if (!verify.isVerified) {
+        // Fallback: Manual signature verification if the library fails (due to encoding differences like + vs %20)
+        if (!verify?.isVerified) {
+            this.logger.warn(`[DEBUG] Library verification failed, attempting manual fallback verification...`)
+            const secureSecret = process.env.VNPAY_HASH_SECRET ?? ''
+            const rawAlgorithm = process.env.VNPAY_HASH_ALGORITHM ?? 'SHA512'
+            const hashAlgorithm = ['SHA256', 'SHA512', 'MD5'].includes(rawAlgorithm) ? rawAlgorithm : 'SHA512'
+
+            const sortedKeys = Object.keys(paramsForHash).sort()
+            const signParams: string[] = []
+            for (const key of sortedKeys) {
+                if (paramsForHash[key] !== '' && paramsForHash[key] !== undefined && paramsForHash[key] !== null) {
+                    // Try RFC 3986 encoding (some VNPay systems expect %20 for space, others expect +)
+                    // We'll use encodeURIComponent which generates %20. If it fails, we can also try +.
+                    signParams.push(`${key}=${encodeURIComponent(String(paramsForHash[key]))}`)
+                }
+            }
+            const signString = signParams.join('&')
+            const crypto = require('crypto')
+            const hmac = crypto.createHmac(hashAlgorithm === 'SHA256' ? 'sha256' : 'sha512', secureSecret)
+            const signed = hmac.update(Buffer.from(signString, 'utf-8')).digest('hex')
+            
+            if (signed === receivedHash) {
+                this.logger.log(`[DEBUG] Manual verification SUCCESS (RFC 3986)!`)
+                verify = { isVerified: true, isSuccess: String(query.vnp_ResponseCode) === '00', vnp_ResponseCode: query.vnp_ResponseCode, vnp_TxnRef: query.vnp_TxnRef }
+            } else {
+                // Try with + instead of %20
+                const signParamsPlus: string[] = []
+                for (const key of sortedKeys) {
+                    if (paramsForHash[key] !== '' && paramsForHash[key] !== undefined && paramsForHash[key] !== null) {
+                        signParamsPlus.push(`${key}=${encodeURIComponent(String(paramsForHash[key])).replace(/%20/g, '+')}`)
+                    }
+                }
+                const signStringPlus = signParamsPlus.join('&')
+                const hmacPlus = crypto.createHmac(hashAlgorithm === 'SHA256' ? 'sha256' : 'sha512', secureSecret)
+                const signedPlus = hmacPlus.update(Buffer.from(signStringPlus, 'utf-8')).digest('hex')
+                
+                if (signedPlus === receivedHash) {
+                    this.logger.log(`[DEBUG] Manual verification SUCCESS (using + for spaces)!`)
+                    verify = { isVerified: true, isSuccess: String(query.vnp_ResponseCode) === '00', vnp_ResponseCode: query.vnp_ResponseCode, vnp_TxnRef: query.vnp_TxnRef }
+                } else {
+                    this.logger.error(`[DEBUG] Manual verification failed. Expected: ${receivedHash}. Got: ${signed} (RFC3986) or ${signedPlus} (Plus)`)
+                }
+            }
+        }
+
+        if (!verify?.isVerified) {
             return { isSuccess: false, fineId: '', message: 'Chữ ký không hợp lệ' }
         }
 

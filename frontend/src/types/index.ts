@@ -22,7 +22,7 @@ export interface AuthResponse {
 }
 
 // ── Library Card ──────────────────────────────────────────────────────────────
-export type CardStatus = 'pending' | 'active' | 'expired' | 'suspended' | 'cancelled' | 'rejected'
+export type CardStatus = 'pending' | 'active' | 'expired' | 'suspended' | 'locked' | 'cancelled' | 'rejected'
 
 export interface LibraryCard {
   id: string
