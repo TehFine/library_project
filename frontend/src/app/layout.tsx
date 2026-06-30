@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { Toaster } from 'react-hot-toast'
 import { ToastProvider } from '@/hooks/useToast'
+import GlobalErrorHandler from '@/components/GlobalErrorHandler'
 
 const inter = Inter({
   subsets: ['latin', 'vietnamese'],
@@ -21,7 +22,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <ToastProvider>
           <Toaster position="bottom-right" toastOptions={{ duration: 3500 }} />
-          {children}
+          <GlobalErrorHandler>
+            {children}
+          </GlobalErrorHandler>
           {/* Custom toast system is also available via useToast() */}
         </ToastProvider>
       </body>
