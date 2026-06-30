@@ -178,15 +178,16 @@ export default function ProfilePage() {
 
   const loadData = useCallback(() => {
     Promise.all([
-      authApi.me(),
-      cardsApi.mine(),
+      authApi.me().catch(() => null as unknown as User),
+      cardsApi.mine().catch(() => [] as LibraryCard[]),
     ]).then(([me, cards]) => {
+      if (!me) { setLoading(false); return }
       setUser(me)
       setFullName(me.fullName ?? '')
       setPhone(me.phone ?? '')
       setAddress(me.address ?? '')
       setDateOfBirth(me.dateOfBirth ?? '')
-      setCard(cards.find(c => c.status === 'active') ?? cards[0] ?? null)
+      setCard(Array.isArray(cards) ? cards.find(c => c.status === 'active') ?? cards[0] ?? null : null)
     }).finally(() => setLoading(false))
   }, [])
 

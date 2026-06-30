@@ -87,15 +87,15 @@ export default function DashboardPage() {
 
   const loadData = useCallback(() => {
     Promise.all([
-      cardsApi.mine(),
-      borrowsApi.mine({ status: 'borrowing', limit: 5 }),
-      reservationsApi.mine({ status: 'waiting,notified', limit: 5 }),
-      finesApi.mine({ status: 'pending', limit: 5 }),
+      cardsApi.mine().catch(() => [] as LibraryCard[]),
+      borrowsApi.mine({ status: 'borrowing', limit: 5 }).catch(() => ({ data: [] })),
+      reservationsApi.mine({ status: 'waiting,notified', limit: 5 }).catch(() => ({ data: [] })),
+      finesApi.mine({ status: 'pending', limit: 5 }).catch(() => ({ data: [] })),
     ]).then(([cards, bs, rs, fs]) => {
-      setCard(cards.find(c => c.status === 'active') ?? null)
-      setBorrows(bs.data)
-      setReservations(rs.data)
-      setPendingFines(fs.data)
+      setCard(Array.isArray(cards) ? cards.find(c => c.status === 'active') ?? null : null)
+      setBorrows(bs?.data ?? [])
+      setReservations(rs?.data ?? [])
+      setPendingFines(fs?.data ?? [])
     }).finally(() => setLoading(false))
   }, [])
 

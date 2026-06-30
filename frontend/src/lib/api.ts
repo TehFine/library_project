@@ -29,14 +29,15 @@ async function request<T>(
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
-    
-    // Auto logout on 401
+
+    // Auto logout & redirect on 401, then return early to avoid unhandled rejection
     if (res.status === 401 && typeof window !== 'undefined' && !skipAuthRedirect) {
       localStorage.removeItem('access_token')
       localStorage.removeItem('user')
       if (!window.location.pathname.startsWith('/auth')) {
         window.location.href = '/auth/login'
       }
+      return undefined as T
     }
 
     throw new ApiError(res.status, body.message ?? 'Đã có lỗi xảy ra')

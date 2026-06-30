@@ -47,11 +47,11 @@ export default function BookDetailPage() {
       setUser(u)
       if (u) {
         const [userCards, myRequests, myBorrows] = await Promise.all([
-          cardsApi.mine(),
+          cardsApi.mine().catch(() => [] as LibraryCard[]),
           borrowRequestsApi.mine().catch(() => []),
           borrowsApi.mine({ status: 'borrowing', limit: 100 }).catch(() => ({ data: [] }))
         ])
-        setCards(userCards)
+        setCards(Array.isArray(userCards) ? userCards : [])
         // Kiểm tra nếu đã có yêu cầu mượn đang chờ xử lý cho cuốn sách này
         const hasPendingRequest = myRequests.some(
           (r: any) => r.bookId === id && r.status === 'pending'
