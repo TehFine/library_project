@@ -31,6 +31,8 @@ export default function NewBorrowPage() {
   const [isSearchingBookTitle, setIsSearchingBookTitle] = useState(false)
   const [selectedBookForCopies, setSelectedBookForCopies] = useState<any>(null)
   const [availableCopies, setAvailableCopies] = useState<any[]>([])
+  const [activeReservationsCount, setActiveReservationsCount] = useState<number>(0)
+  const [freeToLendCount, setFreeToLendCount] = useState<number>(0)
   const [loadingCopies, setLoadingCopies] = useState(false)
 
   // Scanner state
@@ -160,6 +162,8 @@ export default function NewBorrowPage() {
     setSelectedBookForCopies(bookId)
     setLoadingCopies(true)
     setAvailableCopies([])
+    setActiveReservationsCount(0)
+    setFreeToLendCount(0)
     try {
       const res = await librarianApi.getAvailableCopies(bookId)
       const copies = res.availableCopies ?? []
@@ -168,6 +172,8 @@ export default function NewBorrowPage() {
         setSelectedBookForCopies(null)
       }
       setAvailableCopies(copies)
+      setActiveReservationsCount(res.activeReservationsCount || 0)
+      setFreeToLendCount(res.freeToLendCount || 0)
     } catch (err: any) {
       toast.error(err?.message || 'Lỗi khi lấy danh sách bản sao')
       setSelectedBookForCopies(null)
@@ -448,6 +454,19 @@ export default function NewBorrowPage() {
                         ← Tìm lại
                       </button>
                     </div>
+                    {activeReservationsCount > 0 && (
+                      <div className={`p-3 rounded-xl border flex items-start gap-2 text-sm ${freeToLendCount > 0 ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-red-50 border-red-200 text-red-800'}`}>
+                        <TriangleAlert className="w-5 h-5 shrink-0" />
+                        <div>
+                          <p className="font-bold">Sách này đang có {activeReservationsCount} đặt trước chờ lấy!</p>
+                          <p className="text-xs mt-0.5 opacity-90">
+                            {freeToLendCount <= 0 
+                              ? 'Tất cả các bản sao hiện tại phải được giữ cho người đặt trước. Không thể cho mượn tự do.' 
+                              : `Chỉ có thể cho mượn tự do tối đa ${freeToLendCount} bản.`}
+                          </p>
+                        </div>
+                      </div>
+                    )}
                     {loadingCopies ? (
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                         {[...Array(3)].map((_, i) => (
@@ -456,14 +475,16 @@ export default function NewBorrowPage() {
                       </div>
                     ) : (
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                        {availableCopies.map((copy: any) => (
+                        {availableCopies.map((copy: any) => {
+                          const disabled = !!selectedBooks.find(b => b.id === copy.id) || freeToLendCount <= 0;
+                          return (
                           <button
                             key={copy.id}
                             onClick={() => handleSelectCopy(copy)}
-                            disabled={!!selectedBooks.find(b => b.id === copy.id)}
+                            disabled={disabled}
                             className={cn(
                               'p-4 rounded-2xl border-2 text-left transition-all',
-                              selectedBooks.find(b => b.id === copy.id)
+                              disabled
                                 ? 'border-gray-200 bg-gray-50 opacity-50 cursor-not-allowed'
                                 : 'border-emerald-100 bg-emerald-50/50 hover:border-emerald-400 hover:bg-emerald-50 hover:shadow-md cursor-pointer',
                             )}
@@ -474,7 +495,7 @@ export default function NewBorrowPage() {
                             </p>
                             <p className="text-[10px] text-emerald-600 font-semibold mt-1 flex items-center gap-1"><Check className="w-3 h-3" /> Có sẵn</p>
                           </button>
-                        ))}
+                        )})}
                       </div>
                     )}
                   </div>
