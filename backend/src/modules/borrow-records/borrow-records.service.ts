@@ -85,6 +85,22 @@ export class BorrowRecordsService {
                 if (copy.status !== 'reserved') throw new BadRequestException('Bản sao này chưa được giữ cho đặt trước')
             } else {
                 if (copy.status !== 'available') throw new BadRequestException('Sách không có sẵn để mượn')
+
+                const activeReservations = await this.resRepo.count({
+                    where: { bookId: copy.bookId, status: In(['waiting', 'notified']) }
+                })
+
+                if (activeReservations > 0) {
+                    const availableCopiesCount = await this.copyRepo.count({
+                        where: { bookId: copy.bookId, status: 'available' }
+                    })
+
+                    if (availableCopiesCount <= activeReservations) {
+                        throw new BadRequestException(
+                            `Sách này đang có ${activeReservations} đặt trước đang chờ. Không thể cho mượn vì cần giữ bản sao cho người đã đặt trước.`
+                        )
+                    }
+                }
             }
 
             // KIỂM TRA: Người dùng đã mượn cuốn sách này chưa?

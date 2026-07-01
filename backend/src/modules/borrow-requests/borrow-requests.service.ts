@@ -7,6 +7,7 @@ import { Book } from '../books/entities/book.entity'
 import { BorrowRecord } from '../borrow-records/entities/borrow-record.entity'
 import { BorrowRecordsService } from '../borrow-records/borrow-records.service'
 import { Fine } from '../fines/entities/fine.entity'
+import { Reservation } from '../reservations/entities/reservation.entity'
 import { RealtimeGateway } from '@/common/websocket/realtime.gateway'
 
 @Injectable()
@@ -22,6 +23,8 @@ export class BorrowRequestsService {
         private borrowRecordRepo: Repository<BorrowRecord>,
         @InjectRepository(Fine)
         private fineRepo: Repository<Fine>,
+        @InjectRepository(Reservation)
+        private resRepo: Repository<Reservation>,
         private borrowRecordsService: BorrowRecordsService,
         private realtime: RealtimeGateway,
     ) { }
@@ -81,6 +84,13 @@ export class BorrowRequestsService {
         const book = await this.bookRepo.findOneBy({ id: bookId })
         if (!book) throw new BadRequestException('Sách không tồn tại')
         if (book.availableCopies <= 0) throw new BadRequestException('Sách hiện không còn bản sao nào có sẵn')
+
+        const activeReservations = await this.resRepo.count({
+            where: { bookId, status: In(['waiting', 'notified']) }
+        })
+        if (activeReservations > 0 && book.availableCopies <= activeReservations) {
+            throw new BadRequestException('Tất cả bản sao hiện đang được giữ cho người đặt trước')
+        }
 
         // KIỂM TRA: Số sách đang mượn có vượt quá giới hạn không?
         const maxBorrow = parseInt(process.env.MAX_BORROW ?? '3', 10) || 3
