@@ -1,8 +1,9 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository, ILike } from 'typeorm'
+import { Repository, ILike, In } from 'typeorm'
 import { Book } from './entities/book.entity'
 import { BookCopy } from './entities/book-copy.entity'
+import { Reservation } from '@/modules/reservations/entities/reservation.entity'
 import { RealtimeGateway } from '@/common/websocket/realtime.gateway'
 import { ReservationsService } from '@/modules/reservations/reservations.service'
 
@@ -13,6 +14,8 @@ export class BooksService {
         private booksRepository: Repository<Book>,
         @InjectRepository(BookCopy)
         private bookCopiesRepository: Repository<BookCopy>,
+        @InjectRepository(Reservation)
+        private reservationRepository: Repository<Reservation>,
         private realtime: RealtimeGateway,
         private reservationsService: ReservationsService,
     ) { }
@@ -193,9 +196,18 @@ export class BooksService {
             order: { copyCode: 'ASC' }
         })
 
+        const activeReservationsCount = await this.reservationRepository.count({
+            where: {
+                bookId,
+                status: In(['waiting', 'notified'])
+            }
+        })
+
         return {
             book,
-            availableCopies: copies
+            availableCopies: copies,
+            activeReservationsCount,
+            freeToLendCount: Math.max(0, copies.length - activeReservationsCount)
         }
     }
 }
